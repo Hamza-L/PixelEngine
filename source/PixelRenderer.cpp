@@ -28,6 +28,11 @@ bool PixelRenderer::windowShouldClose()
 	return pixWindow.shouldClose();
 }
 
+void PixelRenderer::cleanup()
+{
+	vkDestroyInstance(instance, nullptr);
+}
+
 void PixelRenderer::createInstance()
 {
 	//information about the application itself
@@ -53,5 +58,62 @@ void PixelRenderer::createInstance()
 	const char** glfwExtensions;
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
+	//add glfw extensions to list of extentions
+	for (size_t i = 0; i < glfwExtensionCount; i++)
+	{
+		instanceExtensions.push_back(glfwExtensions[i]);
+	}
+
+	//check if instance extensions are supported
+	if (!checkInstanceExtensionSupport(&instanceExtensions))
+	{
+		throw std::runtime_error("vkinstance does not support the required extensions\n");
+	}
+
+	createInfo.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.size());
+	createInfo.ppEnabledExtensionNames = instanceExtensions.data();
+
+	//for the validation layer
+	createInfo.enabledLayerCount = 0;
+	createInfo.ppEnabledLayerNames = nullptr;
+
+	//create the vulkan instance
+	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create a vulkan instance \n");
+	}
+
+}
+
+bool PixelRenderer::checkInstanceExtensionSupport(std::vector<const char*>* checkExtensions)
+{
+	//get the number of extensions
+	uint32_t extensionCount = 0;
+	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+
+	//create a vector of the size of extensions and populate it
+	std::vector<VkExtensionProperties> extensions(extensionCount);
+	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+
+	for (const auto &checkExtension: *checkExtensions)
+	{
+		bool hasExtension = false;
+		for (const auto& extension : extensions)
+		{
+			if (strcmp(checkExtension, extension.extensionName))
+			{
+				hasExtension = true;
+				break;
+			}
+		}
+
+		if (!hasExtension)
+		{
+			return false;
+		}
+
+	}
+
+	return true;
 
 }

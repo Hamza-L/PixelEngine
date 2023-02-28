@@ -20,5 +20,7 @@ int main()
 		glfwPollEvents();
 	}
 
+	pixRenderer.cleanup();
+
 	return 0;
 }

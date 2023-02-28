@@ -14,15 +14,20 @@ public:
 
 	int initRenderer();
 	bool windowShouldClose();
+	void cleanup();
 
 private:
 	//window component
 	PixelWindow pixWindow;
 
 	//vulkan component
-	VkInstance instance;
+	VkInstance instance{};
 
-	//vulkan functions
+	//---------vulkan functions
+	//create functions
 	void createInstance();
+
+	//helper functions
+	bool checkInstanceExtensionSupport(std::vector<const char*>* checkExtensions);
 };
 
