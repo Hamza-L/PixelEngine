@@ -13,6 +13,7 @@ int PixelRenderer::initRenderer()
 	pixWindow.initWindow();
 	try {
 		createInstance();
+		setupPhysicalDevice();
 	}
 	catch(const std::runtime_error &e)
 	{
@@ -85,6 +86,35 @@ void PixelRenderer::createInstance()
 
 }
 
+void PixelRenderer::setupPhysicalDevice()
+{
+	// Enumerate the gpu devices available and fill list
+	uint32_t deviceCount = 0;
+	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+
+	if (deviceCount == 0)
+	{
+		std::runtime_error("Cannot find any GPU device with vulkan support\n");
+	}
+
+	std::vector<VkPhysicalDevice> deviceList(deviceCount);
+	vkEnumeratePhysicalDevices(instance, &deviceCount, deviceList.data());
+
+	mainDevice.physicalDevice = deviceList[0];
+}
+
+PixelRenderer::QueueFamilyIndices PixelRenderer::setupQueueFamilies(VkPhysicalDevice device)
+{
+	QueueFamilyIndices indices;
+
+	//get all queue family property info for the given device
+	uint32_t queueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+	std::vector<VkQueueFamilyProperties> queueFamilyList(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilyList.data());
+}
+
 bool PixelRenderer::checkInstanceExtensionSupport(std::vector<const char*>* checkExtensions)
 {
 	//get the number of extensions
@@ -116,4 +146,19 @@ bool PixelRenderer::checkInstanceExtensionSupport(std::vector<const char*>* chec
 
 	return true;
 
+}
+
+bool PixelRenderer::checkIfPhysicalDeviceSuitable(VkPhysicalDevice device)
+{
+	//check the properties of the device that has been passed down (ie vendor, ID, etc..)
+	VkPhysicalDeviceProperties deviceProperties;
+	vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+	//get the features supported by the GPU
+	VkPhysicalDeviceFeatures deviceFeatures;
+	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+
+
+	return true;
 }
