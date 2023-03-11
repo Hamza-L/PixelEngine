@@ -1,8 +1,15 @@
 #pragma once
 
+#ifdef NDEBUG
+const bool enableValidationLayers = false;
+#else
+const bool enableValidationLayers = true;
+#endif
+
 #include "PixelWindow.h"
 
 #include <vector>
+#include <iostream>
 
 class PixelRenderer
 {
@@ -25,6 +32,7 @@ private:
 		VkPhysicalDevice physicalDevice;
 		VkDevice logicalDevice;
 	} mainDevice;
+	VkQueue graphicsQueue;
 
 	struct QueueFamilyIndices
 	{
@@ -38,15 +46,26 @@ private:
 	};
 
 	VkInstance instance{};
+	VkDebugUtilsMessengerEXT debugMessenger;
+
+	//validation layer component
+	const std::vector<const char*> validationLayers = {
+	"VK_LAYER_KHRONOS_validation"
+	};
 
 	//---------vulkan functions
 	//create functions
 	void createInstance();
 	void setupPhysicalDevice();
+	void createLogicalDevice();
+	void setupDebugMessenger();
 	QueueFamilyIndices setupQueueFamilies(VkPhysicalDevice device);
 
 	//helper functions
-	bool checkInstanceExtensionSupport(std::vector<const char*>* checkExtensions);
+	bool checkInstanceExtensionSupport(const std::vector<const char*>* checkExtensions);
 	bool checkIfPhysicalDeviceSuitable(VkPhysicalDevice device);
+	std::vector<const char*> getRequiredExtensions();
+	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+
 };
 
