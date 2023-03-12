@@ -29,6 +29,11 @@ void PixelWindow::initWindow(std::string wName, const int width, const int heigh
 	window = glfwCreateWindow(windowWidth, windowHeight, windowName.c_str(), nullptr, nullptr);
 }
 
+GLFWwindow* PixelWindow::getWindow()
+{
+	return window;
+}
+
 bool PixelWindow::shouldClose()
 {
 	glfwPollEvents();

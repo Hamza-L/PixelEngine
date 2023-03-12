@@ -32,6 +32,8 @@ int PixelRenderer::initRenderer()
 	pixWindow.initWindow();
 	try {
 		createInstance();
+		createSurface();
+		setupDebugMessenger();
 		setupPhysicalDevice();
 		createLogicalDevice();
 	}
@@ -51,6 +53,8 @@ bool PixelRenderer::windowShouldClose()
 
 void PixelRenderer::cleanup()
 {
+	vkDestroySurfaceKHR(instance, surface, nullptr);
+
 	if (enableValidationLayers) {
 		DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 	}
@@ -160,21 +164,29 @@ void PixelRenderer::createLogicalDevice()
 	//get the queue families for the physical device
 	QueueFamilyIndices indices = setupQueueFamilies(mainDevice.physicalDevice);
 
-	//Queue the logical device needs to create
-	VkDeviceQueueCreateInfo queueCreateInfo = {};
-	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueCreateInfo.queueFamilyIndex = indices.graphicsFamily; //index of the family to create a queue from
-	queueCreateInfo.queueCount = 1;
-	float priority = 1.0f;
-	queueCreateInfo.pQueuePriorities = &priority; // 1 is highest, 0 is lowest. 
+	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+	std::set<int> queueFamilyIndices = { indices.graphicsFamily, indices.presentationFamily };
 
+	//Queue the logical device needs to create
+	for (int queueFamilyIndex : queueFamilyIndices)
+	{
+		VkDeviceQueueCreateInfo queueCreateInfo = {};
+		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queueCreateInfo.queueFamilyIndex = queueFamilyIndex; //index of the family to create a queue from
+		queueCreateInfo.queueCount = 1;
+		float priority = 1.0f;
+		queueCreateInfo.pQueuePriorities = &priority; // 1 is highest, 0 is lowest. 
+
+		queueCreateInfos.push_back(queueCreateInfo);
+	}
+	
 	//info to create logical device (or simply device)
 	VkDeviceCreateInfo deviceCreateInfo = {};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	deviceCreateInfo.queueCreateInfoCount = 1;
-	deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
-	deviceCreateInfo.enabledExtensionCount = 0; //these are logical device extensions
-	deviceCreateInfo.ppEnabledExtensionNames = nullptr;
+	deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size()); //these are logical device extensions
+	deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 	deviceCreateInfo.enabledLayerCount = 0; //validation layers
 	deviceCreateInfo.ppEnabledLayerNames = nullptr;
 
@@ -193,6 +205,18 @@ void PixelRenderer::createLogicalDevice()
 	//we have implicitely created the graphics queue (using deviceQueueCreateInfo. we want access to them
 	//from given logical device, of given queue family, of given queue index (only have 1 queue so queueIndex = 0)
 	vkGetDeviceQueue(mainDevice.logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
+	vkGetDeviceQueue(mainDevice.logicalDevice, indices.presentationFamily, 0, &presentationQueue);
+}
+
+void PixelRenderer::createSurface()
+{
+	//create surface (helper function creating a surface create info struct for us, returns result)
+	VkResult result = glfwCreateWindowSurface(instance, pixWindow.getWindow(), nullptr, &surface);
+
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create surface\n");
+	}
 }
 
 void PixelRenderer::setupDebugMessenger()
@@ -228,6 +252,15 @@ PixelRenderer::QueueFamilyIndices PixelRenderer::setupQueueFamilies(VkPhysicalDe
 		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
 			indices.graphicsFamily = i; //if queue family is valid, we keep its index
+		}
+
+		//check if queue family supports presentation
+		VkBool32 presentationSupport = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentationSupport);
+
+		if (queueFamilyCount > 0 && presentationSupport)
+		{
+			indices.presentationFamily = i;
 		}
 
 		if (indices.isValid())
@@ -286,6 +319,48 @@ bool PixelRenderer::checkIfPhysicalDeviceSuitable(VkPhysicalDevice device)
 
 	QueueFamilyIndices indices = setupQueueFamilies(device);
 
+	bool extensionsSupported = checkDeviceExtensionSupport(device);
+	bool swapChainValid = false;
+	if (extensionsSupported)
+	{
+	SwapChainDetails swapChainDetails = getSwapChainDetails(device);
+	swapChainValid = !swapChainDetails.format.empty() && !swapChainDetails.presentationMode.empty();
+	}
+
+	return indices.isValid() && extensionsSupported && swapChainValid;
+}
+
+bool PixelRenderer::checkDeviceExtensionSupport(VkPhysicalDevice device)
+{
+	uint32_t extensionCount = 0;
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+
+	if (extensionCount == 0)
+	{
+		return false;
+	}
+	
+	std::vector<VkExtensionProperties> extensions(extensionCount);
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, extensions.data());
+
+	for (const auto& deviceExtensions : deviceExtensions)
+	{
+		bool hasExtension = false;
+		for (const auto& extension : extensions)
+		{
+			if (strcmp(deviceExtensions, extension.extensionName) == 0)
+			{
+				hasExtension = true;
+				break;
+			}
+		}
+
+		if (!hasExtension)
+		{
+			throw std::runtime_error("Extensions are not supported by the current device\n");
+		}
+	}
+
 	return true;
 }
 
@@ -318,4 +393,33 @@ void PixelRenderer::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreate
 	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 	createInfo.pfnUserCallback = debugCallback;
+	createInfo.pUserData = nullptr;
+}
+
+PixelRenderer::SwapChainDetails PixelRenderer::getSwapChainDetails(VkPhysicalDevice device)
+{
+	SwapChainDetails swapChainDetails;
+
+	//get the surface capabilities for the surface on the given device
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &swapChainDetails.surfaceCapabilities);
+
+	//get the formats
+	uint32_t formatCount = 0;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+	if (formatCount != 0)
+	{
+		swapChainDetails.format.resize(formatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, swapChainDetails.format.data());
+	}
+ 
+	//get presentation modes
+	uint32_t presentationCount = 0;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, nullptr);
+	if (presentationCount != 0)
+	{
+		swapChainDetails.presentationMode.resize(presentationCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, swapChainDetails.presentationMode.data());
+	}
+
+	return swapChainDetails;
 }
