@@ -10,6 +10,7 @@ const bool enableValidationLayers = true;
 
 #include <vector>
 #include <set>
+#include <algorithm>
 #include <iostream>
 
 class PixelRenderer
@@ -25,17 +26,36 @@ public:
 	void cleanup();
 
 private:
-	//window component
-	PixelWindow pixWindow;
+	
+	class PixImage
+	{
+	public:
+		VkImage image{};
+		VkImageView imageView{};
 
-	//vulkan component
-	const std::vector<const char*> deviceExtensions = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+		PixImage(PixelRenderer& parent);
+		~PixImage();
+		void cleanUp();
+
+		//create functions
+		void createImageView(VkFormat format, VkImageAspectFlags aspectFlags);
+		
+		//setter
+		void setName(std::string name);
+
+		//getter
+		std::string getName();
+		
+	private:
+		PixelRenderer& pixelRenderer;
+		std::string imageName{};
 	};
 
-	struct {
-		VkPhysicalDevice physicalDevice;
-		VkDevice logicalDevice;
+	//vulkan struct component
+	
+	struct PixDevices{
+		VkPhysicalDevice physicalDevice{};
+		VkDevice logicalDevice{};
 	} mainDevice;
 
 	struct QueueFamilyIndices
@@ -50,24 +70,44 @@ private:
 		}
 	};
 
-	struct SwapChainDetails
+	struct SwapchainDetails
 	{
 		VkSurfaceCapabilitiesKHR surfaceCapabilities = {};	//surface properties
 		std::vector<VkSurfaceFormatKHR> format;				//color and format
 		std::vector<VkPresentModeKHR> presentationMode;		//how image should be presented
 	};
 
+	struct SwapchainImage
+	{
+		VkImage image;
+		VkImageView ImageView;
+	};
+
+
+	//window component
+	PixelWindow pixWindow{};
+
+	//vulkan component
+	const std::vector<const char*> deviceExtensions = {
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	};
 	VkInstance instance{};
-	VkQueue graphicsQueue;
-	VkQueue presentationQueue;
-	VkSurfaceKHR surface;
+	VkQueue graphicsQueue{};
+	VkQueue presentationQueue{};
+	VkSurfaceKHR surface{};
+	VkSwapchainKHR swapChain{};
+	std::vector<PixImage> swapChainImages;
+
+	// Utility
+	VkFormat swapChainImageFormat{};
+	VkExtent2D swapChainExtent{};
 	
 
 	//validation layer component
 	const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
 	};
-	VkDebugUtilsMessengerEXT debugMessenger;
+	VkDebugUtilsMessengerEXT debugMessenger{};
 
 	//---------vulkan functions
 	//create functions
@@ -76,6 +116,7 @@ private:
 	void setupPhysicalDevice();
 	void createLogicalDevice();
 	void createSurface();
+	void createSwapchain();
 	QueueFamilyIndices setupQueueFamilies(VkPhysicalDevice device);
 
 	//helper functions
@@ -84,9 +125,12 @@ private:
 	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 	std::vector<const char*> getRequiredExtensions();
 	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+	VkSurfaceFormatKHR chooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
+	VkPresentModeKHR chooseBestPresentationMode(const std::vector<VkPresentModeKHR>& presentationModes);
+	VkExtent2D chooseSwapChainExtent(const VkSurfaceCapabilitiesKHR surfaceCapabilities);
 
 	//getter functions
-	SwapChainDetails getSwapChainDetails(VkPhysicalDevice device);
+	SwapchainDetails getSwapChainDetails(VkPhysicalDevice device);
 
 };
 
