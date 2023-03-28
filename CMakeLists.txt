@@ -4,6 +4,14 @@ project(PixelEngine)
 set(PROJECT_NAME PixelEngine)
 set(CMAKE_CXX_STANDARD 17)
 
+if (WIN32)
+    message("Starting the Windows Build")
+endif (WIN32)
+
+if (UNIX AND APPLE)
+    message("Starting the MacOS Build")
+endif (UNIX AND APPLE)
+
 
 ################################################################################
 # Source groups
