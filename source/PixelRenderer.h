@@ -7,6 +7,7 @@ const bool enableValidationLayers = true;
 #endif
 
 #include "PixelWindow.h"
+#include "PixelGraphicsPipeline.h"
 
 #include <vector>
 #include <set>
@@ -77,13 +78,6 @@ private:
 		std::vector<VkPresentModeKHR> presentationMode;		//how image should be presented
 	};
 
-	struct SwapchainImage
-	{
-		VkImage image;
-		VkImageView ImageView;
-	};
-
-
 	//window component
 	PixelWindow pixWindow{};
 
@@ -101,7 +95,6 @@ private:
 	// Utility
 	VkFormat swapChainImageFormat{};
 	VkExtent2D swapChainExtent{};
-	
 
 	//validation layer component
 	const std::vector<const char*> validationLayers = {
