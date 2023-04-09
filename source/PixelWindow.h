@@ -14,7 +14,7 @@ public:
 	PixelWindow& operator=(const PixelWindow&) = delete;
 	~PixelWindow();
 
-	void initWindow(std::string wName = "Default Window", const int width = 800, const int height = 600);
+	void initWindow(std::string wName = "Default Window", int width = 800, int height = 600);
 	bool shouldClose();
 	GLFWwindow* getWindow();
 

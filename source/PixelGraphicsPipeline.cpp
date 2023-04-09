@@ -32,7 +32,7 @@ std::vector<char> PixelGraphicsPipeline::readFile(const std::string& filename) {
     return outputBuffer;
 }
 
-VkShaderModule PixelGraphicsPipeline::addShaderModule(VkDevice device, const std::string &filename) {
+VkShaderModule PixelGraphicsPipeline::addShaderModule(const std::string &filename) {
 
     std::vector<char> code = readFile(filename);
 

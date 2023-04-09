@@ -27,8 +27,8 @@ private:
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     VkRenderPass renderPass;
 
-    VkShaderModule addShaderModule(VkDevice device, const std::string& filename);
-    std::vector<char> readFile(const std::string& filename);
+    VkShaderModule addShaderModule(const std::string& filename);
+    static std::vector<char> readFile(const std::string& filename);
 
 };
 

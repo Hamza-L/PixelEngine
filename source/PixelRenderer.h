@@ -13,14 +13,16 @@ const bool enableValidationLayers = true;
 #include <set>
 #include <algorithm>
 #include <iostream>
+#include <memory>
+#include <cstring>
 
 class PixelRenderer
 {
 public:
-	PixelRenderer();
+    PixelRenderer() = default;
 	PixelRenderer(const PixelRenderer&) = delete;
 	PixelRenderer& operator=(const PixelRenderer&) = delete;
-	~PixelRenderer();
+	~PixelRenderer() = default;
 
 	int initRenderer();
 	bool windowShouldClose();

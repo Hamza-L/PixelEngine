@@ -31,14 +31,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     return VK_FALSE;
 }
 
-PixelRenderer::PixelRenderer()
-{
-}
-
-PixelRenderer::~PixelRenderer()
-{
-}
-
 int PixelRenderer::initRenderer()
 {
 	pixWindow.initWindow();
@@ -601,7 +593,7 @@ PixelRenderer::PixImage::PixImage(PixelRenderer& parent) : pixelRenderer(parent)
 	}
 }
 
-PixelRenderer::PixImage::~PixImage(){}
+PixelRenderer::PixImage::~PixImage()= default;
 
 void PixelRenderer::PixImage::cleanUp()
 {
@@ -635,7 +627,7 @@ void PixelRenderer::PixImage::createImageView(VkFormat format, VkImageAspectFlag
 	if (result != VK_SUCCESS)
 	{
 		std::string message = "Was not able to create image view for image: ";
-		message.append(imageName.c_str());
+		message.append(imageName);
 		throw std::runtime_error(message.c_str());
 	}
 }
