@@ -85,14 +85,13 @@ elseif(UNIX AND APPLE) # If the build is mac
     )
 
     target_link_directories(${PROJECT_NAME} PRIVATE
-            "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW64/lib-vc2022"
-            "C:/VulkanSDK/1.3.239.0/Lib"
+            "${CMAKE_CURRENT_SOURCE_DIR}/external/macos/GLFW64/lib-x86_64"
+            "${VULKAN_SDK}/lib"
             )
 
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
-            "libvulkan.1.2.162.dylib"
-            "libvulkan.dylib"
-            "glfw3"
+            "libvulkan.1.3.239.dylib"
+            "libglfw.3.dylib"
             )
 endif ()
 

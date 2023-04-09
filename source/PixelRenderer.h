@@ -82,19 +82,30 @@ private:
 	PixelWindow pixWindow{};
 
 	//vulkan component
+#ifdef __APPLE__
 	const std::vector<const char*> deviceExtensions = {
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    "VK_KHR_portability_subset"
+	};
+#else
+    const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
+#endif
+
 	VkInstance instance{};
 	VkQueue graphicsQueue{};
 	VkQueue presentationQueue{};
 	VkSurfaceKHR surface{};
 	VkSwapchainKHR swapChain{};
 	std::vector<PixImage> swapChainImages;
+    std::vector<std::unique_ptr<PixelGraphicsPipeline>> graphicsPipelines;
 
 	// Utility
 	VkFormat swapChainImageFormat{};
 	VkExtent2D swapChainExtent{};
+
+
 
 	//validation layer component
 	const std::vector<const char*> validationLayers = {
@@ -110,6 +121,7 @@ private:
 	void createLogicalDevice();
 	void createSurface();
 	void createSwapchain();
+    void createGraphicsPipelines();
 	QueueFamilyIndices setupQueueFamilies(VkPhysicalDevice device);
 
 	//helper functions
@@ -120,7 +132,7 @@ private:
 	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 	VkSurfaceFormatKHR chooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 	VkPresentModeKHR chooseBestPresentationMode(const std::vector<VkPresentModeKHR>& presentationModes);
-	VkExtent2D chooseSwapChainExtent(const VkSurfaceCapabilitiesKHR surfaceCapabilities);
+	VkExtent2D chooseSwapChainExtent(VkSurfaceCapabilitiesKHR surfaceCapabilities);
 
 	//getter functions
 	SwapchainDetails getSwapChainDetails(VkPhysicalDevice device);

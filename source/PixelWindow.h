@@ -3,7 +3,7 @@
 #define GLFW_INCLUDE_VULKAN //includes vulkan automatically
 #include <GLFW/glfw3.h>
 
-#include <cstring>
+#include <string>
 #include <stdexcept>
 
 class PixelWindow

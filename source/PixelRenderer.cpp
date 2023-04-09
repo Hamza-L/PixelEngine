@@ -49,6 +49,7 @@ int PixelRenderer::initRenderer()
 		setupPhysicalDevice();
 		createLogicalDevice();
 		createSwapchain();
+        createGraphicsPipelines();
 	}
 	catch(const std::runtime_error &e)
 	{
@@ -66,6 +67,12 @@ bool PixelRenderer::windowShouldClose()
 
 void PixelRenderer::cleanup()
 {
+
+    for (int i=0; i<graphicsPipelines.size(); i++)
+    {
+        graphicsPipelines[i]->cleanUp();
+    }
+
 	for (PixImage image : swapChainImages)
 	{
 		image.cleanUp();
@@ -94,7 +101,11 @@ void PixelRenderer::createInstance()
 	//creation info for a vulkan instance.
 	VkInstanceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	createInfo.flags = 0;
+#ifdef __APPLE__
+	createInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#else
+    createInfo.flags = 0;
+#endif
 	createInfo.pApplicationInfo = &appInfo;
 
 	// create list to hold instance extension
@@ -469,6 +480,10 @@ std::vector<const char*> PixelRenderer::getRequiredExtensions()
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 	}
 
+#ifdef __APPLE__
+    extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+#endif
+
 	return extensions;
 }
 
@@ -567,6 +582,15 @@ PixelRenderer::SwapchainDetails PixelRenderer::getSwapChainDetails(VkPhysicalDev
 	}
 
 	return swapChainDetails;
+}
+
+void PixelRenderer::createGraphicsPipelines() {
+    auto graphicsPipeline = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice);
+    graphicsPipeline->addVertexShader("shaders/vert.spv");
+    graphicsPipeline->addFragmentShader("shaders/frag.spv");
+    graphicsPipeline->createGraphicsPipeline(swapChainExtent.width, swapChainExtent.height);
+
+    graphicsPipelines.push_back(std::move(graphicsPipeline));
 }
 
 PixelRenderer::PixImage::PixImage(PixelRenderer& parent) : pixelRenderer(parent)
