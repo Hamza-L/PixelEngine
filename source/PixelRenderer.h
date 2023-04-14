@@ -16,6 +16,9 @@ const bool enableValidationLayers = true;
 #include <memory>
 #include <cstring>
 
+const int MAX_FRAME_DRAWS = 2; //we always have "MAX_FRAME_DRAWS" being drawing at once.
+
+
 class PixelRenderer
 {
 public:
@@ -25,6 +28,7 @@ public:
 	~PixelRenderer() = default;
 
 	int initRenderer();
+    void draw();
 	bool windowShouldClose();
 	void cleanup();
 
@@ -33,10 +37,7 @@ private:
 	class PixImage
 	{
 	public:
-		VkImage image{};
-		VkImageView imageView{};
-
-		PixImage(PixelRenderer& parent);
+        PixImage(PixelRenderer& parent);
 		~PixImage();
 		void cleanUp();
 
@@ -45,17 +46,23 @@ private:
 		
 		//setter
 		void setName(std::string name);
+        void setImage(VkImage inputImage){image = inputImage;}
+        void setImage(VkImageView inputImageView){imageView = inputImageView;}
 
 		//getter
 		std::string getName();
+        VkImage getImage() { return image;}
+        VkImageView getImageView() {return imageView;}
 		
 	private:
 		PixelRenderer& pixelRenderer;
+
+        VkImage image{};
+        VkImageView imageView{};
 		std::string imageName{};
 	};
 
 	//vulkan struct component
-	
 	struct PixDevices{
 		VkPhysicalDevice physicalDevice{};
 		VkDevice logicalDevice{};
@@ -100,20 +107,31 @@ private:
 	VkQueue presentationQueue{};
 	VkSurfaceKHR surface{};
 	VkSwapchainKHR swapChain{};
+    VkRenderPass renderPass{}; //the renderer has to have atleast one renderpass to fall back on
 	std::vector<PixImage> swapChainImages;
+    std::vector<VkFramebuffer> swapchainFramebuffers;
+    std::vector<VkCommandBuffer> commandBuffers;
     std::vector<std::unique_ptr<PixelGraphicsPipeline>> graphicsPipelines;
+
 
 	// Utility
 	VkFormat swapChainImageFormat{};
 	VkExtent2D swapChainExtent{};
 
-
+    // Pools
+    VkCommandPool graphicsCommandPool;
 
 	//validation layer component
 	const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
 	};
 	VkDebugUtilsMessengerEXT debugMessenger{};
+
+    //synchronization component
+    std::vector<VkSemaphore> imageAvailable;
+    std::vector<VkSemaphore> renderFinished;
+    std::vector<VkFence> drawFences;
+    int currentFrame = 0;
 
 	//---------vulkan functions
 	//create functions
@@ -124,6 +142,11 @@ private:
 	void createSurface();
 	void createSwapchain();
     void createGraphicsPipelines();
+    void createFramebuffers();
+    void createCommandPool();
+    void createCommandBuffers();
+    void createSynchronizationObjects();
+    void recordCommands();
 	QueueFamilyIndices setupQueueFamilies(VkPhysicalDevice device);
 
 	//helper functions

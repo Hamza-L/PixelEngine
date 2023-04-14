@@ -76,7 +76,7 @@ $(function() {
 <li class="level3"><a href="#attention_33">User attention request</a></li>
 <li class="level3"><a href="#maximize_33">Window maximization callback</a></li>
 <li class="level3"><a href="#workarea_33">Query for the monitor work area</a></li>
-<li class="level3"><a href="#transparency_33">Transparent windows and framebuffers</a></li>
+<li class="level3"><a href="#transparency_33">Transparent windows and swapchainFramebuffers</a></li>
 <li class="level3"><a href="#key_scancode_33">Query for the scancode of a key</a></li>
 <li class="level3"><a href="#center_cursor_33">Cursor centering window hint</a></li>
 <li class="level3"><a href="#cursor_hover_33">Mouse cursor hover window attribute</a></li>
@@ -143,7 +143,7 @@ $(function() {
 <li class="level3"><a href="#news_31_focused">Initially unfocused windows</a></li>
 <li class="level3"><a href="#news_31_direct">Direct access for window attributes and cursor position</a></li>
 <li class="level3"><a href="#news_31_charmods">Character with modifiers callback</a></li>
-<li class="level3"><a href="#news_31_single">Single buffered framebuffers</a></li>
+<li class="level3"><a href="#news_31_single">Single buffered swapchainFramebuffers</a></li>
 <li class="level3"><a href="#news_31_glext">Macro for including extension header</a></li>
 <li class="level3"><a href="#news_31_release">Context release behaviors</a></li>
 <li class="level3"><a href="#news_31_wayland">(Experimental) Wayland support</a></li>
@@ -234,8 +234,8 @@ Query for the monitor work area</h3>
 <p >GLFW now supports querying the work area of a monitor, i.e. the area not occupied by task bars or global menu bars, with <a class="el" href="group__monitor.html#ga7387a3bdb64bfe8ebf2b9e54f5b6c9d0">glfwGetMonitorWorkarea</a>. On platforms that lack this concept, the whole area of the monitor is returned.</p>
 <p >For more information see <a class="el" href="monitor_guide.html#monitor_workarea">Work area</a>.</p>
 <h3><a class="anchor" id="transparency_33"></a>
-Transparent windows and framebuffers</h3>
-<p >GLFW now supports the creation of windows with transparent framebuffers on systems with desktop compositing enabled with the <a class="el" href="group__window.html#ga60a0578c3b9449027d683a9c6abb9f14">GLFW_TRANSPARENT_FRAMEBUFFER</a> window hint and attribute. This hint must be set before window creation and leaves any window decorations opaque.</p>
+Transparent windows and swapchainFramebuffers</h3>
+<p >GLFW now supports the creation of windows with transparent swapchainFramebuffers on systems with desktop compositing enabled with the <a class="el" href="group__window.html#ga60a0578c3b9449027d683a9c6abb9f14">GLFW_TRANSPARENT_FRAMEBUFFER</a> window hint and attribute. This hint must be set before window creation and leaves any window decorations opaque.</p>
 <p >GLFW now also supports whole window transparency with <a class="el" href="group__window.html#gad09f0bd7a6307c4533b7061828480a84">glfwGetWindowOpacity</a> and <a class="el" href="group__window.html#gac31caeb3d1088831b13d2c8a156802e9">glfwSetWindowOpacity</a>. This value controls the opacity of the whole window including decorations and unlike framebuffer transparency can be changed at any time after window creation.</p>
 <p >For more information see <a class="el" href="window_guide.html#window_transparency">Window transparency</a>.</p>
 <h3><a class="anchor" id="key_scancode_33"></a>
@@ -514,7 +514,7 @@ Character with modifiers callback</h3>
 <p >GLFW now provides a callback for character events with modifier key bits. The callback is set with <a class="el" href="group__input.html#ga0b7f4ad13c2b17435ff13b6dcfb4e43c">glfwSetCharModsCallback</a>. Unlike the regular character callback, this will report character events that will not result in a character being input, for example if the Control key is held down.</p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="input_guide.html#input_char">Text input</a></dd></dl>
 <h3><a class="anchor" id="news_31_single"></a>
-Single buffered framebuffers</h3>
+Single buffered swapchainFramebuffers</h3>
 <p >GLFW now supports the creation of single buffered windows, with the <a class="el" href="window_guide.html#GLFW_DOUBLEBUFFER">GLFW_DOUBLEBUFFER</a> hint.</p>
 <h3><a class="anchor" id="news_31_glext"></a>
 Macro for including extension header</h3>
@@ -560,7 +560,7 @@ OpenGL ES support</h3>
 <p >GLFW now has an experimental EGL context creation back end that can be selected through CMake options.</p>
 <h3><a class="anchor" id="news_30_hidpi"></a>
 High-DPI support</h3>
-<p >GLFW now supports high-DPI monitors on both Windows and macOS, giving windows full resolution framebuffers where other UI elements are scaled up. To achieve this, <a class="el" href="group__window.html#ga0e2637a4161afb283f5300c7f94785c9">glfwGetFramebufferSize</a> and <a class="el" href="group__window.html#gab3fb7c3366577daef18c0023e2a8591f">glfwSetFramebufferSizeCallback</a> have been added. These work with pixels, while the rest of the GLFW API works with screen coordinates. This is important as OpenGL uses pixels, not screen coordinates.</p>
+<p >GLFW now supports high-DPI monitors on both Windows and macOS, giving windows full resolution swapchainFramebuffers where other UI elements are scaled up. To achieve this, <a class="el" href="group__window.html#ga0e2637a4161afb283f5300c7f94785c9">glfwGetFramebufferSize</a> and <a class="el" href="group__window.html#gab3fb7c3366577daef18c0023e2a8591f">glfwSetFramebufferSizeCallback</a> have been added. These work with pixels, while the rest of the GLFW API works with screen coordinates. This is important as OpenGL uses pixels, not screen coordinates.</p>
 <h3><a class="anchor" id="news_30_error"></a>
 Error callback</h3>
 <p >GLFW now has an error callback, which can provide your application with much more detailed diagnostics than was previously possible. The callback is passed an error code and a description string.</p>

@@ -1,3 +1,4 @@
+#include <array>
 #include "PixelRenderer.h"
 
 //We have to look up the address of the debug callback create function ourselves using vkGetInstanceProcAddr
@@ -42,6 +43,11 @@ int PixelRenderer::initRenderer()
 		createLogicalDevice();
 		createSwapchain();
         createGraphicsPipelines();
+        createFramebuffers();
+        createCommandPool();
+        createCommandBuffers();
+        recordCommands();
+        createSynchronizationObjects();
 	}
 	catch(const std::runtime_error &e)
 	{
@@ -59,10 +65,25 @@ bool PixelRenderer::windowShouldClose()
 
 void PixelRenderer::cleanup()
 {
+    vkDeviceWaitIdle(mainDevice.logicalDevice); //wait that no action is running before destroying the objects
 
-    for (int i=0; i<graphicsPipelines.size(); i++)
+    for(size_t i = 0; i<MAX_FRAME_DRAWS; i++)
     {
-        graphicsPipelines[i]->cleanUp();
+        vkDestroyFence(mainDevice.logicalDevice, drawFences[i], nullptr);
+        vkDestroySemaphore(mainDevice.logicalDevice, renderFinished[i], nullptr);
+        vkDestroySemaphore(mainDevice.logicalDevice, imageAvailable[i], nullptr);
+    }
+
+    vkDestroyCommandPool(mainDevice.logicalDevice, graphicsCommandPool, nullptr);
+
+    for (auto frameBuffer : swapchainFramebuffers)
+    {
+        vkDestroyFramebuffer(mainDevice.logicalDevice, frameBuffer, nullptr);
+    }
+
+    for (const auto & graphicsPipeline : graphicsPipelines)
+    {
+        graphicsPipeline->cleanUp();
     }
 
 	for (PixImage image : swapChainImages)
@@ -301,7 +322,7 @@ void PixelRenderer::createSwapchain()
 	for (VkImage image : images)
 	{
 		PixImage swapChainImage = {*this};
-		swapChainImage.image = image;
+		swapChainImage.setImage(image);
 		
 		swapChainImage.createImageView(swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 		swapChainImages.push_back(swapChainImage);
@@ -577,12 +598,236 @@ PixelRenderer::SwapchainDetails PixelRenderer::getSwapChainDetails(VkPhysicalDev
 }
 
 void PixelRenderer::createGraphicsPipelines() {
-    auto graphicsPipeline = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice);
+    auto graphicsPipeline = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, swapChainExtent, swapChainImageFormat);
     graphicsPipeline->addVertexShader("shaders/vert.spv");
     graphicsPipeline->addFragmentShader("shaders/frag.spv");
-    graphicsPipeline->createGraphicsPipeline(swapChainExtent.width, swapChainExtent.height);
+    graphicsPipeline->populateGraphicsPipelineInfo();
+    graphicsPipeline->createGraphicsPipeline(nullptr); //creates a renderpass if none were provided
+
+    //get a default renderpass for the renderer. The renderer does not need to destroy it
+    renderPass = graphicsPipeline->getRenderPass();
 
     graphicsPipelines.push_back(std::move(graphicsPipeline));
+}
+
+void PixelRenderer::createFramebuffers() {
+
+    swapchainFramebuffers.resize(swapChainImages.size());
+
+    for(size_t i =0 ; i <swapchainFramebuffers.size(); i++)
+    {
+        //matches the RenderBuffer Attachment
+        std::array<VkImageView , 1> attachment = {
+                swapChainImages[i].getImageView()
+        };
+
+        //create a framebuffer for each swapchain images;
+        VkFramebufferCreateInfo framebufferCreateInfo{};
+        framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferCreateInfo.renderPass = graphicsPipelines[0]->getRenderPass(); //grab the first graphics pipeline's renderpass
+        framebufferCreateInfo.attachmentCount = static_cast<uint32_t>(attachment.size());
+        framebufferCreateInfo.pAttachments = attachment.data();
+        framebufferCreateInfo.width = swapChainExtent.width;
+        framebufferCreateInfo.height = swapChainExtent.height;
+        framebufferCreateInfo.layers = (uint32_t)1;
+
+        VkResult result = vkCreateFramebuffer(mainDevice.logicalDevice, &framebufferCreateInfo, nullptr, &swapchainFramebuffers[i]);
+        if(result != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create framebuffer");
+        }
+    }
+}
+
+void PixelRenderer::createCommandPool() {
+
+    QueueFamilyIndices graphicsFamily = setupQueueFamilies(mainDevice.physicalDevice);
+
+    VkCommandPoolCreateInfo poolCreateInfo{};
+    poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolCreateInfo.queueFamilyIndex = graphicsFamily.graphicsFamily;
+
+    VkResult result = vkCreateCommandPool(mainDevice.logicalDevice, &poolCreateInfo, nullptr, &graphicsCommandPool);
+    if(result != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to create Command Pool");
+    }
+}
+
+void PixelRenderer::createCommandBuffers() {
+
+    //one commandbuffer per swapchain images
+    commandBuffers.resize(swapChainImages.size());
+
+    VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
+    commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    commandBufferAllocateInfo.commandPool = graphicsCommandPool;
+    commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; //submitted straight to the queue. Secondary cannot be called by a queue, but can only be called by other commands buffers
+    commandBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
+
+    VkResult result = vkAllocateCommandBuffers(mainDevice.logicalDevice, &commandBufferAllocateInfo, commandBuffers.data()); //we create all the command buffers simultaneously
+    if(result != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to allocate command buffers");
+    }
+    //no need to dealocate or destroyed the command buffers. they are destroy along the command pool
+}
+
+void PixelRenderer::recordCommands() {
+
+    //info about how to begin each command buffer
+    VkCommandBufferBeginInfo bufferBeginInfo{};
+    bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    //flag not needed because fences are now implemented; no commandbuffer for the same frame will be submitted twice.
+    //bufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT; //if one of our command buffer is already on the queue, can it be in submitted again.
+
+    //information on how to begin renderpass (only needed for graphical application)
+    VkRenderPassBeginInfo renderPassBeginInfo{};
+    renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassBeginInfo.renderPass = renderPass;
+    renderPassBeginInfo.renderArea.offset = {0,0};
+    renderPassBeginInfo.renderArea.extent = swapChainExtent;
+    VkClearValue clearValues[] = {
+            {0.25f,0.25f,0.25f, 1.0f} //TODO:add depth clear color
+    };
+    renderPassBeginInfo.clearValueCount = 1;
+    renderPassBeginInfo.pClearValues = clearValues;
+
+    for(size_t i = 0; i < commandBuffers.size(); i++)
+    {
+        renderPassBeginInfo.framebuffer = swapchainFramebuffers[i]; // the framebuffer changes per swapchain image (ie command buffer)
+
+        VkResult result = vkBeginCommandBuffer(commandBuffers[i], &bufferBeginInfo);
+        if(result != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to being recording command");
+        }
+
+        /*
+         * Series of command to record
+         * */
+        {
+            //begin the renderpass
+            vkCmdBeginRenderPass(commandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE); //our renderpass contains only primary commands
+
+            //one pipeline can be attached per subpass. if we say we need to go to another subpass, we need to bind another pipeline.
+            for(size_t p = 0; p < graphicsPipelines.size(); p++)
+            {
+                //bind the pipeline
+                vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines[p]->getPipeline());
+
+                //execute the pipeline
+                vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+            }
+
+            //end the Renderpass
+            vkCmdEndRenderPass(commandBuffers[i]);
+        }
+        /*
+         * End of the series of command to record
+         * */
+
+        result = vkEndCommandBuffer(commandBuffers[i]);
+        if(result != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to end recording command");
+        }
+    }
+
+}
+
+void PixelRenderer::draw() {
+
+    //get the next available image to draw to and set something to signal when we are finished with the image
+    //submit the command buffer to the queue for execution make sure to wait for image to be signal as available before drawing to it. it then signals when it is finished rendering
+    //present image to screen when image is signaled as finished rendering
+
+    //the only thing that will open this fence is the vkQueueSubmit
+    vkWaitForFences(mainDevice.logicalDevice, 1, &drawFences[currentFrame],VK_TRUE, std::numeric_limits<uint64_t>::max());
+    vkResetFences(mainDevice.logicalDevice, 1, &drawFences[currentFrame]);
+
+    //Get index of the next image to draw to and signal semaphore
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(mainDevice.logicalDevice,
+                          swapChain,
+                          std::numeric_limits<uint64_t>::max(),
+                          imageAvailable[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = &imageAvailable[currentFrame]; //list of semaphores to wait on
+    VkPipelineStageFlags waitStages[] = {
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+    };
+    submitInfo.pWaitDstStageMask = waitStages; //stage to check semaphores at
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffers[imageIndex]; //command buffer to submit
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = &renderFinished[currentFrame]; //semaphores to signal when the command buffer is finished
+
+    //submit this commandBuffer[imageIndex] to this graphicsQueue. it's essentially our execute function
+    VkResult result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, drawFences[currentFrame]);
+    if(result != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to submit queue");
+    }
+
+    //present the rendered image to the screen
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = &renderFinished[currentFrame]; //semaphore to wait for
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &swapChain;
+    presentInfo.pImageIndices = &imageIndex;
+
+    result = vkQueuePresentKHR(graphicsQueue, &presentInfo);
+    if(result != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to present image");
+    }
+
+    currentFrame = ( currentFrame + 1 ) % MAX_FRAME_DRAWS;
+}
+
+void PixelRenderer::createSynchronizationObjects() {
+
+    imageAvailable.resize(MAX_FRAME_DRAWS);
+    renderFinished.resize(MAX_FRAME_DRAWS);
+    drawFences.resize(MAX_FRAME_DRAWS);
+
+    VkSemaphoreCreateInfo semaphoreCreateInfo{};
+    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceCreateInfo{};
+    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    VkResult result;
+
+    for(size_t i = 0; i<MAX_FRAME_DRAWS; i++)
+    {
+        result = vkCreateSemaphore(mainDevice.logicalDevice, &semaphoreCreateInfo, nullptr, &imageAvailable[i]);
+        if(result != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create the imageAvailable Semaphore");
+        }
+
+        result = vkCreateSemaphore(mainDevice.logicalDevice, &semaphoreCreateInfo, nullptr, &renderFinished[i]);
+        if(result != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create the renderFinished Semaphore");
+        }
+
+        result = vkCreateFence(mainDevice.logicalDevice, &fenceCreateInfo, nullptr, &drawFences[i]);
+        if(result != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create the draw fences");
+        }
+    }
+
+
 }
 
 PixelRenderer::PixImage::PixImage(PixelRenderer& parent) : pixelRenderer(parent)

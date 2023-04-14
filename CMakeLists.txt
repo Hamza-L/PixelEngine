@@ -15,14 +15,16 @@ set(CMAKE_VS_PLATFORM_NAME "x64")
 set(Headers
     "source/PixelRenderer.h"
     "source/PixelWindow.h"
-    "source/PixelGraphicsPipeline.h")
+    "source/PixelGraphicsPipeline.h"
+    "source/PixelObject.h")
 source_group("Headers" FILES ${Headers})
 
 set(Sources
     "source/main.cpp"
     "source/PixelRenderer.cpp"
     "source/PixelWindow.cpp"
-    "source/PixelGraphicsPipeline.cpp")
+    "source/PixelGraphicsPipeline.cpp"
+    "source/PixelObject.cpp")
 source_group("Sources" FILES ${Sources})
 
 set(ALL_FILES

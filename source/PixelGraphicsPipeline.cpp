@@ -54,125 +54,17 @@ VkShaderModule PixelGraphicsPipeline::addShaderModule(const std::string &filenam
 }
 
 void PixelGraphicsPipeline::addVertexShader(const std::string &filename) {
-    vertexShaderModule = addShaderModule(device, filename);
+    vertexShaderModule = addShaderModule(filename);
 }
 
 void PixelGraphicsPipeline::addFragmentShader(const std::string &filename) {
-    fragmentShaderModule = addShaderModule(device, filename);
+    fragmentShaderModule = addShaderModule(filename);
 }
 
-void PixelGraphicsPipeline::createGraphicsPipeline(uint32_t width, uint32_t height) {
-
-    //Vertex-Stage creation
-    VkPipelineShaderStageCreateInfo vertexCreateShaderInfo = {};
-    vertexCreateShaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vertexCreateShaderInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertexCreateShaderInfo.module = vertexShaderModule;
-    vertexCreateShaderInfo.pName = "main"; //the entry point of the shader
-
-    //Vertex-Stage creation
-    VkPipelineShaderStageCreateInfo fragmentCreateShaderInfo = {};
-    fragmentCreateShaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    fragmentCreateShaderInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragmentCreateShaderInfo.module = fragmentShaderModule;
-    fragmentCreateShaderInfo.pName = "main"; //the entry point of the shader
+void PixelGraphicsPipeline::createGraphicsPipeline(VkRenderPass inputRenderPass) {
 
     //the shader create infos have to be passed in as an array
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertexCreateShaderInfo, fragmentCreateShaderInfo};
-
-    //vertex input info
-    VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo = {};
-    vertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputStateCreateInfo.vertexBindingDescriptionCount = 0;
-    vertexInputStateCreateInfo.pVertexBindingDescriptions = nullptr; //list of binding description info (spacing, stride etc,,,)
-    vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputStateCreateInfo.pVertexAttributeDescriptions = nullptr; //list of attribute description (data format and where to bind to/from)
-
-    //Input Assembly
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo = {};
-    inputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    inputAssemblyStateCreateInfo.primitiveRestartEnable = false; // allow to restart list of triangle fans
-
-    //viewport and scissors
-    VkViewport viewport = {};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = (float)width;
-    viewport.height = (float)height;
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-
-    VkRect2D scissor = {};
-    scissor.offset = {0,0};
-    scissor.extent = {width, height};
-
-    VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {};
-    viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportStateCreateInfo.viewportCount = 1;
-    viewportStateCreateInfo.pViewports = &viewport;
-    viewportStateCreateInfo.scissorCount = 1;
-    viewportStateCreateInfo.pScissors = &scissor;
-
-    //dynamic state
-    //point to somethings you may change dynamically
-    std::vector<VkDynamicState> dynamicstates;
-    dynamicstates.push_back(VK_DYNAMIC_STATE_VIEWPORT); //allows us to use the comman vkcmdsetviewport;
-    dynamicstates.push_back(VK_DYNAMIC_STATE_SCISSOR);  //allows us to use the comman vkcmdsetscissor;
-
-    VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
-    dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicstates.size());
-    dynamicStateCreateInfo.pDynamicStates = dynamicstates.data();
-
-    //rasterizer
-    VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo = {};
-    rasterizationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizationStateCreateInfo.depthClampEnable = VK_FALSE; //change if fragments beyond the far plane are clipped to plane. requires GPU Feature
-    rasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE; //suitable for pipeline without framebuffer
-    rasterizationStateCreateInfo.lineWidth = 1.0f; //need gpu feature for anything else then 1
-    rasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
-    rasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
-    rasterizationStateCreateInfo.depthBiasConstantFactor = 0.0f;
-
-
-    //multisampling
-    VkPipelineMultisampleStateCreateInfo multisampleStateCreateInfo = {};
-    multisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampleStateCreateInfo.sampleShadingEnable = VK_FALSE;
-    multisampleStateCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-    //blending
-    VkPipelineColorBlendAttachmentState blendAttachmentState = {};
-    blendAttachmentState.colorWriteMask =   VK_COLOR_COMPONENT_R_BIT |
-                                            VK_COLOR_COMPONENT_G_BIT |
-                                            VK_COLOR_COMPONENT_B_BIT |
-                                            VK_COLOR_COMPONENT_A_BIT;
-    blendAttachmentState.blendEnable = VK_TRUE;
-    blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
-    blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
-    //blending uses the following equation
-    //----- (srcColorBlendFactor * newColor) colorBlendOp (dstColorBlendFactor * oldColor) = result
-
-    VkPipelineColorBlendStateCreateInfo blendStateCreateInfo = {};
-    blendStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    blendStateCreateInfo.logicOpEnable = VK_FALSE; //alternative to calculation is to use logic op
-    blendStateCreateInfo.attachmentCount = 1;
-    blendStateCreateInfo.pAttachments = &blendAttachmentState;
-
-    //pipeline layout
-    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
-    pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutCreateInfo.setLayoutCount = 0;
-    pipelineLayoutCreateInfo.pSetLayouts = nullptr;
-    pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-    pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 
     VkResult result = vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout);
     if(result != VK_SUCCESS)
@@ -184,7 +76,14 @@ void PixelGraphicsPipeline::createGraphicsPipeline(uint32_t width, uint32_t heig
     //TODO:Setup Depth Stencil
 
     //create renderpass
-    createRenderPass();
+    if(inputRenderPass == nullptr)
+    {
+        createRenderPass();
+    } else
+    {
+        renderPass = inputRenderPass;
+    }
+
 
     //graphics pipeline info
     VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
@@ -194,7 +93,7 @@ void PixelGraphicsPipeline::createGraphicsPipeline(uint32_t width, uint32_t heig
     graphicsPipelineCreateInfo.pVertexInputState = &vertexInputStateCreateInfo; //all fixed functions pipeline stages
     graphicsPipelineCreateInfo.pInputAssemblyState = &inputAssemblyStateCreateInfo;
     graphicsPipelineCreateInfo.pViewportState = &viewportStateCreateInfo;
-    graphicsPipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
+    graphicsPipelineCreateInfo.pDynamicState = VK_NULL_HANDLE; //&dynamicStateCreateInfo;
     graphicsPipelineCreateInfo.pRasterizationState = &rasterizationStateCreateInfo;
     graphicsPipelineCreateInfo.pMultisampleState = &multisampleStateCreateInfo;
     graphicsPipelineCreateInfo.pColorBlendState = &blendStateCreateInfo;
@@ -220,6 +119,8 @@ void PixelGraphicsPipeline::createGraphicsPipeline(uint32_t width, uint32_t heig
 void PixelGraphicsPipeline::cleanUp() {
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+
+    if(renderPass != VK_NULL_HANDLE && wasRenderPassCreated)
     vkDestroyRenderPass(device, renderPass, nullptr);
 }
 
@@ -227,12 +128,12 @@ void PixelGraphicsPipeline::createRenderPass() {
 
     //Color attachment for all the renderpass (accessible to all subpass)
     VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = VK_FORMAT_R8G8B8A8_SRGB; //TODO: need to get this from swapchain
+    colorAttachment.format = format;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; //this clears the buffer when we start the renderpass
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; //we want to present the result so we keep it
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; //renderpass (before the subpasses) layout
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; //renderpass (after the subpasses) layout
 
@@ -285,10 +186,136 @@ void PixelGraphicsPipeline::createRenderPass() {
     if(result != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create renderpass");
+    } else
+    {
+        wasRenderPassCreated = true;
     }
 }
 
-PixelGraphicsPipeline::PixelGraphicsPipeline(VkDevice& device) : device(device) {
+PixelGraphicsPipeline::PixelGraphicsPipeline(VkDevice& device, VkExtent2D inputExtent, VkFormat inputFormat) : device(device), extent(inputExtent), format(inputFormat) {
 
+}
+
+VkRenderPass PixelGraphicsPipeline::getRenderPass() {
+    return renderPass;
+}
+
+void PixelGraphicsPipeline::populateGraphicsPipelineInfo() {
+//Vertex-Stage creation
+    vertexCreateShaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertexCreateShaderInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertexCreateShaderInfo.module = vertexShaderModule;
+    vertexCreateShaderInfo.pName = "main"; //the entry point of the shader
+
+    //Vertex-Stage creation
+    fragmentCreateShaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragmentCreateShaderInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragmentCreateShaderInfo.module = fragmentShaderModule;
+    fragmentCreateShaderInfo.pName = "main"; //the entry point of the shader
+
+    //vertex input info-----------
+    //How data for a single vertex is laid out
+    VkVertexInputBindingDescription inputBindingDescription{};
+    inputBindingDescription.binding = 0;
+    inputBindingDescription.stride = sizeof(PixelObject::Vertex);
+    inputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; //how to move between data after each vertex
+                                                                     //VK_VERTEX_INPUT_RATE_VERTEX : Move on to the next vertex
+                                                                     //VK_VERTEX_INPUT_RATE_INSTANCE : Move on to the next instance
+
+    //How the data within a vertex is descripted
+    const int numOfVertexAttribute = PixelObject::getNumofAttributes();
+    std::array<VkVertexInputAttributeDescription, numOfVertexAttribute> inputAttributeDescription{};
+
+    //fills in each Vertex Input Attribute Description struct for each attributes in the Vertex Object (position, color etc...)
+    for(size_t i = 0; i < numOfVertexAttribute; i++)
+    {
+        inputAttributeDescription[i].binding = 0; //matches the layout(binding = 0)
+        inputAttributeDescription[i].location = 0; //matches the layout(location = 0)
+        inputAttributeDescription[i].format = VK_FORMAT_R32G32B32A32_SFLOAT; //the format of the attribute (vec3)
+        inputAttributeDescription[i].offset = static_cast<uint32_t>(i * 16); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
+    }
+
+    vertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
+    vertexInputStateCreateInfo.pVertexBindingDescriptions = &inputBindingDescription; //list of binding description info (spacing, stride etc,,,)
+    vertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(numOfVertexAttribute);
+    vertexInputStateCreateInfo.pVertexAttributeDescriptions = inputAttributeDescription.data(); //list of attribute description (data format and where to bind to/from)
+
+    //Input Assembly
+    inputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssemblyStateCreateInfo.primitiveRestartEnable = false; // allow to restart list of triangle fans
+
+    //viewport and scissors
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (float)extent.width;
+    viewport.height = (float)extent.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    VkRect2D scissor{};
+    scissor.offset = {0,0};
+    scissor.extent = extent;
+    viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportStateCreateInfo.viewportCount = 1;
+    viewportStateCreateInfo.pViewports = &viewport;
+    viewportStateCreateInfo.scissorCount = 1;
+    viewportStateCreateInfo.pScissors = &scissor;
+
+    //dynamic state
+    /*
+    //point to somethings you may change dynamically
+    dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicstates.size());
+    dynamicStateCreateInfo.pDynamicStates = dynamicstates.data();
+     */
+
+    //rasterizer
+    rasterizationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizationStateCreateInfo.depthClampEnable = VK_FALSE; //change if fragments beyond the far plane are clipped to plane. requires GPU Feature
+    rasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE; //suitable for pipeline without framebuffer
+    rasterizationStateCreateInfo.lineWidth = 1.0f; //need gpu feature for anything else then 1
+    rasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
+    rasterizationStateCreateInfo.depthBiasConstantFactor = 0.0f;
+
+
+    //multisampling
+    multisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampleStateCreateInfo.sampleShadingEnable = VK_FALSE;
+    multisampleStateCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    //blending
+    blendAttachmentState.colorWriteMask =   VK_COLOR_COMPONENT_R_BIT |
+                                            VK_COLOR_COMPONENT_G_BIT |
+                                            VK_COLOR_COMPONENT_B_BIT |
+                                            VK_COLOR_COMPONENT_A_BIT;
+    blendAttachmentState.blendEnable = VK_TRUE;
+    blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
+    blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
+    //blending uses the following equation
+    //----- (srcColorBlendFactor * newColor) colorBlendOp (dstColorBlendFactor * oldColor) = result
+
+    blendStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    blendStateCreateInfo.logicOpEnable = VK_FALSE; //alternative to calculation is to use logic op
+    blendStateCreateInfo.attachmentCount = 1;
+    blendStateCreateInfo.pAttachments = &blendAttachmentState;
+
+    //pipeline layout
+    pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutCreateInfo.setLayoutCount = 0;
+    pipelineLayoutCreateInfo.pSetLayouts = nullptr;
+    pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+    pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
+}
+
+VkPipeline PixelGraphicsPipeline::getPipeline() {
+    return graphicsPipeline;
 }
 

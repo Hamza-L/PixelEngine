@@ -18,6 +18,7 @@ int main()
 	while (!pixRenderer.windowShouldClose())
 	{
 		glfwPollEvents();
+        pixRenderer.draw();
 	}
 
 	pixRenderer.cleanup();
