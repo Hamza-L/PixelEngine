@@ -16,7 +16,8 @@ set(Headers
     "source/PixelRenderer.h"
     "source/PixelWindow.h"
     "source/PixelGraphicsPipeline.h"
-    "source/PixelObject.h")
+    "source/PixelObject.h"
+    "source/PixelScene.h")
 source_group("Headers" FILES ${Headers})
 
 set(Sources
@@ -24,7 +25,8 @@ set(Sources
     "source/PixelRenderer.cpp"
     "source/PixelWindow.cpp"
     "source/PixelGraphicsPipeline.cpp"
-    "source/PixelObject.cpp")
+    "source/PixelObject.cpp"
+    "source/PixelScene.cpp")
 source_group("Sources" FILES ${Sources})
 
 set(ALL_FILES

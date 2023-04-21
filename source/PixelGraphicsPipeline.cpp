@@ -61,7 +61,7 @@ void PixelGraphicsPipeline::addFragmentShader(const std::string &filename) {
     fragmentShaderModule = addShaderModule(filename);
 }
 
-void PixelGraphicsPipeline::createGraphicsPipeline(VkRenderPass inputRenderPass) {
+void PixelGraphicsPipeline::createGraphicsPipeline(const VkRenderPass& inputRenderPass) {
 
     //the shader create infos have to be passed in as an array
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertexCreateShaderInfo, fragmentCreateShaderInfo};
@@ -215,7 +215,7 @@ void PixelGraphicsPipeline::populateGraphicsPipelineInfo() {
 
     //vertex input info-----------
     //How data for a single vertex is laid out
-    VkVertexInputBindingDescription inputBindingDescription{};
+
     inputBindingDescription.binding = 0;
     inputBindingDescription.stride = sizeof(PixelObject::Vertex);
     inputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; //how to move between data after each vertex
@@ -223,14 +223,14 @@ void PixelGraphicsPipeline::populateGraphicsPipelineInfo() {
                                                                      //VK_VERTEX_INPUT_RATE_INSTANCE : Move on to the next instance
 
     //How the data within a vertex is descripted
-    const int numOfVertexAttribute = PixelObject::getNumofAttributes();
-    std::array<VkVertexInputAttributeDescription, numOfVertexAttribute> inputAttributeDescription{};
+    //const int numOfVertexAttribute = PixelObject::getNumofAttributes();
+    //std::array<VkVertexInputAttributeDescription, numOfVertexAttribute> inputAttributeDescription{};
 
     //fills in each Vertex Input Attribute Description struct for each attributes in the Vertex Object (position, color etc...)
-    for(size_t i = 0; i < numOfVertexAttribute; i++)
+    for(size_t i = 0; i < PixelObject::getNumofAttributes(); i++)
     {
         inputAttributeDescription[i].binding = 0; //matches the layout(binding = 0)
-        inputAttributeDescription[i].location = 0; //matches the layout(location = 0)
+        inputAttributeDescription[i].location = static_cast<uint32_t>(i); //matches the layout(location = 0)
         inputAttributeDescription[i].format = VK_FORMAT_R32G32B32A32_SFLOAT; //the format of the attribute (vec3)
         inputAttributeDescription[i].offset = static_cast<uint32_t>(i * 16); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
     }
@@ -238,7 +238,7 @@ void PixelGraphicsPipeline::populateGraphicsPipelineInfo() {
     vertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
     vertexInputStateCreateInfo.pVertexBindingDescriptions = &inputBindingDescription; //list of binding description info (spacing, stride etc,,,)
-    vertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(numOfVertexAttribute);
+    vertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(PixelObject::getNumofAttributes());
     vertexInputStateCreateInfo.pVertexAttributeDescriptions = inputAttributeDescription.data(); //list of attribute description (data format and where to bind to/from)
 
     //Input Assembly
@@ -253,7 +253,6 @@ void PixelGraphicsPipeline::populateGraphicsPipelineInfo() {
     viewport.height = (float)extent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
-    VkRect2D scissor{};
     scissor.offset = {0,0};
     scissor.extent = extent;
     viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -318,4 +317,14 @@ void PixelGraphicsPipeline::populateGraphicsPipelineInfo() {
 VkPipeline PixelGraphicsPipeline::getPipeline() {
     return graphicsPipeline;
 }
+
+void PixelGraphicsPipeline::populateDescriptorSetLayout(PixelScene* scene) {
+    //pipeline layout
+    pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutCreateInfo.setLayoutCount = 1;
+    pipelineLayoutCreateInfo.pSetLayouts = scene->getDescriptorSetLayout();
+    pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+    pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
+}
+
 
