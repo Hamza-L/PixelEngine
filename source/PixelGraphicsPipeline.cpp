@@ -126,6 +126,7 @@ void PixelGraphicsPipeline::cleanUp() {
 
 void PixelGraphicsPipeline::createRenderPass() {
 
+    //ATTACHMENTS
     //Color attachment for all the renderpass (accessible to all subpass)
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = format;
@@ -137,6 +138,19 @@ void PixelGraphicsPipeline::createRenderPass() {
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; //renderpass (before the subpasses) layout
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; //renderpass (after the subpasses) layout
 
+    // depth attachment for all the renderpass (accessible to all subpass)
+    VkAttachmentDescription depthAttachment = {};
+    depthAttachment.format = format; //need to use chooseformat function from pixelrenderer
+    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; //this clears the buffer when we start the renderpass
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; //we want to present the result so we keep it
+    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; //renderpass (before the subpasses) layout
+    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; //renderpass (after the subpasses) layout
+
+
+    //REFERENCES
     //attachment reference uses an attachment index to refer to the renderpass attachment list
     VkAttachmentReference attachmentReference = {};
     attachmentReference.attachment = 0;
@@ -276,7 +290,7 @@ void PixelGraphicsPipeline::populateGraphicsPipelineInfo() {
     rasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
     rasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE; //suitable for pipeline without framebuffer
     rasterizationStateCreateInfo.lineWidth = 1.0f; //need gpu feature for anything else then 1
-    rasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
     rasterizationStateCreateInfo.depthBiasConstantFactor = 0.0f;
 
@@ -318,13 +332,17 @@ VkPipeline PixelGraphicsPipeline::getPipeline() {
     return graphicsPipeline;
 }
 
-void PixelGraphicsPipeline::populateDescriptorSetLayout(PixelScene* scene) {
+void PixelGraphicsPipeline::populatePipelineLayout(PixelScene* scene) {
     //pipeline layout
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutCreateInfo.setLayoutCount = 1;
     pipelineLayoutCreateInfo.pSetLayouts = scene->getDescriptorSetLayout();
-    pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-    pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
+    pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+    pipelineLayoutCreateInfo.pPushConstantRanges = &PixelObject::pushConstantRange;
+}
+
+VkPipelineLayout PixelGraphicsPipeline::getPipelineLayout() {
+    return pipelineLayout;
 }
 
 

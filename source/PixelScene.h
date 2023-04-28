@@ -5,22 +5,32 @@
 #ifndef PIXELENGINE_PIXELSCENE_H
 #define PIXELENGINE_PIXELSCENE_H
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include "PixelObject.h"
 #include "glm/glm.hpp"
+#include "glm/ext/matrix_relational.hpp"
 
 static const glm::mat4 MAT4_IDENTITY = {1,0,0,0,
                                         0,1,0,0,
                                         0,0,1,0,
                                         0,0,0,1};
 
+const int MAX_OBJECTS = 10;
+
 class PixelScene {
 public:
     PixelScene(VkDevice* device);
-    PixelScene();
-    PixelScene(const PixelScene&) = delete;
+    //PixelScene(const PixelScene&) = delete;
+
+    struct UboVP{
+        glm::mat4 V = glm::mat4(1.0f);
+        glm::mat4 P = glm::mat4(1.0f);
+        glm::vec4 lightPos = glm::vec4(0.0f);
+    };
 
     //setter functions
-    void addObject(const std::shared_ptr<PixelObject>& pixObject);
+    void addObject(PixelObject pixObject);
 
     //getter functions
     VkDescriptorSetLayout* getDescriptorSetLayout();
@@ -28,34 +38,62 @@ public:
     VkDescriptorSet* getDescriptorSetAt(int index);
     std::vector<VkDescriptorSet>* getDescriptorSets();
     static VkDeviceSize getUniformBufferSize();
+    VkDeviceSize getDynamicUniformBufferSize();
+    VkDeviceSize getMinAlignment();
     VkBuffer* getUniformBuffers(int index);
     VkDeviceMemory* getUniformBufferMemories(int index);
+    VkBuffer* getDynamicUniformBuffers(int index);
+    VkDeviceMemory* getDynamicUniformBufferMemories(int index);
     int getNumObjects();
     PixelObject* getObjectAt(int index);
+    UboVP getSceneVP();
+
+    //setter functions
+    void setSceneVP(UboVP vpData);
+    void setSceneV(glm::mat4 V);
+    void setSceneP(glm::mat4 P);
+
+    //create functions
+    void createDescriptorSetLayout();
+
+    //update functons
+    void updateUniformBuffer(uint32_t bufferIndex);
+    void updateDynamicUniformBuffer(uint32_t bufferIndex);
 
     //helper functions
-    void resizeBuffers(int newSize);
-    void resizeDesciptorSets(int newSize);
+    void initialize(VkPhysicalDevice physicalDevice);
+    void resizeBuffers(size_t newSize);
+    void resizeDesciptorSets(size_t newSize);
+    static bool areMatricesEqual(glm::mat4 x, glm::mat4 y);
 
     //cleanup
     void cleanup();
+
 private:
-    struct MVP{
-        glm::mat4 M{};
-        glm::mat4 V{};
-        glm::mat4 P{};
-    };
 
     //objects
-    std::vector<std::shared_ptr<PixelObject>> allObjects;
+    std::vector<PixelObject> allObjects;
+
+    //helper functions
+    void getMinUBOOffset(VkPhysicalDevice physicalDevice);
+
+    //allocator functions
+    void allocateDynamicBufferTransferSpace();
 
     //------UNIFORM BUFFER
-    MVP sceneMVP; //model view projection matrix
+    UboVP sceneVP; //model view projection matrix
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBufferMemories;
+    std::vector<VkBuffer> dynamicUniformBuffers;
+    std::vector<VkDeviceMemory> dynamicUniformBufferMemories;
+    PixelObject::DynamicUBObj* modelTransferSpace{};
 
     //------TEXTURES
 
+    //utility (Dynamic Buffers)
+    VkDeviceSize minUBOOffset{}; //this is device specific and is a constant
+    size_t objectUBOAllignment{}; //this is a multiple of minUBOOffset and will depend on the size of the object's UBO
+    std::vector<bool> buffersUpdated;
 
     //vulkan component
     VkDevice* m_device = VK_NULL_HANDLE;

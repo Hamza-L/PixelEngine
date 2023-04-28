@@ -5,9 +5,8 @@
 #ifndef PIXELENGINE_PIXELGRAPHICSPIPELINE_H
 #define PIXELENGINE_PIXELGRAPHICSPIPELINE_H
 
-#include "PixelWindow.h"
-#include "PixelObject.h"
 #include "PixelScene.h"
+#include "PixelImage.h"
 
 #include <fstream>
 #include <vector>
@@ -19,13 +18,14 @@ public:
     void addVertexShader(const std::string& filename);
     void addFragmentShader(const std::string& filename);
     void populateGraphicsPipelineInfo();
-    void populateDescriptorSetLayout(PixelScene* scene);
+    void populatePipelineLayout(PixelScene* scene);
     void createGraphicsPipeline(const VkRenderPass& inputRenderPass);
     void createRenderPass();
     void cleanUp();
 
     VkRenderPass getRenderPass();
     VkPipeline getPipeline();
+    VkPipelineLayout getPipelineLayout();
 private:
     VkPipelineShaderStageCreateInfo vertexCreateShaderInfo = {};
     VkPipelineShaderStageCreateInfo fragmentCreateShaderInfo = {};

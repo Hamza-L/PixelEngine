@@ -17,7 +17,9 @@ set(Headers
     "source/PixelWindow.h"
     "source/PixelGraphicsPipeline.h"
     "source/PixelObject.h"
-    "source/PixelScene.h")
+    "source/PixelScene.h"
+    "source/PixelImage.h"
+    "source/Utility.h")
 source_group("Headers" FILES ${Headers})
 
 set(Sources
@@ -26,13 +28,13 @@ set(Sources
     "source/PixelWindow.cpp"
     "source/PixelGraphicsPipeline.cpp"
     "source/PixelObject.cpp"
-    "source/PixelScene.cpp")
+    "source/PixelScene.cpp"
+    "source/PixelImage.cpp")
 source_group("Sources" FILES ${Sources})
 
 set(ALL_FILES
     ${Headers}
-    ${Sources}
-)
+    ${Sources})
 
 ################################################################################
 # Target
