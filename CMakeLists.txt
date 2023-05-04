@@ -19,7 +19,7 @@ set(Headers
     "source/PixelObject.h"
     "source/PixelScene.h"
     "source/PixelImage.h"
-    "source/Utility.h")
+    "source/Utility.h" source/stb_image.h)
 source_group("Headers" FILES ${Headers})
 
 set(Sources

@@ -45,7 +45,8 @@ private:
 #ifdef __APPLE__
 	const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-    "VK_KHR_portability_subset"
+    "VK_KHR_portability_subset",
+    "VK_EXT_descriptor_indexing"
 	};
 #else
     const std::vector<const char*> deviceExtensions = {
@@ -65,12 +66,15 @@ private:
 	VkSurfaceKHR surface{};
 	VkSwapchainKHR swapChain{};
     VkRenderPass renderPass{}; //the renderer has to have atleast one renderpass to fall back on
-	std::vector<PixelImage> swapChainImages;
-    PixelImage depthImage;
     std::vector<VkFramebuffer> swapchainFramebuffers;
     std::vector<VkCommandBuffer> commandBuffers;
     std::vector<std::unique_ptr<PixelGraphicsPipeline>> graphicsPipelines;
 
+    //images
+    std::vector<PixelImage> swapChainImages;
+    PixelImage depthImage;
+    PixelImage emptyTexture;
+    VkSampler imageSampler;
 
 	// Utility
 	VkFormat swapChainImageFormat{};
@@ -106,9 +110,12 @@ private:
     void createCommandPool();
     void createCommandBuffers();
 	void createScene();
+    void createDepthBuffer();
 	void initializeScene();
     void createSynchronizationObjects();
     void recordCommands(uint32_t currentImageIndex);
+    VkCommandBuffer beginSingleUseCommandBuffer();
+    void submitAndEndSingleUseCommandBuffer(VkCommandBuffer* commandBuffer);
 	QueueFamilyIndices setupQueueFamilies(VkPhysicalDevice device);
 
 	//descriptor Set (for scene initialization)
@@ -123,14 +130,20 @@ private:
 	//helper functions
 	bool checkIfPhysicalDeviceSuitable(VkPhysicalDevice device);
 	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-	VkExtent2D chooseSwapChainExtent(VkSurfaceCapabilitiesKHR surfaceCapabilities); //TODO: put in utility
-    static void createBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize bufferSize,
-                             VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags bufferproperties,
-                             VkBuffer* buffer, VkDeviceMemory* bufferMemory);
+	VkExtent2D chooseSwapChainExtent(VkSurfaceCapabilitiesKHR surfaceCapabilities);
+    void transitionImageLayout(VkImage imageToTransition, VkImageLayout currentLayout, VkImageLayout newLayout);
+    void createBuffer(VkDeviceSize bufferSize,
+                     VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags bufferproperties,
+                     VkBuffer* buffer, VkDeviceMemory* bufferMemory);
+    void copySrcBuffertoDstBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize bufferSize);
+    void copySrcBuffertoDstImage(VkBuffer srcBuffer, VkImage dstImageBuffer, uint32_t width, uint32_t height);
 
     void initializeObjectBuffers(PixelObject* pixObject);
     void createVertexBuffer(PixelObject* pixObject);
     void createIndexBuffer(PixelObject* pixObject);
+    void createTextureBuffer(PixelImage* pixImage);
+    void createTextureSampler();
+
 	//getter functions
 	SwapchainDetails getSwapChainDetails(VkPhysicalDevice device);
 

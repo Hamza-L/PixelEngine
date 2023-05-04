@@ -6,8 +6,6 @@
 
 #include <vector>
 
-
-
 PixelScene::PixelScene(VkDevice *device) : m_device(device)
 {
     printf("PixelScene constructed\n");
@@ -19,7 +17,8 @@ void PixelScene::cleanup()
     free(modelTransferSpace);
 
     vkDestroyDescriptorPool(*m_device, m_descriptorPool, nullptr);
-    vkDestroyDescriptorSetLayout(*m_device, m_descriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(*m_device, m_descriptorSetLayouts[UBOS], nullptr);
+    vkDestroyDescriptorSetLayout(*m_device, m_descriptorSetLayouts[TEXTURES], nullptr);
     for(int i = 0; i < uniformBuffers.size(); i++)
     {
         vkDestroyBuffer(*m_device, dynamicUniformBuffers[i], nullptr);
@@ -34,8 +33,14 @@ void PixelScene::cleanup()
     }
 }
 
-VkDescriptorSetLayout* PixelScene::getDescriptorSetLayout() {
-    return &m_descriptorSetLayout;
+VkDescriptorSetLayout* PixelScene::getDescriptorSetLayout(DescSetLayoutIndex indx) {
+
+    if(indx == UBOS || indx == TEXTURES)
+    {
+        return &m_descriptorSetLayouts[indx];
+    }
+
+    return VK_NULL_HANDLE;
 }
 
 VkDeviceSize PixelScene::getUniformBufferSize() {
@@ -75,16 +80,16 @@ VkDescriptorPool *PixelScene::getDescriptorPool() {
     return &m_descriptorPool;
 }
 
-VkDescriptorSet* PixelScene::getDescriptorSetAt(int index) {
-    return &m_descriptorSets[index];
+VkDescriptorSet* PixelScene::getUniformDescriptorSetAt(int index) {
+    return &m_uniformDescriptorSets[index];
 }
 
 void PixelScene::resizeDesciptorSets(size_t newSize) {
-    m_descriptorSets.resize(newSize);
+    m_uniformDescriptorSets.resize(newSize);
 }
 
-std::vector<VkDescriptorSet>* PixelScene::getDescriptorSets() {
-    return &m_descriptorSets;
+std::vector<VkDescriptorSet>* PixelScene::getUniformDescriptorSets() {
+    return &m_uniformDescriptorSets;
 }
 
 void PixelScene::updateUniformBuffer(uint32_t bufferIndex)
@@ -116,35 +121,61 @@ void PixelScene::updateUniformBuffer(uint32_t bufferIndex)
 
 void PixelScene::createDescriptorSetLayout() {
 
-    //how data is bound to the shader in binding 0
-    VkDescriptorSetLayoutBinding descriptorSetLayoutBinding{};
-    descriptorSetLayoutBinding.binding = 0; //binding point in shader
-    descriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorSetLayoutBinding.descriptorCount = 1; //only binding one uniform buffer
-    descriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    descriptorSetLayoutBinding.pImmutableSamplers = nullptr;
+    VkDescriptorSetLayout uniformDescriptorSetLayout{};
+    VkDescriptorSetLayout textureDescriptorSetLayout{};
 
     //how data is bound to the shader in binding 0
-    VkDescriptorSetLayoutBinding modelLayoutBinding{};
-    modelLayoutBinding.binding = 1; //binding point in shader
-    modelLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    modelLayoutBinding.descriptorCount = 1; //only binding one uniform buffer
-    modelLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    modelLayoutBinding.pImmutableSamplers = nullptr;
+    VkDescriptorSetLayoutBinding uniformBufferLayoutBinding{};
+    uniformBufferLayoutBinding.binding = 0; //binding point in shader
+    uniformBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uniformBufferLayoutBinding.descriptorCount = 1; //only binding one uniform buffer
+    uniformBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uniformBufferLayoutBinding.pImmutableSamplers = nullptr;
 
-    std::array<VkDescriptorSetLayoutBinding,2> descriptorSetLayoutBindings = {descriptorSetLayoutBinding, modelLayoutBinding};
+    //how data is bound to the shader in binding 1
+    VkDescriptorSetLayoutBinding dynamicBufferLayoutBinding{};
+    dynamicBufferLayoutBinding.binding = 1; //binding point in shader
+    dynamicBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    dynamicBufferLayoutBinding.descriptorCount = 1; //only binding one uniform buffer
+    dynamicBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    dynamicBufferLayoutBinding.pImmutableSamplers = nullptr;
+
+    //how data is bound to the shader in binding 2
+    VkDescriptorSetLayoutBinding textureSamplerLayoutBinding{};
+    textureSamplerLayoutBinding.binding = 0; //binding point in shader
+    textureSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    textureSamplerLayoutBinding.descriptorCount = static_cast<uint32_t>(MAX_TEXTURE_PER_OBJECT); //only binding one combine image sampler buffer
+    textureSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    textureSamplerLayoutBinding.pImmutableSamplers = nullptr;
+
+    std::array<VkDescriptorSetLayoutBinding, 2> descriptorSetLayoutBindings = {uniformBufferLayoutBinding, dynamicBufferLayoutBinding};
 
     //Create descriptor set layout given binding
-    VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
-    layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutCreateInfo.pBindings = descriptorSetLayoutBindings.data();
-    layoutCreateInfo.bindingCount = static_cast<uint32_t>(descriptorSetLayoutBindings.size());
+    VkDescriptorSetLayoutCreateInfo uniformBufferObjectDescriptorSetlayoutCreateInfo{};
+    uniformBufferObjectDescriptorSetlayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    uniformBufferObjectDescriptorSetlayoutCreateInfo.pBindings = descriptorSetLayoutBindings.data();
+    uniformBufferObjectDescriptorSetlayoutCreateInfo.bindingCount = static_cast<uint32_t>(descriptorSetLayoutBindings.size());
 
-    VkResult result = vkCreateDescriptorSetLayout(*m_device, &layoutCreateInfo, nullptr, &m_descriptorSetLayout);
+    VkResult result = vkCreateDescriptorSetLayout(*m_device, &uniformBufferObjectDescriptorSetlayoutCreateInfo, nullptr, &uniformDescriptorSetLayout);
     if(result != VK_SUCCESS)
     {
-        throw std::runtime_error("Failed to create descriptor set layout");
+        throw std::runtime_error("Failed to create descriptor set layout for ubos");
     }
+
+    //Create descriptor set layout given binding
+    VkDescriptorSetLayoutCreateInfo textureDescriptorSetLayoutCreateInfo{};
+    textureDescriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    textureDescriptorSetLayoutCreateInfo.pBindings = &textureSamplerLayoutBinding;
+    textureDescriptorSetLayoutCreateInfo.bindingCount = 1;
+
+    result = vkCreateDescriptorSetLayout(*m_device, &textureDescriptorSetLayoutCreateInfo, nullptr, &textureDescriptorSetLayout);
+    if(result != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to create descriptor set layout for textures");
+    }
+
+    m_descriptorSetLayouts.push_back(uniformDescriptorSetLayout);
+    m_descriptorSetLayouts.push_back(textureDescriptorSetLayout);
 }
 
 PixelScene::UboVP PixelScene::getSceneVP() {

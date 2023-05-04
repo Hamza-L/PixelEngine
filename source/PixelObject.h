@@ -10,6 +10,8 @@
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "PixelImage.h"
+#include "Utility.h"
 #include <string>
 #include <array>
 #include <vector>
@@ -37,10 +39,21 @@ public:
         glm::vec4 position{};
         glm::vec4 normal{};
         glm::vec4 color{};
+        glm::vec2 texUV{};
     };
 
-    PixelObject(VkDevice* device, std::vector<Vertex> vertices, std::vector<uint32_t> indices);
-    PixelObject(VkDevice* device, std::string filename);
+    enum attributes
+    {
+        POSITION_ATTRIBUTEINDEX,
+        NORMAL_ATTRIBUTEINDEX,
+        COLOR_ATTRIBUTEINDEX,
+        TEXUV_ATTRIBUTEINDEX,
+        ATTRIBUTECOUNT
+    };
+
+
+    PixelObject(PixDevice* device, std::vector<Vertex> vertices, std::vector<uint32_t> indices);
+    PixelObject(PixDevice* device, std::string filename);
 
     //getters
     int getVertexCount();
@@ -55,6 +68,7 @@ public:
     VkDeviceMemory* getIndexBufferMemory();
     PObj* getPushObj();
     DynamicUBObj* getDynamicUBObj();
+    std::vector<PixelImage> getTextures(){return m_textures;}
     static constexpr VkPushConstantRange pushConstantRange {VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PObj)};
 
     //setters
@@ -67,10 +81,11 @@ public:
 
     //helper functions
     //returns the number of members of the Vertex Struct
-    static constexpr int getNumofAttributes(){return sizeof(Vertex)/sizeof(Vertex::position);}
     void importFile(const std::string& filename);
     void setGenericColor(glm::vec4 color);
     void addTransform(glm::mat4 matTransform);
+    void setTransform(glm::mat4 matTransform);
+    void addTexture(std::string textureFile);
 
 
 private:
@@ -84,13 +99,14 @@ private:
     PObj pushObj = {glm::mat4(1.0f)};
 
     //vulkan components
-    VkDevice* m_device = VK_NULL_HANDLE;
+    PixDevice* m_device = VK_NULL_HANDLE;
     VkBuffer vertexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
     VkBuffer indexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
 
-
+    //texture used
+    std::vector<PixelImage> m_textures;
 };
 
 

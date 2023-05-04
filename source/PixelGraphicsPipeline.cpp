@@ -97,7 +97,7 @@ void PixelGraphicsPipeline::createGraphicsPipeline(const VkRenderPass& inputRend
     graphicsPipelineCreateInfo.pRasterizationState = &rasterizationStateCreateInfo;
     graphicsPipelineCreateInfo.pMultisampleState = &multisampleStateCreateInfo;
     graphicsPipelineCreateInfo.pColorBlendState = &blendStateCreateInfo;
-    graphicsPipelineCreateInfo.pDepthStencilState = nullptr;
+    graphicsPipelineCreateInfo.pDepthStencilState = renderPassDepthAttachment.hasBeenDefined ? &depthStencilStateCreateInfo : nullptr;
     graphicsPipelineCreateInfo.layout = pipelineLayout; //pipeline layout this pipeline should use
     graphicsPipelineCreateInfo.renderPass = renderPass; //render pass description the pipeline is compatible with
     graphicsPipelineCreateInfo.subpass = 0; //one subpass per pipeline
@@ -127,40 +127,25 @@ void PixelGraphicsPipeline::cleanUp() {
 void PixelGraphicsPipeline::createRenderPass() {
 
     //ATTACHMENTS
-    //Color attachment for all the renderpass (accessible to all subpass)
-    VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = format;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; //this clears the buffer when we start the renderpass
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; //we want to present the result so we keep it
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; //renderpass (before the subpasses) layout
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; //renderpass (after the subpasses) layout
+    std::vector<VkAttachmentReference> colorAttachmentReferences; //Only the color attachments
+    std::vector<VkAttachmentDescription> allAttachmentDescriptions; //color attachments and the depth attachment
 
-    // depth attachment for all the renderpass (accessible to all subpass)
-    VkAttachmentDescription depthAttachment = {};
-    depthAttachment.format = format; //need to use chooseformat function from pixelrenderer
-    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; //this clears the buffer when we start the renderpass
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; //we want to present the result so we keep it
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; //renderpass (before the subpasses) layout
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; //renderpass (after the subpasses) layout
-
-
-    //REFERENCES
-    //attachment reference uses an attachment index to refer to the renderpass attachment list
-    VkAttachmentReference attachmentReference = {};
-    attachmentReference.attachment = 0;
-    attachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    for(size_t i = 0; i < renderPassColorAttachments.size(); i++)
+    {
+        colorAttachmentReferences.push_back(renderPassColorAttachments[i].attachmentReference);
+        allAttachmentDescriptions.push_back(renderPassColorAttachments[i].attachmentDescription);
+    }
 
     //info about our first subpass
     VkSubpassDescription subpassDescription = {};
     subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpassDescription.colorAttachmentCount = 1;
-    subpassDescription.pColorAttachments = &attachmentReference;
+    subpassDescription.colorAttachmentCount = static_cast<uint32_t>(renderPassColorAttachments.size());
+    subpassDescription.pColorAttachments = colorAttachmentReferences.data();
+    if(renderPassDepthAttachment.hasBeenDefined)
+    {
+        subpassDescription.pDepthStencilAttachment = &renderPassDepthAttachment.attachmentReference;
+        allAttachmentDescriptions.push_back(renderPassDepthAttachment.attachmentDescription);
+    }
 
     //dependencies
     std::array<VkSubpassDependency, 2> subpassDependencies = {};
@@ -189,8 +174,8 @@ void PixelGraphicsPipeline::createRenderPass() {
     //create info for renderpass
     VkRenderPassCreateInfo renderPassCreateInfo = {};
     renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassCreateInfo.attachmentCount = 1;
-    renderPassCreateInfo.pAttachments = &colorAttachment;
+    renderPassCreateInfo.attachmentCount = static_cast<uint32_t>(allAttachmentDescriptions.size());
+    renderPassCreateInfo.pAttachments = allAttachmentDescriptions.data();
     renderPassCreateInfo.subpassCount = 1;
     renderPassCreateInfo.pSubpasses = &subpassDescription;
     renderPassCreateInfo.dependencyCount = static_cast<uint32_t>(subpassDependencies.size());
@@ -206,7 +191,7 @@ void PixelGraphicsPipeline::createRenderPass() {
     }
 }
 
-PixelGraphicsPipeline::PixelGraphicsPipeline(VkDevice& device, VkExtent2D inputExtent, VkFormat inputFormat) : device(device), extent(inputExtent), format(inputFormat) {
+PixelGraphicsPipeline::PixelGraphicsPipeline(VkDevice& device, VkExtent2D inputExtent) : device(device), extent(inputExtent) {
 
 }
 
@@ -215,7 +200,7 @@ VkRenderPass PixelGraphicsPipeline::getRenderPass() {
 }
 
 void PixelGraphicsPipeline::populateGraphicsPipelineInfo() {
-//Vertex-Stage creation
+    //Vertex-Stage creation
     vertexCreateShaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertexCreateShaderInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
     vertexCreateShaderInfo.module = vertexShaderModule;
@@ -237,22 +222,31 @@ void PixelGraphicsPipeline::populateGraphicsPipelineInfo() {
                                                                      //VK_VERTEX_INPUT_RATE_INSTANCE : Move on to the next instance
 
     //How the data within a vertex is descripted
-    //const int numOfVertexAttribute = PixelObject::getNumofAttributes();
-    //std::array<VkVertexInputAttributeDescription, numOfVertexAttribute> inputAttributeDescription{};
-
     //fills in each Vertex Input Attribute Description struct for each attributes in the Vertex Object (position, color etc...)
-    for(size_t i = 0; i < PixelObject::getNumofAttributes(); i++)
-    {
-        inputAttributeDescription[i].binding = 0; //matches the layout(binding = 0)
-        inputAttributeDescription[i].location = static_cast<uint32_t>(i); //matches the layout(location = 0)
-        inputAttributeDescription[i].format = VK_FORMAT_R32G32B32A32_SFLOAT; //the format of the attribute (vec3)
-        inputAttributeDescription[i].offset = static_cast<uint32_t>(i * 16); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
-    }
+    inputAttributeDescription[PixelObject::POSITION_ATTRIBUTEINDEX].binding = 0; //matches the layout(binding = 0)
+    inputAttributeDescription[PixelObject::POSITION_ATTRIBUTEINDEX].location = static_cast<uint32_t>(PixelObject::POSITION_ATTRIBUTEINDEX); //matches the layout(location = 0)
+    inputAttributeDescription[PixelObject::POSITION_ATTRIBUTEINDEX].format = VK_FORMAT_R32G32B32A32_SFLOAT; //the format of the attribute (vec3)
+    inputAttributeDescription[PixelObject::POSITION_ATTRIBUTEINDEX].offset = static_cast<uint32_t>(offsetof(PixelObject::Vertex, position)); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
+
+    inputAttributeDescription[PixelObject::NORMAL_ATTRIBUTEINDEX].binding = 0; //matches the layout(binding = 0)
+    inputAttributeDescription[PixelObject::NORMAL_ATTRIBUTEINDEX].location = static_cast<uint32_t>(PixelObject::NORMAL_ATTRIBUTEINDEX); //matches the layout(location = 0)
+    inputAttributeDescription[PixelObject::NORMAL_ATTRIBUTEINDEX].format = VK_FORMAT_R32G32B32A32_SFLOAT; //the format of the attribute (vec3)
+    inputAttributeDescription[PixelObject::NORMAL_ATTRIBUTEINDEX].offset = static_cast<uint32_t>(offsetof(PixelObject::Vertex, normal)); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
+
+    inputAttributeDescription[PixelObject::COLOR_ATTRIBUTEINDEX].binding = 0; //matches the layout(binding = 0)
+    inputAttributeDescription[PixelObject::COLOR_ATTRIBUTEINDEX].location = static_cast<uint32_t>(PixelObject::COLOR_ATTRIBUTEINDEX); //matches the layout(location = 0)
+    inputAttributeDescription[PixelObject::COLOR_ATTRIBUTEINDEX].format = VK_FORMAT_R32G32B32A32_SFLOAT; //the format of the attribute (vec3)
+    inputAttributeDescription[PixelObject::COLOR_ATTRIBUTEINDEX].offset = static_cast<uint32_t>(offsetof(PixelObject::Vertex, color)); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
+
+    inputAttributeDescription[PixelObject::TEXUV_ATTRIBUTEINDEX].binding = 0; //matches the layout(binding = 0)
+    inputAttributeDescription[PixelObject::TEXUV_ATTRIBUTEINDEX].location = static_cast<uint32_t>(PixelObject::TEXUV_ATTRIBUTEINDEX); //matches the layout(location = 0)
+    inputAttributeDescription[PixelObject::TEXUV_ATTRIBUTEINDEX].format = VK_FORMAT_R32G32_SFLOAT; //the format of the attribute (vec3)
+    inputAttributeDescription[PixelObject::TEXUV_ATTRIBUTEINDEX].offset = static_cast<uint32_t>(offsetof(PixelObject::Vertex, texUV)); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
 
     vertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
     vertexInputStateCreateInfo.pVertexBindingDescriptions = &inputBindingDescription; //list of binding description info (spacing, stride etc,,,)
-    vertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(PixelObject::getNumofAttributes());
+    vertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(PixelObject::ATTRIBUTECOUNT);
     vertexInputStateCreateInfo.pVertexAttributeDescriptions = inputAttributeDescription.data(); //list of attribute description (data format and where to bind to/from)
 
     //Input Assembly
@@ -282,6 +276,14 @@ void PixelGraphicsPipeline::populateGraphicsPipelineInfo() {
     dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicstates.size());
     dynamicStateCreateInfo.pDynamicStates = dynamicstates.data();
      */
+
+    // depth stencil create info
+    depthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencilStateCreateInfo.depthTestEnable = VK_TRUE; //is it using the depth stencil buffer for depth testing
+    depthStencilStateCreateInfo.depthWriteEnable = VK_TRUE; //can we update the depth pixel of our depth buffer
+    depthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS; //so if the depth value of the current pixel is less, we overwrite.
+    depthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE; //we can check if it is between two values;
+    depthStencilStateCreateInfo.stencilTestEnable = VK_FALSE; //we do not do any stencil test
 
     //rasterizer
     rasterizationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -333,16 +335,66 @@ VkPipeline PixelGraphicsPipeline::getPipeline() {
 }
 
 void PixelGraphicsPipeline::populatePipelineLayout(PixelScene* scene) {
+
     //pipeline layout
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutCreateInfo.setLayoutCount = 1;
-    pipelineLayoutCreateInfo.pSetLayouts = scene->getDescriptorSetLayout();
+    pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(scene->getAllDescriptorSetLayouts()->size());
+    pipelineLayoutCreateInfo.pSetLayouts = scene->getAllDescriptorSetLayouts()->data();
     pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
     pipelineLayoutCreateInfo.pPushConstantRanges = &PixelObject::pushConstantRange;
 }
 
 VkPipelineLayout PixelGraphicsPipeline::getPipelineLayout() {
     return pipelineLayout;
+}
+
+void
+PixelGraphicsPipeline::addRenderpassColorAttachment(PixelImage image, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentStoreOp attachmentStoreOp,
+                                               VkImageLayout attachmentReferenceLayout) {
+
+    //check if the image used is initialized
+    if(!image.hasBeenInitialized())
+    {
+        throw std::runtime_error("adding a renderPassColorAttachments using an uninitialized PixelImage!");
+    }
+
+    PixRenderpassAttachement attachment{};
+    attachment.attachmentDescription.format = image.getFormat();
+    attachment.attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+    attachment.attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; //this clears the buffer when we start the renderpass
+    attachment.attachmentDescription.storeOp = attachmentStoreOp; //we want to present the result so we keep it
+    attachment.attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachment.attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    attachment.attachmentDescription.initialLayout = initialLayout; //renderpass (before the subpasses) layout, default = VK_IMAGE_LAYOUT_UNDEFINED
+    attachment.attachmentDescription.finalLayout = finalLayout; //renderpass (after the subpasses) layout, default = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+
+    attachment.attachmentReference.attachment = renderPassColorAttachments.size();
+    attachment.attachmentReference.layout = attachmentReferenceLayout; //default = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+
+    attachment.hasBeenDefined = true;
+
+    renderPassColorAttachments.push_back(attachment);
+
+    //making sure the depth attachment, if defined before the color attachment, is indeed the last attachment index of the renderpass.
+    renderPassDepthAttachment.attachmentReference.attachment = renderPassColorAttachments.size();
+}
+
+void PixelGraphicsPipeline::addRenderpassDepthAttachment(PixelImage depthImage) {
+
+    renderPassDepthAttachment.attachmentDescription.format = depthImage.getFormat();
+    renderPassDepthAttachment.attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+    renderPassDepthAttachment.attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; //this clears the buffer when we start the renderpass
+    renderPassDepthAttachment.attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; //we want to present the result so we keep it
+    renderPassDepthAttachment.attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    renderPassDepthAttachment.attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    renderPassDepthAttachment.attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; //renderpass (before the subpasses) layout, default = VK_IMAGE_LAYOUT_UNDEFINED
+    renderPassDepthAttachment.attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; //renderpass (after the subpasses) layout, default = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+
+    renderPassDepthAttachment.attachmentReference.attachment = renderPassColorAttachments.size();
+    renderPassDepthAttachment.attachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; //default = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+
+    renderPassDepthAttachment.hasBeenDefined = true;
+
 }
 
 

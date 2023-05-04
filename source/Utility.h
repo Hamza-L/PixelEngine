@@ -54,51 +54,6 @@ static uint32_t findMemoryTypeIndex(VkPhysicalDevice physicalDevice, uint32_t al
     return 0;
 }
 
-static void copyBuffer(VkDevice device, VkQueue transferQueue, VkCommandPool transferCommandPool,
-                                      VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize bufferSize) {
-
-    //Command Buffer to hold the commands
-    VkCommandBuffer transferCommandBuffer;
-
-    //info for transfer commandbuffer creation
-    VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
-    commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    commandBufferAllocateInfo.commandPool = transferCommandPool;
-    commandBufferAllocateInfo.commandBufferCount = 1;
-
-    //allocate commandbuffer from pool
-    vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, &transferCommandBuffer);
-
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; //we are using it only once. we submit it and we destroy it.
-
-    vkBeginCommandBuffer(transferCommandBuffer, &beginInfo);
-    {
-        //region of data to copy from and too
-        VkBufferCopy bufferCopy{};
-        bufferCopy.srcOffset = 0;
-        bufferCopy.dstOffset = 0;
-        bufferCopy.size = bufferSize;
-
-        vkCmdCopyBuffer(transferCommandBuffer, srcBuffer, dstBuffer, 1, &bufferCopy);
-    }
-    vkEndCommandBuffer(transferCommandBuffer);
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &transferCommandBuffer;
-
-    //submit the transfer queue
-    vkQueueSubmit(transferQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(transferQueue); //submits the queue and wait for it to stop running
-
-    vkFreeCommandBuffers(device, transferCommandPool, 1, &transferCommandBuffer);
-
-}
-
 static bool checkInstanceExtensionSupport(const std::vector<const char*>* checkExtensions)
 {
     //get the number of extensions

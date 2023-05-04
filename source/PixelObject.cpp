@@ -8,17 +8,23 @@
 #include <fstream>
 
 
-PixelObject::PixelObject(VkDevice* device, std::vector<Vertex> vertices, std::vector<uint32_t> indices): m_device(device), m_vertices(std::move(vertices)), m_indices(std::move(indices)) {
+PixelObject::PixelObject(PixDevice* device, std::vector<Vertex> vertices, std::vector<uint32_t> indices): m_device(device), m_vertices(std::move(vertices)), m_indices(std::move(indices)) {
     //create the vertex buffer form the vertices
     printf("PixelObject user constructed\n");
     //createVertexBuffer(vertices);
 }
 
 void PixelObject::cleanup() {
-    vkFreeMemory(*m_device, vertexBufferMemory, nullptr);
-    vkDestroyBuffer(*m_device, vertexBuffer, nullptr);
-    vkFreeMemory(*m_device, indexBufferMemory, nullptr);
-    vkDestroyBuffer(*m_device, indexBuffer, nullptr);
+
+    for(auto texture : m_textures)
+    {
+        texture.cleanUp();
+    }
+
+    vkFreeMemory(m_device->logicalDevice, vertexBufferMemory, nullptr);
+    vkDestroyBuffer(m_device->logicalDevice, vertexBuffer, nullptr);
+    vkFreeMemory(m_device->logicalDevice, indexBufferMemory, nullptr);
+    vkDestroyBuffer(m_device->logicalDevice, indexBuffer, nullptr);
 }
 
 std::vector<PixelObject::Vertex>* PixelObject::getVertices() {
@@ -69,7 +75,7 @@ PixelObject::PObj* PixelObject::getPushObj() {
     return &pushObj;
 }
 
-PixelObject::PixelObject(VkDevice *device, std::string filename) : m_device(device){
+PixelObject::PixelObject(PixDevice *device, std::string filename) : m_device(device){
     importFile(filename);
 }
 
@@ -216,11 +222,24 @@ void PixelObject::addTransform(glm::mat4 matTransform) {
     pushObj.MinvT = glm::transpose(glm::inverse(pushObj.M));
 }
 
+void PixelObject::setTransform(glm::mat4 matTransform) {
+    pushObj.M = matTransform;
+    pushObj.MinvT = glm::transpose(glm::inverse(pushObj.M));
+}
+
 void PixelObject::setPushObj(PixelObject::PObj pushObjData) {
     pushObj = PObj(pushObjData);
 }
 
 PixelObject::DynamicUBObj* PixelObject::getDynamicUBObj() {
     return &dynamicUBO;
+}
+
+void PixelObject::addTexture(std::string textureFile) {
+    PixelImage textureImage = PixelImage(m_device, 0, 0, false);
+    textureImage.loadTexture(textureFile);
+
+    m_textures.push_back(textureImage);
+
 }
 

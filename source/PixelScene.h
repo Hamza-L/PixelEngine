@@ -16,7 +16,12 @@ static const glm::mat4 MAT4_IDENTITY = {1,0,0,0,
                                         0,0,1,0,
                                         0,0,0,1};
 
-const int MAX_OBJECTS = 10;
+const int MAX_OBJECTS = 1;
+const int MAX_TEXTURE_PER_OBJECT = 4;
+enum DescSetLayoutIndex{
+    UBOS,
+    TEXTURES
+};
 
 class PixelScene {
 public:
@@ -33,10 +38,12 @@ public:
     void addObject(PixelObject pixObject);
 
     //getter functions
-    VkDescriptorSetLayout* getDescriptorSetLayout();
+    VkDescriptorSetLayout* getDescriptorSetLayout(DescSetLayoutIndex indx);
+    std::vector<VkDescriptorSetLayout>* getAllDescriptorSetLayouts(){return &m_descriptorSetLayouts;}
     VkDescriptorPool* getDescriptorPool();
-    VkDescriptorSet* getDescriptorSetAt(int index);
-    std::vector<VkDescriptorSet>* getDescriptorSets();
+    VkDescriptorSet* getUniformDescriptorSetAt(int index);
+    VkDescriptorSet* getTextureDescriptorSet(){return &m_textureDescriptorSet;}
+    std::vector<VkDescriptorSet>* getUniformDescriptorSets();
     static VkDeviceSize getUniformBufferSize();
     VkDeviceSize getDynamicUniformBufferSize();
     VkDeviceSize getMinAlignment();
@@ -97,9 +104,10 @@ private:
 
     //vulkan component
     VkDevice* m_device = VK_NULL_HANDLE;
-    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-    std::vector<VkDescriptorSet> m_descriptorSets;
+    std::vector<VkDescriptorSet> m_uniformDescriptorSets{};
+    std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts{};
+    VkDescriptorSet m_textureDescriptorSet = VK_NULL_HANDLE;
 };
 
 

@@ -45,7 +45,9 @@ int PixelRenderer::initRenderer()
 		setupPhysicalDevice();
 		createLogicalDevice();
         createSwapChain();
+        createDepthBuffer();
         createCommandPool();
+        createTextureSampler();
         createCommandBuffers();
         createScene();
         initializeScene();
@@ -71,6 +73,9 @@ void PixelRenderer::cleanup()
 {
     vkDeviceWaitIdle(mainDevice.logicalDevice); //wait that no action is running before destroying the objects
 
+    vkDestroySampler(mainDevice.logicalDevice, imageSampler, nullptr);
+
+    emptyTexture.cleanUp();
     firstScene->cleanup();
 
     for(size_t i = 0; i<MAX_FRAME_DRAWS; i++)
@@ -98,8 +103,6 @@ void PixelRenderer::cleanup()
 	{
 		image.cleanUp();
 	}
-
-
 
 	vkDestroySwapchainKHR(mainDevice.logicalDevice, swapChain, nullptr);
 	vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -243,9 +246,10 @@ void PixelRenderer::createLogicalDevice()
     vkGetPhysicalDeviceFeatures(mainDevice.physicalDevice, &supportedDeviceFeatures);
 
     //enable solid line
-    if(supportedDeviceFeatures.fillModeNonSolid == VK_TRUE)
+    if(supportedDeviceFeatures.fillModeNonSolid == VK_TRUE && supportedDeviceFeatures.samplerAnisotropy == VK_TRUE)
     {
-        deviceFeatures.fillModeNonSolid = VK_TRUE;
+        deviceFeatures.fillModeNonSolid = VK_TRUE; //enable fill mode nonsolid to allow for wireframe view
+        deviceFeatures.samplerAnisotropy = VK_TRUE; //enable the anisotropy filtering
     }
 
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
@@ -352,6 +356,8 @@ void PixelRenderer::createSwapChain()
 		swapChainImage.createImageView(swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 		swapChainImages.push_back(swapChainImage);
 	}
+
+    //now that we swapchain image have been
 }
 
 void PixelRenderer::setupDebugMessenger()
@@ -529,10 +535,17 @@ SwapchainDetails PixelRenderer::getSwapChainDetails(VkPhysicalDevice device)
 }
 
 void PixelRenderer::createGraphicsPipelines() {
-    auto graphicsPipeline = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, swapChainExtent, swapChainImageFormat);
+
+    auto graphicsPipeline = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, swapChainExtent);
     graphicsPipeline->addVertexShader("shaders/vert.spv");
     graphicsPipeline->addFragmentShader("shaders/frag.spv");
     graphicsPipeline->populateGraphicsPipelineInfo();
+    graphicsPipeline->addRenderpassColorAttachment(swapChainImages[0],
+                                              VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                              VK_ATTACHMENT_STORE_OP_STORE,
+                                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+    graphicsPipeline->addRenderpassDepthAttachment(depthImage);
     graphicsPipeline->populatePipelineLayout(firstScene.get()); //populate the pipeline layout based on the scene's descriptor set
     graphicsPipeline->createGraphicsPipeline(nullptr); //creates a renderpass if none were provided
 
@@ -547,9 +560,10 @@ void PixelRenderer::createFramebuffers() {
 
     for(size_t i =0 ; i <swapchainFramebuffers.size(); i++)
     {
-        //matches the RenderBuffer Attachment
-        std::array<VkImageView , 1> attachment = {
-                swapChainImages[i].getImageView()
+        //matches the RenderBuffer Attachment. order matters
+        std::vector<VkImageView> attachment = {
+                swapChainImages[i].getImageView(),
+                depthImage.getImageView()
         };
 
         //create a framebuffer for each swapchain images;
@@ -613,17 +627,19 @@ void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
     //flag not needed because fences are now implemented; no commandbuffer for the same frame will be submitted twice.
     //bufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT; //if one of our command buffer is already on the queue, can it be in submitted again.
 
+    //the clear values for the renderpass attachment
+    std::array<VkClearValue,2> clearValues = {};
+    clearValues[0].color = {0.0f,0.0f,0.0f, 1.0f}; //colorAttachment clear value
+    clearValues[1].depthStencil.depth = 1.0f; //depthAttachment clear value
+
     //information on how to begin renderpass (only needed for graphical application)
     VkRenderPassBeginInfo renderPassBeginInfo{};
     renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassBeginInfo.renderPass = renderPass;
     renderPassBeginInfo.renderArea.offset = {0,0};
     renderPassBeginInfo.renderArea.extent = swapChainExtent;
-    VkClearValue clearValues[] = {
-            {0.0f,0.0f,0.0f, 1.0f} //TODO:add depth clear color
-    };
-    renderPassBeginInfo.clearValueCount = 1;
-    renderPassBeginInfo.pClearValues = clearValues;
+    renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassBeginInfo.pClearValues = clearValues.data();
 
         renderPassBeginInfo.framebuffer = swapchainFramebuffers[currentImageIndex]; // the framebuffer changes per swapchain image (ie command buffer)
 
@@ -665,9 +681,11 @@ void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
                                        PixelObject::pushConstantRange.size,
                                        firstScene->getObjectAt(objIndex)->getPushObj());
 
+                    std::array<VkDescriptorSet,2> descriptorSets = {*firstScene->getUniformDescriptorSetAt(currentImageIndex), *firstScene->getTextureDescriptorSet()};
+
                     //bind the descriptor sets
                     vkCmdBindDescriptorSets(commandBuffers[currentImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines[p]->getPipelineLayout(),
-                                            0, 1, firstScene->getDescriptorSetAt(currentImageIndex), 1, &dynamicOffset);
+                                            0, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 1, &dynamicOffset);
                     //note here that we bound one descriptor set that contains both a static descriptor and a dynamic descriptor. Only the dynamic descriptors will be off-set for each object, not the static ones.
 
                     //execute the pipeline
@@ -713,15 +731,22 @@ void PixelRenderer::draw() {
 
 
     PixelScene::UboVP newVP{};
-    newVP.P = glm::perspective(glm::radians(45.0f), (float)swapChainExtent.width/(float)swapChainExtent.height, 0.01f, 100.0f);
-    newVP.V = glm::lookAt(glm::vec3(0.0f,0.0f,3.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    newVP.lightPos = glm::vec4(-2.0f,2.0f,2.0f,1.0f);
+    newVP.P = glm::perspective(glm::radians(75.0f), (float)swapChainExtent.width/(float)swapChainExtent.height, 0.01f, 100.0f);
+    newVP.V = glm::lookAt(glm::vec3(0.0f,0.0f,6.5f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    newVP.lightPos = glm::vec4(0.0f,0.0f,3.0f,1.0f);
 
 
     firstScene->setSceneVP(newVP);
-    firstScene->getObjectAt(0)->addTransform({glm::rotate(glm::mat4(1.0f), deltaTime,glm::vec3(1.0f,0.0f,0.0f))});
-    firstScene->getObjectAt(0)->addTransform({glm::rotate(glm::mat4(1.0f), deltaTime*1.2f,glm::vec3(0.0f,1.0f,0.0f))});
-    firstScene->getObjectAt(0)->addTransform({glm::rotate(glm::mat4(1.0f), deltaTime*0.4f,glm::vec3(0.0f,0.0f,1.0f))});
+    //firstScene->getObjectAt(0)->addTransform({glm::rotate(glm::mat4(1.0f), deltaTime,glm::vec3(1.0f,0.0f,0.0f))});
+    glm::mat4 objTransform = glm::mat4(1.0f);
+    objTransform = glm::scale(glm::mat4(1.0f),glm::vec3(2.0f)) * objTransform;
+    objTransform = glm::rotate(glm::mat4(1.0f), sin(currentTime*1.5f)*0.5f,glm::vec3(0.0f,1.0f,0.0f)) * objTransform;
+    objTransform = glm::rotate(glm::mat4(1.0f), cos(currentTime*1.5f)*0.5f,glm::vec3(1.0f,0.0f,0.0f)) * objTransform;
+    objTransform = translate(glm::mat4(1.0f),glm::vec3(0.0f,sin(currentTime*1.5f)*0.3f,0.0f)) * objTransform;
+
+    firstScene->getObjectAt(0)->setTransform({objTransform});
+    //firstScene->getObjectAt(0)->addTransform({glm::rotate(glm::mat4(1.0f), currentTime,glm::vec3(0.0f,1.0f,0.0f))});
+    //firstScene->getObjectAt(0)->addTransform({glm::rotate(glm::mat4(1.0f), glm::radians(45.0f),glm::vec3(1.0f,1.0f,0.0f))});
     firstScene->updateDynamicUniformBuffer(imageIndex);
     firstScene->updateUniformBuffer(imageIndex);
 
@@ -803,7 +828,7 @@ void PixelRenderer::createSynchronizationObjects() {
     }
 }
 
-void PixelRenderer::createBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize bufferSize,
+void PixelRenderer::createBuffer(VkDeviceSize bufferSize,
                                  VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags bufferproperties,
                                  VkBuffer *buffer, VkDeviceMemory *bufferMemory) {
 
@@ -814,7 +839,7 @@ void PixelRenderer::createBuffer(VkPhysicalDevice physicalDevice, VkDevice devic
     bufferInfo.usage = bufferUsageFlags;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    VkResult result = vkCreateBuffer(device, &bufferInfo, nullptr, buffer);
+    VkResult result = vkCreateBuffer(mainDevice.logicalDevice, &bufferInfo, nullptr, buffer);
     if(result != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create vertex buffer");
@@ -824,21 +849,38 @@ void PixelRenderer::createBuffer(VkPhysicalDevice physicalDevice, VkDevice devic
 
     //get buffer memory requirements
     VkMemoryRequirements memoryRequirements{};
-    vkGetBufferMemoryRequirements(device, *buffer, &memoryRequirements);
+    vkGetBufferMemoryRequirements(mainDevice.logicalDevice, *buffer, &memoryRequirements);
 
     //allocate memory buffer
     VkMemoryAllocateInfo allocateInfo{};
     allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocateInfo.allocationSize = memoryRequirements.size;
-    allocateInfo.memoryTypeIndex = findMemoryTypeIndex(physicalDevice, memoryRequirements.memoryTypeBits,   bufferproperties);
+    allocateInfo.memoryTypeIndex = findMemoryTypeIndex(mainDevice.physicalDevice, memoryRequirements.memoryTypeBits,   bufferproperties);
 
-    result = vkAllocateMemory(device, &allocateInfo, nullptr, bufferMemory);
+    result = vkAllocateMemory(mainDevice.logicalDevice, &allocateInfo, nullptr, bufferMemory);
     if(result != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to allocate device memory for object");
     }
 
-    vkBindBufferMemory(device, *buffer, *bufferMemory, 0);
+    vkBindBufferMemory(mainDevice.logicalDevice, *buffer, *bufferMemory, 0);
+}
+
+void PixelRenderer::copySrcBuffertoDstBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize bufferSize) {
+
+    //Command Buffer to hold the commands
+    VkCommandBuffer transferCommandBuffer = beginSingleUseCommandBuffer();
+
+    //region of data to copy from and too
+    VkBufferCopy bufferCopy{};
+    bufferCopy.srcOffset = 0;
+    bufferCopy.dstOffset = 0;
+    bufferCopy.size = bufferSize;
+
+    vkCmdCopyBuffer(transferCommandBuffer, srcBuffer, dstBuffer, 1, &bufferCopy);
+
+    submitAndEndSingleUseCommandBuffer(&transferCommandBuffer);
+
 }
 
 void PixelRenderer::createVertexBuffer(PixelObject* pixObject) {
@@ -848,7 +890,7 @@ void PixelRenderer::createVertexBuffer(PixelObject* pixObject) {
     VkDeviceMemory stagingBufferMemory;
 
     //create the buffer to be transfered somewhere else
-    createBuffer(mainDevice.physicalDevice, mainDevice.logicalDevice, pixObject->getVertexBufferSize(),
+    createBuffer(pixObject->getVertexBufferSize(),
                  VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  &stagingBuffer, &stagingBufferMemory);
 
@@ -860,25 +902,64 @@ void PixelRenderer::createVertexBuffer(PixelObject* pixObject) {
 
     //create buffer with transfer dst bit to mark as recipient of transfer data
     //buffer memory is only accessible in gpu memory. it is a buffer used for vertices
-    createBuffer(mainDevice.physicalDevice, mainDevice.logicalDevice, pixObject->getVertexBufferSize(),
+    createBuffer(pixObject->getVertexBufferSize(),
                  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                  pixObject->getVertexBuffer(), pixObject->getVertexBufferMemory());
 
     //graphics queues are also transfer queues & graphics command pool are also transfer command pools
-    copyBuffer(mainDevice.logicalDevice, graphicsQueue, graphicsCommandPool, stagingBuffer, *pixObject->getVertexBuffer(), pixObject->getVertexBufferSize());
+    copySrcBuffertoDstBuffer(stagingBuffer, *pixObject->getVertexBuffer(), pixObject->getVertexBufferSize());
 
     //cleanup transferbuffer
     vkDestroyBuffer(mainDevice.logicalDevice, stagingBuffer, nullptr);
     vkFreeMemory(mainDevice.logicalDevice, stagingBufferMemory, nullptr);
 }
 
-void PixelRenderer::createIndexBuffer(PixelObject *pixObject) {
-//temporary buffer to stage the vertex buffer before being transfered to the GPU
+void PixelRenderer::createTextureBuffer(PixelImage* pixImage) {
+
+    //temporary buffer to stage the vertex buffer before being transfered to the GPU
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
 
     //create the buffer to be transfered somewhere else
-    createBuffer(mainDevice.physicalDevice, mainDevice.logicalDevice, pixObject->getIndexBufferSize(),
+    createBuffer(pixImage->getImageBufferSize(),
+                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 &stagingBuffer, &stagingBufferMemory);
+
+    if(pixImage->getImageData() != nullptr)
+    {
+        //Map memory to staging buffer
+        void *data; //create a pointer to a point in normal memory
+        vkMapMemory(mainDevice.logicalDevice, stagingBufferMemory, 0, pixImage->getImageBufferSize(), 0, &data); //map vertex buffer memory to that point
+        memcpy(data, pixImage->getImageData(), static_cast<size_t>(pixImage->getImageBufferSize())); //copy memory from vertex memory to the data pointer (ie vertex buffer memory)
+        vkUnmapMemory(mainDevice.logicalDevice, stagingBufferMemory); //unmap memory
+
+        //transition the image to image layout transfer bit so it can receive the buffer data during the transfer stage.
+        transitionImageLayout(pixImage->getImage(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+        //graphics queues are also transfer queues & graphics command pool are also transfer command pools
+        copySrcBuffertoDstImage(stagingBuffer, pixImage->getImage(), pixImage->getWidth(), pixImage->getHeight());
+
+        //transition the image from image layout transfer bit so it can be read by the shader.
+        transitionImageLayout(pixImage->getImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    } else
+    {
+        transitionImageLayout(pixImage->getImage(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    }
+
+
+    //cleanup transferbuffer
+    vkDestroyBuffer(mainDevice.logicalDevice, stagingBuffer, nullptr);
+    vkFreeMemory(mainDevice.logicalDevice, stagingBufferMemory, nullptr);
+}
+
+void PixelRenderer::createIndexBuffer(PixelObject *pixObject)
+{
+    //temporary buffer to stage the vertex buffer before being transfered to the GPU
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+
+    //create the buffer to be transfered somewhere else
+    createBuffer(pixObject->getIndexBufferSize(),
                  VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  &stagingBuffer, &stagingBufferMemory);
 
@@ -890,12 +971,12 @@ void PixelRenderer::createIndexBuffer(PixelObject *pixObject) {
 
     //create buffer with transfer dst bit to mark as recipient of transfer data
     //buffer memory is only accessible in gpu memory. it is a buffer used for vertices
-    createBuffer(mainDevice.physicalDevice, mainDevice.logicalDevice, pixObject->getIndexBufferSize(),
+    createBuffer(pixObject->getIndexBufferSize(),
                  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                  pixObject->getIndexBuffer(), pixObject->getIndexBufferMemory());
 
     //graphics queues are also transfer queues & graphics command pool are also transfer command pools
-    copyBuffer(mainDevice.logicalDevice, graphicsQueue, graphicsCommandPool, stagingBuffer, *pixObject->getIndexBuffer(), pixObject->getIndexBufferSize());
+    copySrcBuffertoDstBuffer(stagingBuffer, *pixObject->getIndexBuffer(), pixObject->getIndexBufferSize());
 
     //cleanup transferbuffer
     vkDestroyBuffer(mainDevice.logicalDevice, stagingBuffer, nullptr);
@@ -913,12 +994,12 @@ void PixelRenderer::createUniformBuffers(PixelScene *pixScene) {
 
     for(int i = 0; i < swapChainImages.size(); i++)
     {//create the buffer to be transfered somewhere else
-        createBuffer(mainDevice.physicalDevice, mainDevice.logicalDevice, PixelScene::getUniformBufferSize(),
+        createBuffer(PixelScene::getUniformBufferSize(),
                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                      pixScene->getUniformBuffers(i), pixScene->getUniformBufferMemories(i));
 
-        createBuffer(mainDevice.physicalDevice, mainDevice.logicalDevice, pixScene->getDynamicUniformBufferSize(),
+        createBuffer(pixScene->getDynamicUniformBufferSize(),
                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                      pixScene->getDynamicUniformBuffers(i), pixScene->getDynamicUniformBufferMemories(i));
@@ -927,9 +1008,19 @@ void PixelRenderer::createUniformBuffers(PixelScene *pixScene) {
 
 void PixelRenderer::initializeScene() {
 
+    //load an empty texture for use when texture is not defined.
+    emptyTexture = PixelImage(&mainDevice, 0, 0, false);
+    emptyTexture.loadEmptyTexture();
+    createTextureBuffer(&emptyTexture);
+
+    //initialize all objects in the scene
     for(int i = 0 ; i < firstScene->getNumObjects(); i++)
     {
         initializeObjectBuffers(firstScene->getObjectAt(i)); //depends on graphics command pool
+        for(auto texture : firstScene->getObjectAt(i)->getTextures())
+        {
+            createTextureBuffer(&texture);
+        }
     }
     firstScene->initialize(mainDevice.physicalDevice);
 
@@ -946,53 +1037,58 @@ void PixelRenderer::createScene() {
     PixelScene::UboVP newVP{};
     newVP.P = glm::perspective(glm::radians(45.0f), (float)swapChainExtent.width/(float)swapChainExtent.height, 0.01f, 100.0f);
     newVP.V = glm::lookAt(glm::vec3(0.0f,0.0f,3.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    newVP.lightPos = glm::vec4(1.0f,0.0f,1.0f,1.0f);
+    newVP.lightPos = glm::vec4(0.0f,0.0f,1.0f,1.0f);
 
     firstScene->setSceneVP(newVP);
 
     //create mesh
     std::vector<PixelObject::Vertex> vertices = {
-            {{-0.4f,-0.4f,0.0f,1.0f},    {0.0f,0.0f,1.0f,0.0f},{1.0f, 1.0f, 0.0f, 1.0f}}, //0
-            {{0.4f,-0.4f,0.0f,1.0f},     {0.0f,0.0f,1.0f,0.0f},{0.0f, 1.0f, 1.0f, 1.0f}}, //1
-            {{0.4f,0.4f,0.0f,1.0f},     {0.0f,0.0f,1.0f,0.0f},{1.0f, 0.0f, 1.0f, 1.0f}},  //2
-            {{-0.4f,0.4f,0.0f,1.0f},    {0.0f,0.0f,1.0f,0.0f},{1.0f, 0.0f, 0.0f, 1.0f}}   //3
+            {{-0.4f,-0.4f,0.0f,1.0f},    {0.0f,0.0f,1.0f,0.0f},{1.0f, 1.0f, 0.0f, 1.0f},{0.0f, 1.0f}}, //0
+            {{0.4f,-0.4f,0.0f,1.0f},     {0.0f,0.0f,1.0f,0.0f},{0.0f, 1.0f, 1.0f, 1.0f},{1.0f, 1.0f}}, //1
+            {{0.4f,0.4f,0.0f,1.0f},     {0.0f,0.0f,1.0f,0.0f},{1.0f, 0.0f, 1.0f, 1.0f},{1.0f, 0.0f}},  //2
+            {{-0.4f,0.4f,0.0f,1.0f},    {0.0f,0.0f,1.0f,0.0f},{1.0f, 0.0f, 0.0f, 1.0f},{0.0f, 0.0f}}    //3
     };
     std::vector<uint32_t> indices{
             1,2,0,
             2,3,0
     };
 
-    auto object1 = PixelObject(&(mainDevice.logicalDevice), vertices, indices);
-    object1.setPushObj({glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f))});
+    auto object1 = PixelObject(&mainDevice, "Suzanne");
+    auto object2 = PixelObject(&mainDevice, "Suzanne");
 
-    auto object2 = PixelObject(&mainDevice.logicalDevice, "Cube");
-    object2.setPushObj({glm::scale(glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(1.0f, 1.0f, 0.0f)),
-                                        glm::vec3(0.3f))});
+    object1.addTexture("brick.jpg");
+    object1.addTexture("brickUV.jpg");
+    object1.addTexture("giraffe.jpeg");
 
     //firstScene->addObject(object1);
-    firstScene->addObject(object2);
+    firstScene->addObject(object1);
 
 }
 
 void PixelRenderer::createDescriptorPool(PixelScene* pixScene) {
 
-    size_t numDescriptorSets = swapChainImages.size();
+    size_t numTextureDescriptorSet = 1;
+    size_t numUniformDescriptorSets = swapChainImages.size();
 
-    //number of descriptors and not descriptor sets. comined, it makes the pool size
+    //number of descriptors and not descriptor sets. combined, it makes the pool size
     VkDescriptorPoolSize vpPoolSize{};
     vpPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    vpPoolSize.descriptorCount = static_cast<uint32_t>(numDescriptorSets); //one descriptor per swapchain image
+    vpPoolSize.descriptorCount = static_cast<uint32_t>(numUniformDescriptorSets); //one descriptor per swapchain image
 
     VkDescriptorPoolSize dynamicModelPoolSize{};
     dynamicModelPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    dynamicModelPoolSize.descriptorCount = static_cast<uint32_t>(numDescriptorSets); //one descriptor per swapchain image
+    dynamicModelPoolSize.descriptorCount = static_cast<uint32_t>(numUniformDescriptorSets); //one descriptor per swapchain image
 
-    std::array<VkDescriptorPoolSize, 2> poolSizes = {vpPoolSize, dynamicModelPoolSize};
+    VkDescriptorPoolSize samplerPoolSize{};
+    samplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerPoolSize.descriptorCount = static_cast<uint32_t>(MAX_OBJECTS * MAX_TEXTURE_PER_OBJECT); //one descriptor per swapchain image
+
+    std::array<VkDescriptorPoolSize, 3> poolSizes = {vpPoolSize, dynamicModelPoolSize, samplerPoolSize};
 
     //includes info about the descriptor set that contains the descriptor
     VkDescriptorPoolCreateInfo poolCreateInfo{};
     poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolCreateInfo.maxSets = static_cast<uint32_t>(numDescriptorSets); //maximum number of descriptor sets that can be created from pool
+    poolCreateInfo.maxSets = static_cast<uint32_t>(numUniformDescriptorSets + numTextureDescriptorSet); //maximum number of descriptor sets that can be created from pool
     poolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolCreateInfo.pPoolSizes = poolSizes.data();
 
@@ -1006,35 +1102,48 @@ void PixelRenderer::createDescriptorPool(PixelScene* pixScene) {
 
 void PixelRenderer::createDescriptorSets(PixelScene *pixScene)
 {
-
     //we have 1 Descriptor Set and 2 bindings. one binding for the VP matrices. one binding for the dynamic buffer object for M matrix.
-
     const size_t numImages = swapChainImages.size();
     //resize the descriptor sets to match the uniform buffers that contain its data
     pixScene->resizeDesciptorSets(numImages);
 
     //descriptor set layouts
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts(numImages, *pixScene->getDescriptorSetLayout());
+    std::vector<VkDescriptorSetLayout> uniformDescriptorSetLayouts(numImages, *pixScene->getDescriptorSetLayout(UBOS));
 
-    //allocate info for descriptor set. they are not created but allocated from the pool
-    VkDescriptorSetAllocateInfo setAllocateInfo{};
-    setAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    setAllocateInfo.descriptorPool = *pixScene->getDescriptorPool();
-    setAllocateInfo.descriptorSetCount = static_cast<uint32_t>(numImages);
-    setAllocateInfo.pSetLayouts = descriptorSetLayouts.data();  //matches the number of swapchain images but they are all the same.
+    //allocate info for ubo descriptor set. they are not created but allocated from the pool
+    VkDescriptorSetAllocateInfo uboSetAllocateInfo{};
+    uboSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    uboSetAllocateInfo.descriptorPool = *pixScene->getDescriptorPool();
+    uboSetAllocateInfo.descriptorSetCount = static_cast<uint32_t>(numImages);
+    uboSetAllocateInfo.pSetLayouts = uniformDescriptorSetLayouts.data();  //matches the number of swapchain images but they are all the same.
                                                                 // has to be 1:1 relationship with descriptor sets
 
-    VkResult result = vkAllocateDescriptorSets(mainDevice.logicalDevice, &setAllocateInfo, pixScene->getDescriptorSets()->data());
+    VkResult result = vkAllocateDescriptorSets(mainDevice.logicalDevice, &uboSetAllocateInfo,
+                                               pixScene->getUniformDescriptorSets()->data());
     if(result != VK_SUCCESS)
     {
-        throw std::runtime_error("failed to allocate descriptor set");
+        throw std::runtime_error("failed to allocate descriptor set for ubos");
+    }
+
+    //allocate info for texture descriptor set. they are not created but allocated from the pool
+    VkDescriptorSetAllocateInfo textureSetAllocateInfo{};
+    textureSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    textureSetAllocateInfo.descriptorPool = *pixScene->getDescriptorPool();
+    textureSetAllocateInfo.descriptorSetCount = 1;
+    textureSetAllocateInfo.pSetLayouts = pixScene->getDescriptorSetLayout(TEXTURES);  //matches the number of swapchain images but they are all the same.
+    // has to be 1:1 relationship with descriptor sets
+
+    result = vkAllocateDescriptorSets(mainDevice.logicalDevice, &textureSetAllocateInfo, pixScene->getTextureDescriptorSet());
+    if(result != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to allocate descriptor set for textures");
     }
 
     //all of the descriptor pool and descriptor set created are used to build these following struct
-    for(size_t i = 0; i < pixScene->getDescriptorSets()->size() ; i++)
+    for(size_t i = 0; i < pixScene->getUniformDescriptorSets()->size() ; i++)
     {
 
-        //BINDING 0 --------
+        //BINDING 0 of SET 0--------
         VkDescriptorBufferInfo descriptorBufferInfo{};
         descriptorBufferInfo.buffer = *pixScene->getUniformBuffers(i); //buffer to get data from
         descriptorBufferInfo.offset = 0;
@@ -1042,14 +1151,14 @@ void PixelRenderer::createDescriptorSets(PixelScene *pixScene)
 
         VkWriteDescriptorSet vpBufferSet{};
         vpBufferSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        vpBufferSet.dstSet = *pixScene->getDescriptorSetAt(i);
+        vpBufferSet.dstSet = *pixScene->getUniformDescriptorSetAt(i);
         vpBufferSet.dstBinding = 0; //matches layout(binding = 0)
         vpBufferSet.dstArrayElement = 0; //index in the array we want to update. we don't have an array to update here
         vpBufferSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         vpBufferSet.descriptorCount = 1;
         vpBufferSet.pBufferInfo = &descriptorBufferInfo;
 
-        //BINDING 0 --------
+        //BINDING 1 of SET 0 --------
         VkDescriptorBufferInfo descriptorDynamicBufferInfo{};
         descriptorDynamicBufferInfo.buffer = *pixScene->getDynamicUniformBuffers(i); //buffer to get data from
         descriptorDynamicBufferInfo.offset = 0;
@@ -1057,7 +1166,7 @@ void PixelRenderer::createDescriptorSets(PixelScene *pixScene)
 
         VkWriteDescriptorSet dynamicBufferSet{};
         dynamicBufferSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        dynamicBufferSet.dstSet = *pixScene->getDescriptorSetAt(i);
+        dynamicBufferSet.dstSet = *pixScene->getUniformDescriptorSetAt(i);
         dynamicBufferSet.dstBinding = 1; //matches layout(binding = 0)
         dynamicBufferSet.dstArrayElement = 0; //index in the array we want to update. we don't have an array to update here
         dynamicBufferSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -1068,8 +1177,191 @@ void PixelRenderer::createDescriptorSets(PixelScene *pixScene)
 
         //update the descriptor sets with new buffer binding info
         vkUpdateDescriptorSets(mainDevice.logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+    }
+
+    //BINDING 0 of SET 1 --------
+    std::array<VkDescriptorImageInfo, MAX_TEXTURE_PER_OBJECT> textureSamplerDescriptorInfos{};
+    //VkDescriptorImageInfo textureSamplerDescriptorInfo{};
+    for(int i = 0 ; i < textureSamplerDescriptorInfos.size(); i++)
+    {
+        if(i < firstScene->getObjectAt(0)->getTextures().size() && firstScene->getObjectAt(0)->getTextures()[i].hasBeenInitialized())
+        {
+            textureSamplerDescriptorInfos[i].imageView = firstScene->getObjectAt(0)->getTextures()[i].getImageView(); //image view of the texture
+        } else
+        {
+            textureSamplerDescriptorInfos[i].imageView = emptyTexture.getImageView(); //image view of the texture
+        }
+        textureSamplerDescriptorInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; //what is the image layout when in use
+        textureSamplerDescriptorInfos[i].sampler = imageSampler; //the image sampler
+    }
 
 
+    VkWriteDescriptorSet textureSamplerDescriptorSet{};
+    textureSamplerDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    textureSamplerDescriptorSet.dstSet = *pixScene->getTextureDescriptorSet();
+    textureSamplerDescriptorSet.dstBinding = 0; //matches layout(binding = 0)
+    textureSamplerDescriptorSet.dstArrayElement = 0; //index in the array we want to update. we don't have an array to update here
+    textureSamplerDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    textureSamplerDescriptorSet.descriptorCount = static_cast<uint32_t>(textureSamplerDescriptorInfos.size()); //number of textures
+    textureSamplerDescriptorSet.pImageInfo = textureSamplerDescriptorInfos.data();
+
+    //update the descriptor sets with new buffer binding info
+    vkUpdateDescriptorSets(mainDevice.logicalDevice, 1, &textureSamplerDescriptorSet, 0, nullptr);
+
+}
+
+void PixelRenderer::createDepthBuffer() {
+
+    //create our depth buffer image.
+    depthImage = PixelImage(&mainDevice, swapChainExtent.width, swapChainExtent.height, false);
+    depthImage.createDepthBufferImage();
+}
+
+VkCommandBuffer PixelRenderer::beginSingleUseCommandBuffer() {
+    //Command Buffer to hold the commands
+    VkCommandBuffer transferCommandBuffer;
+
+    //info for transfer commandbuffer creation
+    VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
+    commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    commandBufferAllocateInfo.commandPool = graphicsCommandPool; //graphics command pool can act as a transfer command pool
+    commandBufferAllocateInfo.commandBufferCount = 1;
+
+    //allocate commandbuffer from pool
+    vkAllocateCommandBuffers(mainDevice.logicalDevice, &commandBufferAllocateInfo, &transferCommandBuffer);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; //we are using it only once. we submit it and we destroy it.
+
+    vkBeginCommandBuffer(transferCommandBuffer, &beginInfo);
+
+    return transferCommandBuffer;
+}
+
+void PixelRenderer::submitAndEndSingleUseCommandBuffer(VkCommandBuffer* commandBuffer) {
+
+    //end the given command buffer
+    vkEndCommandBuffer(*commandBuffer);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = commandBuffer;
+
+    //submit the transfer queue (the graphics queue is the transfer queue)
+    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(graphicsQueue); //submits the queue and wait for it to stop running
+
+    vkFreeCommandBuffers(mainDevice.logicalDevice, graphicsCommandPool, 1, commandBuffer);
+}
+
+void PixelRenderer::copySrcBuffertoDstImage(VkBuffer srcBuffer, VkImage dstImageBuffer, uint32_t width, uint32_t height) {
+
+    //copying buffer memory to image memory
+    VkCommandBuffer transferCommandBuffer = beginSingleUseCommandBuffer();
+
+    //region of data to copy from and too
+    VkBufferImageCopy bufferCopy{};
+    bufferCopy.bufferOffset = 0;
+    bufferCopy.bufferRowLength = 0; //for data spacing
+    bufferCopy.bufferImageHeight = 0; //for data spacing. because everything is 0, the data is tightly packed
+    bufferCopy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    bufferCopy.imageSubresource.layerCount = 1;
+    bufferCopy.imageSubresource.baseArrayLayer = 0;
+    bufferCopy.imageSubresource.mipLevel = 0; //TODO:: implement mipmap level for textures
+    bufferCopy.imageOffset = {0,0,0}; //start at the origin. no offset
+    bufferCopy.imageExtent = {width, height, 1}; //size of the region to copy
+
+    vkCmdCopyBufferToImage(transferCommandBuffer, srcBuffer, dstImageBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           1, &bufferCopy); //we have to specify as dst_optimal because it is receiving the data from a staging buffer.
+
+    submitAndEndSingleUseCommandBuffer(&transferCommandBuffer);
+}
+
+void
+PixelRenderer::transitionImageLayout(VkImage imageToTransition, VkImageLayout currentLayout, VkImageLayout newLayout)
+{
+
+    VkCommandBuffer commandBuffer = beginSingleUseCommandBuffer();
+
+    // 1- allows us to specify stage dependencies
+    // 2- allows us to transition image layout
+    VkImageMemoryBarrier imageMemoryBarrier{};
+    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imageMemoryBarrier.oldLayout = currentLayout;
+    imageMemoryBarrier.newLayout = newLayout;
+    imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; //don't bother transfer from queue. has to be specified
+    imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; //don't bother transfer to queue. has to be specified
+    imageMemoryBarrier.image = imageToTransition;
+    imageMemoryBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageMemoryBarrier.subresourceRange.layerCount = 1;
+    imageMemoryBarrier.subresourceRange.baseArrayLayer = 0;
+    imageMemoryBarrier.subresourceRange.levelCount = 1;
+    imageMemoryBarrier.subresourceRange.baseMipLevel = 0; //TODO:: implement mipmap level for textures
+
+    VkPipelineStageFlags srcStage;
+    VkPipelineStageFlags dstStage;
+
+    if(currentLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+    {
+        imageMemoryBarrier.srcAccessMask = 0; //from the very start. there is no specified stage.
+        imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; //we want the transfer to happen before this stage
+        //transfer write bit are operations like transfering memory from staging buffer to image buffer.
+
+        srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    } else if(currentLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; //from the very start. there is no specified stage.
+        imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT; //we want the transfer to happen before this stage
+        //transfer write bit are operations like transfering memory from staging buffer to image buffer.
+
+        srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }else if(currentLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        imageMemoryBarrier.srcAccessMask = 0; //from the very start. there is no specified stage.
+        imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT; //we want the transfer to happen before this stage
+        //transfer write bit are operations like transfering memory from staging buffer to image buffer.
+
+        srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+
+    vkCmdPipelineBarrier(commandBuffer,
+                         srcStage, dstStage, //match to src and dst access mask
+                         0,
+                         0, nullptr, //general memory barrier
+                         0, nullptr, //buffer memory marrier
+                         1, &imageMemoryBarrier); //image memory barrier
+
+    submitAndEndSingleUseCommandBuffer(&commandBuffer);
+}
+
+void PixelRenderer::createTextureSampler() {
+
+    VkSamplerCreateInfo samplerCreateInfo{};
+    samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerCreateInfo.magFilter = VK_FILTER_LINEAR; //how to render when texture CLOSER to screen
+    samplerCreateInfo.minFilter = VK_FILTER_LINEAR; //how to render when texture FURTHER to screen
+    samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK; //not used because we use repeat
+    samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; //TODO:Implement Mip Map
+    samplerCreateInfo.mipLodBias = 0.0f; //adding an offset to the mip map level
+    samplerCreateInfo.minLod = 0.0f; //TODO:Implement Mip Map
+    samplerCreateInfo.maxLod = 0.0f; //TODO:Implement Mip Map
+    samplerCreateInfo.anisotropyEnable = VK_TRUE;
+    samplerCreateInfo.maxAnisotropy = 16; //number of samples taken for the anisotropy filtering
+
+    VkResult result = vkCreateSampler(mainDevice.logicalDevice, &samplerCreateInfo, nullptr, &imageSampler);
+    if(result != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create sampler");
     }
 
 }
