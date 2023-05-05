@@ -17,7 +17,7 @@ std::vector<char> PixelGraphicsPipeline::readFile(const std::string& filename) {
     //check if we found the file
     if(!file.is_open())
     {
-        throw std::runtime_error("failed to open a file");
+        throw std::runtime_error("failed to open the following file: " + filename);
     }
 
     size_t filesize = (size_t)file.tellg();

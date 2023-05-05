@@ -37,7 +37,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
 int PixelRenderer::initRenderer()
 {
-	pixWindow.initWindow();
+	pixWindow.initWindow("PixelRenderer", 1920, 1080);
 	try {
         createInstance();
 		createSurface();
@@ -537,8 +537,8 @@ SwapchainDetails PixelRenderer::getSwapChainDetails(VkPhysicalDevice device)
 void PixelRenderer::createGraphicsPipelines() {
 
     auto graphicsPipeline = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, swapChainExtent);
-    graphicsPipeline->addVertexShader("shaders/vert.spv");
-    graphicsPipeline->addFragmentShader("shaders/frag.spv");
+    graphicsPipeline->addVertexShader("../../../shaders/vert.spv");
+    graphicsPipeline->addFragmentShader("../../../shaders/frag.spv");
     graphicsPipeline->populateGraphicsPipelineInfo();
     graphicsPipeline->addRenderpassColorAttachment(swapChainImages[0],
                                               VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
@@ -731,7 +731,7 @@ void PixelRenderer::draw() {
 
 
     PixelScene::UboVP newVP{};
-    newVP.P = glm::perspective(glm::radians(75.0f), (float)swapChainExtent.width/(float)swapChainExtent.height, 0.01f, 100.0f);
+    newVP.P = glm::perspective(glm::radians(35.0f), (float)swapChainExtent.width/(float)swapChainExtent.height, 0.01f, 100.0f);
     newVP.V = glm::lookAt(glm::vec3(0.0f,0.0f,6.5f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     newVP.lightPos = glm::vec4(0.0f,0.0f,3.0f,1.0f);
 
@@ -1053,8 +1053,8 @@ void PixelRenderer::createScene() {
             2,3,0
     };
 
-    auto object1 = PixelObject(&mainDevice, "Suzanne");
-    auto object2 = PixelObject(&mainDevice, "Suzanne");
+    auto object1 = PixelObject(&mainDevice, vertices, indices);
+    //auto object2 = PixelObject(&mainDevice, "Suzanne");
 
     object1.addTexture("brick.jpg");
     object1.addTexture("brickUV.jpg");

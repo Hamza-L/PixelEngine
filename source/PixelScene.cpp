@@ -5,6 +5,7 @@
 #include "PixelScene.h"
 
 #include <vector>
+#include <cstdlib>
 
 PixelScene::PixelScene(VkDevice *device) : m_device(device)
 {
@@ -14,7 +15,13 @@ PixelScene::PixelScene(VkDevice *device) : m_device(device)
 void PixelScene::cleanup()
 {
 
+#ifdef __APPLE__
     free(modelTransferSpace);
+
+#else
+    _aligned_free(modelTransferSpace);
+#endif
+
 
     vkDestroyDescriptorPool(*m_device, m_descriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(*m_device, m_descriptorSetLayouts[UBOS], nullptr);
@@ -216,8 +223,15 @@ void PixelScene::allocateDynamicBufferTransferSpace()
     //calculate allignment
     objectUBOAllignment = (sizeof(PixelObject::DynamicUBObj) + minUBOOffset - 1) & ~(minUBOOffset - 1); //right portion is our mask
 
-    //create memory for all the objects dynamic buffers;
+    
+#ifdef __APPLE__
+//create memory for all the objects dynamic buffers;
     modelTransferSpace = (PixelObject::DynamicUBObj*) aligned_alloc(minUBOOffset, objectUBOAllignment * MAX_OBJECTS);
+#else
+//create memory for all the objects dynamic buffers;
+    modelTransferSpace = (PixelObject::DynamicUBObj*) _aligned_malloc(objectUBOAllignment * MAX_OBJECTS, minUBOOffset);
+#endif
+
 }
 
 void PixelScene::getMinUBOOffset(VkPhysicalDevice physicalDevice) {

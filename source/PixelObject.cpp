@@ -86,10 +86,10 @@ void PixelObject::importFile(const std::string& filename) {
     //default color
     glm::vec4 color = {0.9f,0.9f,0.9f,1.0f};
 
-    std::ifstream myfile("objects/"+ filename + ".obj");
+    std::ifstream myfile("../../../objects/"+ filename + ".obj");
     if(myfile.fail())
     {
-        throw std::runtime_error("failed to open the following file: " + filename + "obj");
+        throw std::runtime_error("failed to open the following file: " + filename + ".obj");
     }
     std::string data;
 

@@ -19,7 +19,8 @@ set(Headers
     "source/PixelObject.h"
     "source/PixelScene.h"
     "source/PixelImage.h"
-    "source/Utility.h" source/stb_image.h)
+    "source/Utility.h" 
+    "source/stb_image.h")
 source_group("Headers" FILES ${Headers})
 
 set(Sources
@@ -57,8 +58,8 @@ if (WIN32)
         )
 
         target_link_directories(${PROJECT_NAME} PRIVATE
-                "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW64/lib-mingw-w64"
-                "C:/VulkanSDK/1.3.239.0/Lib"
+                "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW64/lib-vc2022"
+                "C:/VulkanSDK/1.3.243.0/Lib"
                 )
 
     elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
@@ -69,8 +70,8 @@ if (WIN32)
         )
 
         target_link_directories(${PROJECT_NAME} PRIVATE
-                "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW/lib-mingw-w64"
-                "C:/VulkanSDK/1.3.239.0/Lib32"
+                "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW/lib-vc2022"
+                "C:/VulkanSDK/1.3.243.0/Lib32"
                 )
     endif()
 
@@ -78,7 +79,7 @@ if (WIN32)
 
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
             "vulkan-1.lib"
-            "libglfw3.a"
+            "glfw3"
             )
 elseif(UNIX AND APPLE) # If the build is mac
     message("Starting the MacOS Build")
