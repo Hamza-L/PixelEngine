@@ -136,7 +136,7 @@ void PixelImage::loadTexture(std::string filename) {
 
     int channels, width, height;
 
-    std::string fileLocation = "../../../Textures/" + filename;
+    std::string fileLocation = "Textures/" + filename;
     stbi_uc* image = stbi_load(fileLocation.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
     m_width = (int)width;

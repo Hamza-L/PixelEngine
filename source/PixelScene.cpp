@@ -7,9 +7,10 @@
 #include <vector>
 #include <cstdlib>
 
-PixelScene::PixelScene(VkDevice *device) : m_device(device)
+PixelScene::PixelScene(VkDevice device, VkPhysicalDevice physicalDevice) : m_device(device), m_physicalDevice(physicalDevice)
 {
     printf("PixelScene constructed\n");
+    initialize();
 }
 
 void PixelScene::cleanup()
@@ -23,15 +24,15 @@ void PixelScene::cleanup()
 #endif
 
 
-    vkDestroyDescriptorPool(*m_device, m_descriptorPool, nullptr);
-    vkDestroyDescriptorSetLayout(*m_device, m_descriptorSetLayouts[UBOS], nullptr);
-    vkDestroyDescriptorSetLayout(*m_device, m_descriptorSetLayouts[TEXTURES], nullptr);
+    vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
+    vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayouts[UBOS], nullptr);
+    vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayouts[TEXTURES], nullptr);
     for(int i = 0; i < uniformBuffers.size(); i++)
     {
-        vkDestroyBuffer(*m_device, dynamicUniformBuffers[i], nullptr);
-        vkFreeMemory(*m_device, dynamicUniformBufferMemories[i], nullptr);
-        vkDestroyBuffer(*m_device, uniformBuffers[i], nullptr);
-        vkFreeMemory(*m_device, uniformBufferMemories[i], nullptr);
+        vkDestroyBuffer(m_device, dynamicUniformBuffers[i], nullptr);
+        vkFreeMemory(m_device, dynamicUniformBufferMemories[i], nullptr);
+        vkDestroyBuffer(m_device, uniformBuffers[i], nullptr);
+        vkFreeMemory(m_device, uniformBufferMemories[i], nullptr);
     }
 
     for(auto& object : allObjects)
@@ -71,7 +72,10 @@ void PixelScene::resizeBuffers(size_t newSize) {
 }
 
 void PixelScene::addObject(PixelObject pixObject) {
-
+    if(pixObject.getTextures().size() > 0)
+    {
+        pixObject.setTextureIDOffset(getAllTextures().size());
+    }
     allObjects.push_back(pixObject);
 }
 
@@ -117,9 +121,9 @@ void PixelScene::updateUniformBuffer(uint32_t bufferIndex)
         sceneVP.P[1][1] *= -1; //invert the y scale to flip the image. Vulkan is flipped by default
 
         void* data;
-        vkMapMemory(*m_device, uniformBufferMemories[bufferIndex], 0, getUniformBufferSize(),0,&data);
+        vkMapMemory(m_device, uniformBufferMemories[bufferIndex], 0, getUniformBufferSize(),0,&data);
         memcpy(data, &sceneVP, getUniformBufferSize());
-        vkUnmapMemory(*m_device, uniformBufferMemories[bufferIndex]);
+        vkUnmapMemory(m_device, uniformBufferMemories[bufferIndex]);
 
         buffersUpdated[bufferIndex] = true;
     }
@@ -163,7 +167,7 @@ void PixelScene::createDescriptorSetLayout() {
     uniformBufferObjectDescriptorSetlayoutCreateInfo.pBindings = descriptorSetLayoutBindings.data();
     uniformBufferObjectDescriptorSetlayoutCreateInfo.bindingCount = static_cast<uint32_t>(descriptorSetLayoutBindings.size());
 
-    VkResult result = vkCreateDescriptorSetLayout(*m_device, &uniformBufferObjectDescriptorSetlayoutCreateInfo, nullptr, &uniformDescriptorSetLayout);
+    VkResult result = vkCreateDescriptorSetLayout(m_device, &uniformBufferObjectDescriptorSetlayoutCreateInfo, nullptr, &uniformDescriptorSetLayout);
     if(result != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create descriptor set layout for ubos");
@@ -175,7 +179,7 @@ void PixelScene::createDescriptorSetLayout() {
     textureDescriptorSetLayoutCreateInfo.pBindings = &textureSamplerLayoutBinding;
     textureDescriptorSetLayoutCreateInfo.bindingCount = 1;
 
-    result = vkCreateDescriptorSetLayout(*m_device, &textureDescriptorSetLayoutCreateInfo, nullptr, &textureDescriptorSetLayout);
+    result = vkCreateDescriptorSetLayout(m_device, &textureDescriptorSetLayoutCreateInfo, nullptr, &textureDescriptorSetLayout);
     if(result != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create descriptor set layout for textures");
@@ -265,13 +269,27 @@ void PixelScene::updateDynamicUniformBuffer(uint32_t bufferIndex) {
 
     //map the whole chunk of memory data
     void* data;
-    vkMapMemory(*m_device, dynamicUniformBufferMemories[bufferIndex], 0, objectUBOAllignment * allObjects.size() , 0 , &data);
+    vkMapMemory(m_device, dynamicUniformBufferMemories[bufferIndex], 0, objectUBOAllignment * allObjects.size() , 0 , &data);
     memcpy(data, modelTransferSpace, objectUBOAllignment * allObjects.size());
-    vkUnmapMemory(*m_device, dynamicUniformBufferMemories[bufferIndex]);
+    vkUnmapMemory(m_device, dynamicUniformBufferMemories[bufferIndex]);
 }
 
-void PixelScene::initialize(VkPhysicalDevice physicalDevice) {
-    getMinUBOOffset(physicalDevice);
+void PixelScene::initialize() {
+    getMinUBOOffset(m_physicalDevice);
     allocateDynamicBufferTransferSpace();
     createDescriptorSetLayout();
+}
+
+std::vector<PixelImage> PixelScene::getAllTextures() {
+    std::vector<PixelImage> allTextures;
+
+    for(int i = 0 ; i < allObjects.size(); i++)
+    {
+        for(int j = 0; j < allObjects[i].getTextures().size(); j++)
+        {
+            allTextures.push_back(allObjects[i].getTextures()[j]);
+        }
+    }
+
+    return allTextures;
 }

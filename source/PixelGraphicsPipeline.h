@@ -6,7 +6,6 @@
 #define PIXELENGINE_PIXELGRAPHICSPIPELINE_H
 
 #include "PixelScene.h"
-#include "PixelImage.h"
 
 #include <fstream>
 #include <vector>
@@ -20,10 +19,13 @@ public:
     void populateGraphicsPipelineInfo();
     void populatePipelineLayout(PixelScene* scene);
     void createGraphicsPipeline(const VkRenderPass& inputRenderPass);
-    void addRenderpassColorAttachment(PixelImage depthImage, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentStoreOp attachmentStoreOp, VkImageLayout attachmentReferenceLayout);
+    void addRenderpassColorAttachment(VkFormat imageFormat, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentStoreOp attachmentStoreOp, VkImageLayout attachmentReferenceLayout);
     void addRenderpassDepthAttachment(PixelImage depthImage);
     void createRenderPass();
+    void setScreenDimensions(float x0, float x1, float y0, float y1);
+    void setPolygonMode(VkPolygonMode polygonMode);
     void cleanUp();
+    bool isDepthBufferEnabled(){return renderPassDepthAttachment.hasBeenDefined;};
 
     VkRenderPass getRenderPass();
     VkPipeline getPipeline();

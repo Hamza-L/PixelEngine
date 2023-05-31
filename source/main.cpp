@@ -1,8 +1,7 @@
 
 #define STB_IMAGE_IMPLEMENTATION
-#define GLFW_INCLUDE_VULKAN //includes vulkan automatically
-#include <GLFW/glfw3.h>
 
+#include "PixelScene.h"
 #include "PixelRenderer.h"
 
 int main()
@@ -14,13 +13,9 @@ int main()
 	{
 		return EXIT_FAILURE;
 	}
-	
 
-	while (!pixRenderer.windowShouldClose())
-	{
-		glfwPollEvents();
-        pixRenderer.draw();
-	}
+    pixRenderer.run();
+
 
 	pixRenderer.cleanup();
 

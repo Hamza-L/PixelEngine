@@ -16,8 +16,8 @@ static const glm::mat4 MAT4_IDENTITY = {1,0,0,0,
                                         0,0,1,0,
                                         0,0,0,1};
 
-const int MAX_OBJECTS = 1;
-const int MAX_TEXTURE_PER_OBJECT = 4;
+const int MAX_OBJECTS = 10;
+const int MAX_TEXTURE_PER_OBJECT = 16;
 enum DescSetLayoutIndex{
     UBOS,
     TEXTURES
@@ -25,7 +25,7 @@ enum DescSetLayoutIndex{
 
 class PixelScene {
 public:
-    PixelScene(VkDevice* device);
+    PixelScene(VkDevice device, VkPhysicalDevice physicalDevice);
     //PixelScene(const PixelScene&) = delete;
 
     struct UboVP{
@@ -53,6 +53,7 @@ public:
     VkDeviceMemory* getDynamicUniformBufferMemories(int index);
     int getNumObjects();
     PixelObject* getObjectAt(int index);
+    std::vector<PixelImage> getAllTextures();
     UboVP getSceneVP();
 
     //setter functions
@@ -68,7 +69,7 @@ public:
     void updateDynamicUniformBuffer(uint32_t bufferIndex);
 
     //helper functions
-    void initialize(VkPhysicalDevice physicalDevice);
+    void initialize();
     void resizeBuffers(size_t newSize);
     void resizeDesciptorSets(size_t newSize);
     static bool areMatricesEqual(glm::mat4 x, glm::mat4 y);
@@ -103,7 +104,8 @@ private:
     std::vector<bool> buffersUpdated;
 
     //vulkan component
-    VkDevice* m_device = VK_NULL_HANDLE;
+    VkDevice m_device = VK_NULL_HANDLE;
+    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> m_uniformDescriptorSets{};
     std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts{};

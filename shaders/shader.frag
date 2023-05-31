@@ -5,8 +5,10 @@ layout(location = 1) in vec4 normalForFP;
 layout(location = 2) in vec3 lightPos;
 layout(location = 3) in vec3 positionForFP;
 layout(location = 4) in vec2 fragTex;
+layout(location = 5) in flat int texID;
 
-layout(set = 1, binding = 0) uniform sampler2D texSampler[4];
+
+layout(set = 1, binding = 0) uniform sampler2D texSampler[16];
 
 layout(location = 0) out vec4 outColor; //final output color, must have location 0. we output to the first attachment
 
@@ -30,8 +32,12 @@ void main()
     }
 
     //here we use the texture image
-    vec3 albedo = texture(texSampler[0], fragTex).xyz;
-    if(length(albedo) == 0)
+
+    vec3 albedo;
+    if(texID >= 0 )
+    {
+        albedo = texture(texSampler[texID], fragTex).xyz;
+    } else
     {
         albedo = fragColor.xyz;
     }
@@ -42,5 +48,5 @@ void main()
 
     //outColor = vec4(normalForFP.xyz,1.0f);
 
-    outColor = vec4(min( ambientLight + scatteredLight + reflectedLight, vec3(1,1,1)), 1.0);
+    outColor = vec4(min( ambientLight + scatteredLight + reflectedLight, vec3(1,1,1)), fragColor.w);
 }

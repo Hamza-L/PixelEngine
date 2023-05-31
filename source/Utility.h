@@ -10,6 +10,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <vector>
+#include <cstring>
 
 //vulkan struct component
 struct PixDevice{

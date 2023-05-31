@@ -8,10 +8,15 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <assimp/Importer.hpp>      // C++ importer interface
+#include <assimp/scene.h>           // Output data structure
+#include <assimp/postprocess.h>     // Post processing flags
+#include <assimp/material.h>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "PixelImage.h"
-#include "Utility.h"
+
+
 #include <string>
 #include <array>
 #include <vector>
@@ -24,6 +29,7 @@ public:
     struct DynamicUBObj{
         glm::mat4 M{};
         glm::mat4 MinvT{};
+        int texIndex = -1;
     };
 
     // this can change every frame, and can change per individual object/mesh.
@@ -69,11 +75,14 @@ public:
     PObj* getPushObj();
     DynamicUBObj* getDynamicUBObj();
     std::vector<PixelImage> getTextures(){return m_textures;}
+    int getGraphicsPipelineIndex(){return graphicsPipelineIndex;};
     static constexpr VkPushConstantRange pushConstantRange {VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PObj)};
 
     //setters
     void setDynamicUBObj(DynamicUBObj pushObjData);
+    void setTexID(int texID){dynamicUBO.texIndex = texID;};
     void setPushObj(PObj pushObjData);
+    void setGraphicsPipelineIndex(int pipelineIndx){graphicsPipelineIndex = pipelineIndx;};
 
     //cleanup
     void cleanup();
@@ -86,6 +95,10 @@ public:
     void addTransform(glm::mat4 matTransform);
     void setTransform(glm::mat4 matTransform);
     void addTexture(std::string textureFile);
+    void setTextureIDOffset(int offset){texIDOffset = offset;};
+    void hide(){m_isHidden = true;};
+    void unhide(){m_isHidden = false;};
+    bool isHidden(){return m_isHidden;};
 
 
 private:
@@ -93,9 +106,10 @@ private:
     std::vector<Vertex> m_vertices{};
     std::vector<uint32_t> m_indices{};
     std::string name{};
+    bool m_isHidden = false;
 
     //transforms
-    DynamicUBObj dynamicUBO = {glm::mat4(1.0f)};
+    DynamicUBObj dynamicUBO = {};
     PObj pushObj = {glm::mat4(1.0f)};
 
     //vulkan components
@@ -107,6 +121,10 @@ private:
 
     //texture used
     std::vector<PixelImage> m_textures;
+    int texIDOffset = 0;
+
+    //pipeline used
+    int graphicsPipelineIndex;
 };
 
 

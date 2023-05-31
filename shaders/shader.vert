@@ -17,6 +17,7 @@ layout(set = 0, binding = 1) uniform DynamicUBObj
 {
     mat4 M;
     mat4 MinvT;
+    int texIndex;
 } dynamicUBObj;
 
 layout(push_constant) uniform PObj
@@ -30,6 +31,7 @@ layout(location = 1) out vec4 normalForFP;
 layout(location = 2) out vec3 lightPos;
 layout(location = 3) out vec3 positionForFP;
 layout(location = 4) out vec2 fragTex;
+layout(location = 5) out flat int texID;
 
 void main()
 {
@@ -44,4 +46,5 @@ void main()
     normalForFP = vec4(normalize(tempNorm.xyz),0.0f);
 
     fragTex = texUV;
+    texID = dynamicUBObj.texIndex;
 }

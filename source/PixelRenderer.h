@@ -8,8 +8,10 @@ const bool enableValidationLayers = true;
 
 #include "PixelWindow.h"
 #include "PixelGraphicsPipeline.h"
-#include "Utility.h"
 
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_vulkan.h>
 
 #include <vector>
 #include <set>
@@ -30,7 +32,9 @@ public:
 	~PixelRenderer() = default;
 
 	int initRenderer();
+    void addScene(PixelScene* pixScene);
     void draw();
+    void run();
 	bool windowShouldClose();
 	void cleanup();
 
@@ -38,8 +42,7 @@ public:
 
 private:
 
-	//window component
-	PixelWindow pixWindow{};
+
 
 	//vulkan component
 #ifdef __APPLE__
@@ -57,6 +60,9 @@ private:
     //logical and physical device
     PixDevice mainDevice;
 
+    //window component
+    PixelWindow pixWindow{};
+
     //physical device features the logical device will be using
     VkPhysicalDeviceFeatures deviceFeatures = {};
 
@@ -65,8 +71,8 @@ private:
 	VkQueue presentationQueue{};
 	VkSurfaceKHR surface{};
 	VkSwapchainKHR swapChain{};
-    VkRenderPass renderPass{}; //the renderer has to have atleast one renderpass to fall back on
     std::vector<VkFramebuffer> swapchainFramebuffers;
+    std::vector<VkFramebuffer> swapchainFramebuffersNoDepth;
     std::vector<VkCommandBuffer> commandBuffers;
     std::vector<std::unique_ptr<PixelGraphicsPipeline>> graphicsPipelines;
 
@@ -74,7 +80,7 @@ private:
     std::vector<PixelImage> swapChainImages;
     PixelImage depthImage;
     PixelImage emptyTexture;
-    VkSampler imageSampler;
+    VkSampler imageSampler{};
 
 	// Utility
 	VkFormat swapChainImageFormat{};
@@ -83,7 +89,12 @@ private:
     // Pools
     VkCommandPool graphicsCommandPool{};
 
-	//validation layer component
+    // gui ressources
+    VkDescriptorPool imguiPool{};
+    ImGuiIO* io{};
+    ImDrawData* draw_data{};
+
+    //validation layer component
 	const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
 	};
@@ -96,7 +107,7 @@ private:
     int currentFrame = 0;
 
     //objects
-    std::shared_ptr<PixelScene> firstScene;
+    std::vector<std::shared_ptr<PixelScene>> scenes;
 
 	//---------vulkan functions
 	//create functions
@@ -111,12 +122,13 @@ private:
     void createCommandBuffers();
 	void createScene();
     void createDepthBuffer();
-	void initializeScene();
+	void initializeScenes();
     void createSynchronizationObjects();
     void recordCommands(uint32_t currentImageIndex);
     VkCommandBuffer beginSingleUseCommandBuffer();
     void submitAndEndSingleUseCommandBuffer(VkCommandBuffer* commandBuffer);
 	QueueFamilyIndices setupQueueFamilies(VkPhysicalDevice device);
+    void init_imgui();
 
 	//descriptor Set (for scene initialization)
 	void createDescriptorPool(PixelScene* pixScene);
@@ -143,6 +155,7 @@ private:
     void createIndexBuffer(PixelObject* pixObject);
     void createTextureBuffer(PixelImage* pixImage);
     void createTextureSampler();
+    void imGuiParametersSetup();
 
 	//getter functions
 	SwapchainDetails getSwapChainDetails(VkPhysicalDevice device);

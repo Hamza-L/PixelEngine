@@ -2,7 +2,11 @@
 
 #include "PixelRenderer.h"
 
+#include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
+
+static int texIndex = 0;
+static int itemIndex = 0;
 
 //We have to look up the address of the debug callback create function ourselves using vkGetInstanceProcAddr
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
@@ -37,7 +41,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
 int PixelRenderer::initRenderer()
 {
-	pixWindow.initWindow("PixelRenderer", 1920, 1080);
+	pixWindow.initWindow("PixelRenderer", 2000, 1000);
 	try {
         createInstance();
 		createSurface();
@@ -50,10 +54,11 @@ int PixelRenderer::initRenderer()
         createTextureSampler();
         createCommandBuffers();
         createScene();
-        initializeScene();
+        initializeScenes();
         createGraphicsPipelines(); //needs the descriptor set layout of the scene
-        createFramebuffers(); //need the renderbuffer from the graphics pipeline
+        createFramebuffers(); //need the renderbuffer for the graphics pipeline
         createSynchronizationObjects();
+        init_imgui();
 	}
 	catch(const std::runtime_error &e)
 	{
@@ -76,7 +81,14 @@ void PixelRenderer::cleanup()
     vkDestroySampler(mainDevice.logicalDevice, imageSampler, nullptr);
 
     emptyTexture.cleanUp();
-    firstScene->cleanup();
+
+    for(auto & scene : scenes)
+    {
+        scene->cleanup();
+    }
+
+    vkDestroyDescriptorPool(mainDevice.logicalDevice, imguiPool, nullptr);
+    ImGui_ImplVulkan_Shutdown();
 
     for(size_t i = 0; i<MAX_FRAME_DRAWS; i++)
     {
@@ -88,6 +100,10 @@ void PixelRenderer::cleanup()
     vkDestroyCommandPool(mainDevice.logicalDevice, graphicsCommandPool, nullptr);
 
     for (auto frameBuffer : swapchainFramebuffers)
+    {
+        vkDestroyFramebuffer(mainDevice.logicalDevice, frameBuffer, nullptr);
+    }
+    for (auto frameBuffer : swapchainFramebuffersNoDepth)
     {
         vkDestroyFramebuffer(mainDevice.logicalDevice, frameBuffer, nullptr);
     }
@@ -536,32 +552,67 @@ SwapchainDetails PixelRenderer::getSwapChainDetails(VkPhysicalDevice device)
 
 void PixelRenderer::createGraphicsPipelines() {
 
-    auto graphicsPipeline = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, swapChainExtent);
-    graphicsPipeline->addVertexShader("../../../shaders/vert.spv");
-    graphicsPipeline->addFragmentShader("../../../shaders/frag.spv");
-    graphicsPipeline->populateGraphicsPipelineInfo();
-    graphicsPipeline->addRenderpassColorAttachment(swapChainImages[0],
-                                              VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                                              VK_ATTACHMENT_STORE_OP_STORE,
-                                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    //pipeline1
+    auto graphicsPipeline1 = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, swapChainExtent);
+    graphicsPipeline1->addVertexShader("shaders/vert.spv");
+    graphicsPipeline1->addFragmentShader("shaders/frag.spv");
+    graphicsPipeline1->populateGraphicsPipelineInfo();
+    graphicsPipeline1->addRenderpassColorAttachment(swapChainImages[0].getFormat(),
+                                                   VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                                   VK_ATTACHMENT_STORE_OP_STORE,
+                                                   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    graphicsPipeline1->addRenderpassDepthAttachment(depthImage);
+    graphicsPipeline1->populatePipelineLayout(scenes[0].get()); //populate the pipeline layout based on the scene's descriptor set
 
-    graphicsPipeline->addRenderpassDepthAttachment(depthImage);
-    graphicsPipeline->populatePipelineLayout(firstScene.get()); //populate the pipeline layout based on the scene's descriptor set
-    graphicsPipeline->createGraphicsPipeline(nullptr); //creates a renderpass if none were provided
+    graphicsPipeline1->setScreenDimensions(0,1000,0,1000);
+    graphicsPipeline1->createGraphicsPipeline(VK_NULL_HANDLE); //creates a renderpass if none were provided
 
-    //get a default renderpass for the renderer. The renderer does not need to destroy it
-    renderPass = graphicsPipeline->getRenderPass();
-    graphicsPipelines.push_back(std::move(graphicsPipeline));
+    //pipeline2
+    auto graphicsPipeline2 = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, swapChainExtent);
+    graphicsPipeline2->addVertexShader("shaders/NoLightingShaderVert.spv");
+    graphicsPipeline2->addFragmentShader("shaders/NoLightingShaderFrag.spv");
+    graphicsPipeline2->populateGraphicsPipelineInfo();
+    graphicsPipeline2->addRenderpassColorAttachment(swapChainImages[0].getFormat(),
+                                                    VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                                    VK_ATTACHMENT_STORE_OP_STORE,
+                                                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    //graphicsPipeline2->addRenderpassDepthAttachment(depthImage);
+    graphicsPipeline2->populatePipelineLayout(scenes[1].get()); //populate the pipeline layout based on the scene's descriptor set
+
+    graphicsPipeline2->setScreenDimensions(1000, 2000, 0, 1000);
+    graphicsPipeline2->createGraphicsPipeline(VK_NULL_HANDLE); //creates a renderpass if none were provided
+
+    //pipeline2
+    auto graphicsPipeline3 = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, swapChainExtent);
+    graphicsPipeline3->addVertexShader("shaders/NoLightingShaderVert.spv");
+    graphicsPipeline3->addFragmentShader("shaders/NoLightingShaderFrag.spv");
+    graphicsPipeline3->populateGraphicsPipelineInfo();
+    graphicsPipeline3->addRenderpassColorAttachment(swapChainImages[0].getFormat(),
+                                                    VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                                    VK_ATTACHMENT_STORE_OP_STORE,
+                                                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    //graphicsPipeline3->addRenderpassDepthAttachment(depthImage);
+    graphicsPipeline3->populatePipelineLayout(scenes[1].get()); //populate the pipeline layout based on the scene's descriptor set
+
+    graphicsPipeline3->setScreenDimensions(1000, 2000, 0, 1000);
+    graphicsPipeline3->setPolygonMode(VK_POLYGON_MODE_LINE);
+    graphicsPipeline3->createGraphicsPipeline(VK_NULL_HANDLE); //creates a renderpass if none were provided
+
+    graphicsPipelines.push_back(std::move(graphicsPipeline1));
+    graphicsPipelines.push_back(std::move(graphicsPipeline2));
+    graphicsPipelines.push_back(std::move(graphicsPipeline3));
+
 }
 
 void PixelRenderer::createFramebuffers() {
 
     swapchainFramebuffers.resize(swapChainImages.size());
+    swapchainFramebuffersNoDepth.resize(swapChainImages.size());
 
     for(size_t i =0 ; i <swapchainFramebuffers.size(); i++)
     {
         //matches the RenderBuffer Attachment. order matters
-        std::vector<VkImageView> attachment = {
+        std::vector<VkImageView> attachments = {
                 swapChainImages[i].getImageView(),
                 depthImage.getImageView()
         };
@@ -570,13 +621,43 @@ void PixelRenderer::createFramebuffers() {
         VkFramebufferCreateInfo framebufferCreateInfo{};
         framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferCreateInfo.renderPass = graphicsPipelines[0]->getRenderPass(); //grab the first graphics pipeline's renderpass
-        framebufferCreateInfo.attachmentCount = static_cast<uint32_t>(attachment.size());
-        framebufferCreateInfo.pAttachments = attachment.data();
+        framebufferCreateInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        framebufferCreateInfo.pAttachments = attachments.data();
         framebufferCreateInfo.width = swapChainExtent.width;
         framebufferCreateInfo.height = swapChainExtent.height;
         framebufferCreateInfo.layers = (uint32_t)1;
 
         VkResult result = vkCreateFramebuffer(mainDevice.logicalDevice, &framebufferCreateInfo, nullptr, &swapchainFramebuffers[i]);
+        if(result != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create framebuffer");
+        }
+    }
+
+    for(size_t i =0 ; i <swapchainFramebuffersNoDepth.size(); i++)
+    {
+        //matches the RenderBuffer Attachment. order matters
+        std::vector<VkImageView> attachment = {
+                swapChainImages[i].getImageView()
+        };
+
+        //create a framebuffer for each swapchain images;
+        VkFramebufferCreateInfo framebufferNoDepthCreateInfo{};
+        framebufferNoDepthCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        for(auto &graphicsPipeline : graphicsPipelines)
+        {
+            if(!graphicsPipeline->isDepthBufferEnabled())
+            {
+                framebufferNoDepthCreateInfo.renderPass = graphicsPipeline->getRenderPass(); //grab the graphics pipeline's renderpass
+            }
+        }
+        framebufferNoDepthCreateInfo.attachmentCount = static_cast<uint32_t>(attachment.size());
+        framebufferNoDepthCreateInfo.pAttachments = attachment.data();
+        framebufferNoDepthCreateInfo.width = swapChainExtent.width;
+        framebufferNoDepthCreateInfo.height = swapChainExtent.height;
+        framebufferNoDepthCreateInfo.layers = (uint32_t)1;
+
+        VkResult result = vkCreateFramebuffer(mainDevice.logicalDevice, &framebufferNoDepthCreateInfo, nullptr, &swapchainFramebuffersNoDepth[i]);
         if(result != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create framebuffer");
@@ -629,19 +710,17 @@ void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
 
     //the clear values for the renderpass attachment
     std::array<VkClearValue,2> clearValues = {};
-    clearValues[0].color = {0.0f,0.0f,0.0f, 1.0f}; //colorAttachment clear value
+    clearValues[0].color = {0.2f,0.2f,0.2f, 1.0f}; //colorAttachment clear value
     clearValues[1].depthStencil.depth = 1.0f; //depthAttachment clear value
 
     //information on how to begin renderpass (only needed for graphical application)
     VkRenderPassBeginInfo renderPassBeginInfo{};
     renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassBeginInfo.renderPass = renderPass;
     renderPassBeginInfo.renderArea.offset = {0,0};
     renderPassBeginInfo.renderArea.extent = swapChainExtent;
     renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassBeginInfo.pClearValues = clearValues.data();
-
-        renderPassBeginInfo.framebuffer = swapchainFramebuffers[currentImageIndex]; // the framebuffer changes per swapchain image (ie command buffer)
+    renderPassBeginInfo.framebuffer = swapchainFramebuffers[currentImageIndex]; // the framebuffer changes per swapchain image (ie command buffer)
 
         VkResult result = vkBeginCommandBuffer(commandBuffers[currentImageIndex], &bufferBeginInfo);
         if(result != VK_SUCCESS)
@@ -653,48 +732,87 @@ void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
          * Series of command to record
          * */
         {
-            //begin the renderpass
-            vkCmdBeginRenderPass(commandBuffers[currentImageIndex], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE); //our renderpass contains only primary commands
-
             //one pipeline can be attached per subpass. if we say we need to go to another subpass, we need to bind another pipeline.
-            for(size_t p = 0; p < graphicsPipelines.size(); p++)
-            {
-                //bind the pipeline
-                vkCmdBindPipeline(commandBuffers[currentImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines[p]->getPipeline());
-
-                for(int objIndex = 0; objIndex < firstScene->getNumObjects(); objIndex++)
+                //there is one graphics pipeline per scene
+                for(int sceneIndx = 0; sceneIndx < scenes.size(); sceneIndx++)
                 {
-                    VkBuffer vertexBuffers[] = {*(firstScene->getObjectAt(objIndex)->getVertexBuffer())}; //buffers to bind
-                    VkBuffer indexBuffer = *firstScene->getObjectAt(objIndex)->getIndexBuffer();
-                    VkDeviceSize offsets[] = {0};                                 //offsets into buffers
-                    vkCmdBindVertexBuffers(commandBuffers[currentImageIndex], 0, 1, vertexBuffers, offsets);
-                    vkCmdBindIndexBuffer(commandBuffers[currentImageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+                    renderPassBeginInfo.renderPass = graphicsPipelines[sceneIndx]->getRenderPass();
 
-                    //dynamic offset ammount
-                    uint32_t dynamicOffset = static_cast<uint32_t>(firstScene->getMinAlignment()) * objIndex;
+                    if (sceneIndx == 0) {
+                        renderPassBeginInfo.renderArea.offset = {0, 0};
+                    } else {
+                        renderPassBeginInfo.renderArea.offset = {1000, 0};
+                    }
+                    renderPassBeginInfo.renderArea.extent.width = 1000;
+                    renderPassBeginInfo.renderArea.extent.height = 1000;
 
-                    //bind the push constant
-                    vkCmdPushConstants(commandBuffers[currentImageIndex],
-                                       graphicsPipelines[p]->getPipelineLayout(),
-                                       VK_SHADER_STAGE_VERTEX_BIT,
-                                       0,
-                                       PixelObject::pushConstantRange.size,
-                                       firstScene->getObjectAt(objIndex)->getPushObj());
+                    if (!graphicsPipelines[sceneIndx]->isDepthBufferEnabled()) {
+                        std::array<VkClearValue, 1> clearValue = {};
+                        clearValues[0].color = {0.2f, 0.2f, 0.2f, 1.0f}; //colorAttachment clear value
+                        renderPassBeginInfo.framebuffer = swapchainFramebuffersNoDepth[currentImageIndex]; // the framebuffer changes per swapchain image (ie command buffer)
+                    }
+                    //begin the renderpass
+                    vkCmdBeginRenderPass(commandBuffers[currentImageIndex], &renderPassBeginInfo,
+                                         VK_SUBPASS_CONTENTS_INLINE); //our renderpass contains only primary commands
 
-                    std::array<VkDescriptorSet,2> descriptorSets = {*firstScene->getUniformDescriptorSetAt(currentImageIndex), *firstScene->getTextureDescriptorSet()};
+                    for(int objIndex = 0; objIndex < scenes[sceneIndx]->getNumObjects(); objIndex++) {
+                        auto currentObject = scenes[sceneIndx]->getObjectAt(objIndex);
+                        if(currentObject->isHidden())
+                        {
+                            continue;
+                        }
+                        VkPipeline currentGraphicsPipeline = graphicsPipelines[currentObject->getGraphicsPipelineIndex()]->getPipeline();
+                        VkPipelineLayout currentPipelineLayout = graphicsPipelines[currentObject->getGraphicsPipelineIndex()]->getPipelineLayout();
 
-                    //bind the descriptor sets
-                    vkCmdBindDescriptorSets(commandBuffers[currentImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines[p]->getPipelineLayout(),
-                                            0, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 1, &dynamicOffset);
-                    //note here that we bound one descriptor set that contains both a static descriptor and a dynamic descriptor. Only the dynamic descriptors will be off-set for each object, not the static ones.
+                        //bind the pipeline
+                        vkCmdBindPipeline(commandBuffers[currentImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                          currentGraphicsPipeline);
 
-                    //execute the pipeline
-                    vkCmdDrawIndexed(commandBuffers[currentImageIndex], static_cast<uint32_t>(firstScene->getObjectAt(objIndex)->getIndexCount()), 1, 0, 0, 0);
+
+                            VkBuffer vertexBuffers[] = {
+                                    *(currentObject->getVertexBuffer())}; //buffers to bind
+                            VkBuffer indexBuffer = *currentObject->getIndexBuffer();
+                            VkDeviceSize offsets[] = {0};                                 //offsets into buffers
+                            vkCmdBindVertexBuffers(commandBuffers[currentImageIndex], 0, 1, vertexBuffers, offsets);
+                            vkCmdBindIndexBuffer(commandBuffers[currentImageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+                            //dynamic offset ammount
+                            uint32_t dynamicOffset = static_cast<uint32_t>(scenes[sceneIndx]->getMinAlignment()) * objIndex;
+
+                            //bind the push constant
+                            vkCmdPushConstants(commandBuffers[currentImageIndex],
+                                               currentPipelineLayout,
+                                               VK_SHADER_STAGE_VERTEX_BIT,
+                                               0,
+                                               PixelObject::pushConstantRange.size,
+                                               currentObject->getPushObj());
+
+                            std::array<VkDescriptorSet, 2> descriptorSets = {
+                                    *scenes[sceneIndx]->getUniformDescriptorSetAt(currentImageIndex),
+                                    *scenes[sceneIndx]->getTextureDescriptorSet()};
+
+                            //bind the descriptor sets
+                            vkCmdBindDescriptorSets(commandBuffers[currentImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                                    currentPipelineLayout,
+                                                    0, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(),
+                                                    1, &dynamicOffset);
+                            //note here that we bound one descriptor set that contains both a static descriptor and a dynamic descriptor. Only the dynamic descriptors will be off-set for each object, not the static ones.
+
+                            //execute the pipeline
+                            vkCmdDrawIndexed(commandBuffers[currentImageIndex],
+                                             static_cast<uint32_t>(currentObject->getIndexCount()), 1, 0, 0, 0);
+                    }
+
+                    if(sceneIndx == 0)
+                    {
+                        ImGui_ImplVulkan_RenderDrawData(draw_data, commandBuffers[currentImageIndex]);
+                    }
+
+
+
+                    //end the Renderpass
+                    vkCmdEndRenderPass(commandBuffers[currentImageIndex]);
                 }
-            }
-
-            //end the Renderpass
-            vkCmdEndRenderPass(commandBuffers[currentImageIndex]);
         }
         /*
          * End of the series of command to record
@@ -730,25 +848,60 @@ void PixelRenderer::draw() {
                           imageAvailable[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
 
-    PixelScene::UboVP newVP{};
-    newVP.P = glm::perspective(glm::radians(35.0f), (float)swapChainExtent.width/(float)swapChainExtent.height, 0.01f, 100.0f);
-    newVP.V = glm::lookAt(glm::vec3(0.0f,0.0f,6.5f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    newVP.lightPos = glm::vec4(0.0f,0.0f,3.0f,1.0f);
+    PixelScene::UboVP newVP1{};
+    newVP1.P = glm::perspective(glm::radians(35.0f), (float)swapChainExtent.height/(float)swapChainExtent.height, 0.01f, 100.0f);
+    newVP1.V = glm::lookAt(glm::vec3(0.0f,0.0f,10.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    newVP1.lightPos = glm::vec4(0.0f,5.0f,25.0f,1.0f);
+
+    PixelScene::UboVP newVP2{};
+    newVP2.P = glm::mat4(1.0f);
+    newVP2.V = glm::mat4(1.0f);
+    newVP2.lightPos = glm::vec4(0.0f,0.0f,5.0f,1.0f);
 
 
-    firstScene->setSceneVP(newVP);
+    scenes[0]->setSceneVP(newVP1);
+    scenes[1]->setSceneVP(newVP2);
     //firstScene->getObjectAt(0)->addTransform({glm::rotate(glm::mat4(1.0f), deltaTime,glm::vec3(1.0f,0.0f,0.0f))});
     glm::mat4 objTransform = glm::mat4(1.0f);
-    objTransform = glm::scale(glm::mat4(1.0f),glm::vec3(2.0f)) * objTransform;
-    objTransform = glm::rotate(glm::mat4(1.0f), sin(currentTime*1.5f)*0.5f,glm::vec3(0.0f,1.0f,0.0f)) * objTransform;
-    objTransform = glm::rotate(glm::mat4(1.0f), cos(currentTime*1.5f)*0.5f,glm::vec3(1.0f,0.0f,0.0f)) * objTransform;
-    objTransform = translate(glm::mat4(1.0f),glm::vec3(0.0f,sin(currentTime*1.5f)*0.3f,0.0f)) * objTransform;
+    objTransform = glm::scale(glm::mat4(1.0f),glm::vec3(1.0f)) * objTransform;
+    objTransform = glm::rotate(glm::mat4(1.0f), std::sin(currentTime*1.5f)*0.5f,glm::vec3(0.0f,1.0f,0.0f)) * objTransform;
+    objTransform = glm::rotate(glm::mat4(1.0f), std::cos(currentTime*1.5f)*0.5f,glm::vec3(1.0f,0.0f,0.0f)) * objTransform;
+    //objTransform = translate(glm::mat4(1.0f),glm::vec3(0.0f,sin(currentTime*1.5f)*0.3f,0.0f)) * objTransform;
 
-    firstScene->getObjectAt(0)->setTransform({objTransform});
     //firstScene->getObjectAt(0)->addTransform({glm::rotate(glm::mat4(1.0f), currentTime,glm::vec3(0.0f,1.0f,0.0f))});
     //firstScene->getObjectAt(0)->addTransform({glm::rotate(glm::mat4(1.0f), glm::radians(45.0f),glm::vec3(1.0f,1.0f,0.0f))});
-    firstScene->updateDynamicUniformBuffer(imageIndex);
-    firstScene->updateUniformBuffer(imageIndex);
+    scenes[0]->getObjectAt(0)->setTransform({objTransform});
+    scenes[0]->getObjectAt(0)->setTexID(texIndex);
+    scenes[0]->getObjectAt(1)->setTransform({objTransform});
+    scenes[0]->getObjectAt(1)->setTexID(texIndex);
+    scenes[0]->updateDynamicUniformBuffer(imageIndex);
+    scenes[0]->updateUniformBuffer(imageIndex);
+
+    scenes[1]->getObjectAt(0)->setTransform({glm::mat4(1.0f)});
+    scenes[1]->getObjectAt(0)->setTexID(texIndex);
+    scenes[1]->updateDynamicUniformBuffer(imageIndex);
+    scenes[1]->updateUniformBuffer(imageIndex);
+
+
+    switch(itemIndex) {
+        case 0:
+            scenes[0]->getObjectAt(0)->unhide();
+            scenes[0]->getObjectAt(1)->hide();
+            scenes[1]->getObjectAt(1)->unhide();
+            scenes[1]->getObjectAt(2)->unhide();
+            scenes[1]->getObjectAt(3)->hide();
+            scenes[1]->getObjectAt(4)->hide();
+            break;
+        case 1:
+            scenes[0]->getObjectAt(0)->hide();
+            scenes[0]->getObjectAt(1)->unhide();
+            scenes[1]->getObjectAt(1)->hide();
+            scenes[1]->getObjectAt(2)->hide();
+            scenes[1]->getObjectAt(3)->unhide();
+            scenes[1]->getObjectAt(4)->unhide();
+            break;
+    }
+
 
     //we do not want to update all command buffers. only update the current command buffer being written to.
     recordCommands(imageIndex);
@@ -790,6 +943,27 @@ void PixelRenderer::draw() {
 
     currentFrame = ( currentFrame + 1 ) % MAX_FRAME_DRAWS;
 }
+
+void PixelRenderer::run() {
+
+    while (!glfwWindowShouldClose(pixWindow.getWindow()))
+    {
+        glfwPollEvents();
+
+        //imgui new frame
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+
+        ImGui::NewFrame();
+        imGuiParametersSetup();
+        ImGui::Render();
+
+        draw_data = ImGui::GetDrawData();
+
+        draw();
+    }
+}
+
 
 void PixelRenderer::createSynchronizationObjects() {
 
@@ -1006,7 +1180,7 @@ void PixelRenderer::createUniformBuffers(PixelScene *pixScene) {
     }
 }
 
-void PixelRenderer::initializeScene() {
+void PixelRenderer::initializeScenes() {
 
     //load an empty texture for use when texture is not defined.
     emptyTexture = PixelImage(&mainDevice, 0, 0, false);
@@ -1014,54 +1188,136 @@ void PixelRenderer::initializeScene() {
     createTextureBuffer(&emptyTexture);
 
     //initialize all objects in the scene
-    for(int i = 0 ; i < firstScene->getNumObjects(); i++)
+    for(auto& scene : scenes)
     {
-        initializeObjectBuffers(firstScene->getObjectAt(i)); //depends on graphics command pool
-        for(auto texture : firstScene->getObjectAt(i)->getTextures())
+        for(int i = 0 ; i < scene->getNumObjects(); i++)
         {
-            createTextureBuffer(&texture);
+            initializeObjectBuffers(scene->getObjectAt(i)); //depends on graphics command pool
+            for(auto texture : scene->getObjectAt(i)->getTextures())
+            {
+                createTextureBuffer(&texture);
+            }
         }
-    }
-    firstScene->initialize(mainDevice.physicalDevice);
 
-    createUniformBuffers(firstScene.get());
-    createDescriptorPool(firstScene.get());
-    createDescriptorSets(firstScene.get());
+        createUniformBuffers(scene.get());
+        createDescriptorPool(scene.get());
+        createDescriptorSets(scene.get());
+    }
+
+
 }
 
 void PixelRenderer::createScene() {
 
     //create scene
-    firstScene = std::make_shared<PixelScene>(PixelScene(&(mainDevice.logicalDevice)));
+    std::shared_ptr<PixelScene> scene1 = std::make_shared<PixelScene>(PixelScene(mainDevice.logicalDevice, mainDevice.physicalDevice));
+    std::shared_ptr<PixelScene> scene2 = std::make_shared<PixelScene>(PixelScene(mainDevice.logicalDevice, mainDevice.physicalDevice));
 
     PixelScene::UboVP newVP{};
     newVP.P = glm::perspective(glm::radians(45.0f), (float)swapChainExtent.width/(float)swapChainExtent.height, 0.01f, 100.0f);
     newVP.V = glm::lookAt(glm::vec3(0.0f,0.0f,3.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     newVP.lightPos = glm::vec4(0.0f,0.0f,1.0f,1.0f);
 
-    firstScene->setSceneVP(newVP);
+    scene1->setSceneVP(newVP);
+    scene2->setSceneVP(newVP);
 
     //create mesh
     std::vector<PixelObject::Vertex> vertices = {
-            {{-0.4f,-0.4f,0.0f,1.0f},    {0.0f,0.0f,1.0f,0.0f},{1.0f, 1.0f, 0.0f, 1.0f},{0.0f, 1.0f}}, //0
-            {{0.4f,-0.4f,0.0f,1.0f},     {0.0f,0.0f,1.0f,0.0f},{0.0f, 1.0f, 1.0f, 1.0f},{1.0f, 1.0f}}, //1
-            {{0.4f,0.4f,0.0f,1.0f},     {0.0f,0.0f,1.0f,0.0f},{1.0f, 0.0f, 1.0f, 1.0f},{1.0f, 0.0f}},  //2
-            {{-0.4f,0.4f,0.0f,1.0f},    {0.0f,0.0f,1.0f,0.0f},{1.0f, 0.0f, 0.0f, 1.0f},{0.0f, 0.0f}}    //3
+            {{-0.9f,-0.9f,0.0f,1.0f},    {0.0f,0.0f,1.0f,0.0f},{1.0f, 1.0f, 0.0f, 1.0f},{0.0f, 1.0f}}, //0
+            {{0.9f,-0.9f,0.0f,1.0f},     {0.0f,0.0f,1.0f,0.0f},{0.0f, 1.0f, 1.0f, 1.0f},{1.0f, 1.0f}}, //1
+            {{0.9f,0.9f,0.0f,1.0f},     {0.0f,0.0f,1.0f,0.0f},{1.0f, 0.0f, 1.0f, 1.0f},{1.0f, 0.0f}},  //2
+            {{-0.9f,0.9f,0.0f,1.0f},    {0.0f,0.0f,1.0f,0.0f},{1.0f, 0.0f, 0.0f, 1.0f},{0.0f, 0.0f}}    //3
     };
     std::vector<uint32_t> indices{
             1,2,0,
             2,3,0
     };
 
-    auto object1 = PixelObject(&mainDevice, vertices, indices);
-    //auto object2 = PixelObject(&mainDevice, "Suzanne");
+    auto texturedMesh = PixelObject(&mainDevice, vertices, indices);
+    auto mug = PixelObject(&mainDevice, "Mug.obj");
+    auto skull = PixelObject(&mainDevice, "Skull.obj");
 
-    object1.addTexture("brick.jpg");
-    object1.addTexture("brickUV.jpg");
-    object1.addTexture("giraffe.jpeg");
+    //object1.addTexture("brick.jpg");
+    mug.addTexture("MugTexture1.png");
+    mug.addTexture("MugTexture2.png");
+    mug.addTexture("MugTexture3.png");
+    mug.addTexture("MugTexture4.png");
+    skull.addTexture("Skull.jpg");
+    texturedMesh.addTexture("MugTexture1.png");
+    texturedMesh.addTexture("MugTexture2.png");
+    texturedMesh.addTexture("MugTexture3.png");
+    texturedMesh.addTexture("MugTexture4.png");
+    texturedMesh.addTexture("Skull.jpg");
+
+    //create a mesh form the texUV data
+    std::vector<PixelObject::Vertex> texMeshVertices1;
+    std::vector<uint32_t> texMeshIndices1;
+    for(int i = 0 ; i < mug.getIndexCount(); i++)
+    {
+        uint32_t indx = (*mug.getIndices())[i];
+        texMeshIndices1.push_back(indx); // add the same index number to the new object
+    }
+
+    for(int i = 0 ; i < mug.getVertexCount(); i++)
+    {
+        float texU = 0.9f * (2.0f * (*mug.getVertices())[i].texUV[0] - 1.0f);
+        float texV = 0.9f * (2.0f * (*mug.getVertices())[i].texUV[1] - 1.0f);
+        texMeshVertices1.push_back({
+                                           {texU, -texV, 0.0f, 1.0f},
+                                           {0.0f, 0.0f, 1.0f, 0.0f},
+                                           {0.2f, 0.2f, 0.2f, 0.5f},
+                                           {0.0f, 0.0f}
+                                   });
+    }
+
+    auto mugFlat = PixelObject(&mainDevice, texMeshVertices1, texMeshIndices1);
+    auto mugFlatLines = PixelObject(&mainDevice, texMeshVertices1, texMeshIndices1);
+
+    //create a mesh form the texUV data
+    std::vector<PixelObject::Vertex> texMeshVertices2;
+    std::vector<uint32_t> texMeshIndices2;
+    for(int i = 0 ; i < skull.getIndexCount(); i++)
+    {
+        uint32_t indx = (*skull.getIndices())[i];
+        texMeshIndices2.push_back(indx); // add the same index number to the new object
+    }
+
+    for(int i = 0 ; i < skull.getVertexCount(); i++)
+    {
+        float texU = 0.9f * (2.0f * (*skull.getVertices())[i].texUV[0] - 1.0f);
+        float texV = 0.9f * (2.0f * (*skull.getVertices())[i].texUV[1] - 1.0f);
+        texMeshVertices2.push_back({
+                                           {texU, -texV, 0.0f, 1.0f},
+                                           {0.0f, 0.0f, 1.0f, 0.0f},
+                                           {0.2f, 0.2f, 0.2f, 0.5f},
+                                           {0.0f, 0.0f}
+                                   });
+    }
+
+    auto skullFlat = PixelObject(&mainDevice, texMeshVertices2, texMeshIndices2);
+    auto skullFlatLines = PixelObject(&mainDevice, texMeshVertices2, texMeshIndices2);
+
+    mug.setGraphicsPipelineIndex(0);
+    skull.setGraphicsPipelineIndex(0);
+    texturedMesh.setGraphicsPipelineIndex(1);
+    mugFlat.setGraphicsPipelineIndex(1);
+    mugFlatLines.setGraphicsPipelineIndex(2);
+    skullFlat.setGraphicsPipelineIndex(1);
+    skullFlatLines.setGraphicsPipelineIndex(2);
 
     //firstScene->addObject(object1);
-    firstScene->addObject(object1);
+    scene1->addObject(mug);
+    scene1->addObject(skull);
+    scene2->addObject(texturedMesh);
+    scene2->addObject(mugFlat);
+    scene2->addObject(mugFlatLines);
+    scene2->addObject(skullFlat);
+    scene2->addObject(skullFlatLines);
+
+    mug.setTexID(1); //TODO:problem there. value not copied
+
+    scenes.push_back(scene1);
+    scenes.push_back(scene2);
 
 }
 
@@ -1184,10 +1440,17 @@ void PixelRenderer::createDescriptorSets(PixelScene *pixScene)
     //VkDescriptorImageInfo textureSamplerDescriptorInfo{};
     for(int i = 0 ; i < textureSamplerDescriptorInfos.size(); i++)
     {
-        if(i < firstScene->getObjectAt(0)->getTextures().size() && firstScene->getObjectAt(0)->getTextures()[i].hasBeenInitialized())
+        if(i < pixScene->getAllTextures().size())
         {
-            textureSamplerDescriptorInfos[i].imageView = firstScene->getObjectAt(0)->getTextures()[i].getImageView(); //image view of the texture
-        } else
+            if(pixScene->getAllTextures()[i].hasBeenInitialized()) //TODO:make sure we go through all the scenes
+            {
+                textureSamplerDescriptorInfos[i].imageView = pixScene->getAllTextures()[i].getImageView(); //image view of the texture
+            }
+            else
+            {
+                textureSamplerDescriptorInfos[i].imageView = emptyTexture.getImageView(); //image view of the texture
+            }
+        }else
         {
             textureSamplerDescriptorInfos[i].imageView = emptyTexture.getImageView(); //image view of the texture
         }
@@ -1364,4 +1627,148 @@ void PixelRenderer::createTextureSampler() {
         throw std::runtime_error("failed to create sampler");
     }
 
+}
+
+void PixelRenderer::init_imgui() {
+
+        IMGUI_CHECKVERSION();
+
+        // 2: initialize imgui library
+
+        //this initializes the core structures of imgui
+        ImGui::CreateContext();
+        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+        //1: create descriptor pool for IMGUI
+        // the size of the pool is very oversize, but it's copied from imgui demo itself.
+        VkDescriptorPoolSize pool_sizes[] =
+                {
+                        { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+                        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+                        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+                        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+                        { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+                        { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+                        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+                        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+                        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+                        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+                        { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+                };
+
+        VkDescriptorPoolCreateInfo pool_info = {};
+        pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        pool_info.maxSets = 1000;
+        pool_info.poolSizeCount = std::size(pool_sizes);
+        pool_info.pPoolSizes = pool_sizes;
+
+        VkResult result = vkCreateDescriptorPool(mainDevice.logicalDevice, &pool_info, nullptr, &imguiPool);
+        if(result != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create descriptor pool for ImGui");
+        }
+
+        // Setup Dear ImGui style
+        ImGui::StyleColorsDark();
+
+        //this initializes imgui for SDL
+        ImGui_ImplGlfw_InitForVulkan(pixWindow.getWindow(), true);
+
+        //this initializes imgui for Vulkan
+        ImGui_ImplVulkan_InitInfo init_info = {};
+        init_info.Instance = instance;
+        init_info.PhysicalDevice = mainDevice.physicalDevice;
+        init_info.Device = mainDevice.logicalDevice;
+        init_info.Queue = graphicsQueue;
+        init_info.QueueFamily = setupQueueFamilies(mainDevice.physicalDevice).graphicsFamily;
+        init_info.PipelineCache = VK_NULL_HANDLE;
+        init_info.DescriptorPool = imguiPool;
+        init_info.MinImageCount = 3;
+        init_info.ImageCount = 3;
+        init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+        ImGui_ImplVulkan_Init(&init_info, graphicsPipelines[0]->getRenderPass());
+
+        //execute a gpu command to upload imgui font textures
+        VkCommandBuffer commandBuffer = beginSingleUseCommandBuffer();
+        ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+        submitAndEndSingleUseCommandBuffer(&commandBuffer);
+
+        //clear font textures from cpu data
+        ImGui_ImplVulkan_DestroyFontUploadObjects();
+
+}
+
+void PixelRenderer::imGuiParametersSetup() {
+    ImGui::Begin("Simple Render Engine!");                          // Create a window called "Hello, world!" and append into it.
+
+    ImGui::SetWindowSize(ImVec2(350.0f,200.0f),0);
+    //ImGui::Text("Fog Effect intensity.");               // Display some text (you can use a format strings too)
+    //static float test = 0.0f;
+    //ImGui::SliderFloat("fog_pow", &test, 0.0f, 2.0f);
+    ImGui::Text("import object");
+
+    static const char* current_item = NULL;
+    static const char* current_texture = NULL;
+    static std::vector<std::string> textures = {
+            "MugTexture1.png",
+            "MugTexture2.png",
+            "MugTexture3.png",
+            "MugTexture4.png",
+            "Skull.jpeg"
+    };
+
+    static std::vector<std::string> items = {
+            "Mug.obj",
+            "Skull.obj"
+    };
+
+    current_item = items[itemIndex].c_str();
+    if (ImGui::BeginCombo("##combo1", current_item)) // The second parameter is the label previewed before opening the combo.
+    {
+        for (int n = 0; n < items.size(); n++)
+        {
+            bool is_selected = (current_item == items[n].c_str()); // You can store your selection however you want, outside or inside your objects
+            if (ImGui::Selectable(items[n].c_str(), is_selected)){
+                current_item = items[n].c_str();
+                itemIndex = n;
+            }
+            if (is_selected){
+                ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::Text("import texture");
+    current_texture = textures[texIndex].c_str();
+    if (ImGui::BeginCombo("##combo2", current_texture)) // The second parameter is the label previewed before opening the combo.
+    {
+        for (int n = 0; n < textures.size(); n++)
+        {
+            bool is_selected = (current_texture == textures[n].c_str()); // You can store your selection however you want, outside or inside your objects
+            if (ImGui::Selectable(textures[n].c_str(), is_selected)){
+                current_texture = textures[n].c_str();
+                texIndex = n;
+            }
+            if (is_selected){
+                ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    //ImGui::Text("Fog Effect shift offset.");
+    //ImGui::SliderFloat("fog_shift", &slider.fog_shift, 0.0f, 2.0f);
+
+
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::End();
+}
+
+void PixelRenderer::addScene(PixelScene *pixScene) {
+
+    scenes.push_back(std::make_shared<PixelScene>(*pixScene));
 }

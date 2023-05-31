@@ -76,7 +76,7 @@ void PixelGraphicsPipeline::createGraphicsPipeline(const VkRenderPass& inputRend
     //TODO:Setup Depth Stencil
 
     //create renderpass
-    if(inputRenderPass == nullptr)
+    if(inputRenderPass == VK_NULL_HANDLE)
     {
         createRenderPass();
     } else
@@ -289,7 +289,7 @@ void PixelGraphicsPipeline::populateGraphicsPipelineInfo() {
     rasterizationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rasterizationStateCreateInfo.depthClampEnable = VK_FALSE; //change if fragments beyond the far plane are clipped to plane. requires GPU Feature
     rasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizationStateCreateInfo.cullMode = VK_CULL_MODE_NONE;
     rasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE; //suitable for pipeline without framebuffer
     rasterizationStateCreateInfo.lineWidth = 1.0f; //need gpu feature for anything else then 1
     rasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
@@ -349,17 +349,11 @@ VkPipelineLayout PixelGraphicsPipeline::getPipelineLayout() {
 }
 
 void
-PixelGraphicsPipeline::addRenderpassColorAttachment(PixelImage image, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentStoreOp attachmentStoreOp,
+PixelGraphicsPipeline::addRenderpassColorAttachment(VkFormat imageFormat, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentStoreOp attachmentStoreOp,
                                                VkImageLayout attachmentReferenceLayout) {
 
-    //check if the image used is initialized
-    if(!image.hasBeenInitialized())
-    {
-        throw std::runtime_error("adding a renderPassColorAttachments using an uninitialized PixelImage!");
-    }
-
     PixRenderpassAttachement attachment{};
-    attachment.attachmentDescription.format = image.getFormat();
+    attachment.attachmentDescription.format = imageFormat;
     attachment.attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
     attachment.attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; //this clears the buffer when we start the renderpass
     attachment.attachmentDescription.storeOp = attachmentStoreOp; //we want to present the result so we keep it
@@ -395,6 +389,27 @@ void PixelGraphicsPipeline::addRenderpassDepthAttachment(PixelImage depthImage) 
 
     renderPassDepthAttachment.hasBeenDefined = true;
 
+}
+
+void PixelGraphicsPipeline::setScreenDimensions(float x0, float x1, float y0, float y1) {
+    viewport.x = x0;
+    viewport.y = y0;
+    viewport.width = x1-x0;
+    viewport.height = y1-y0;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    scissor.offset = {(int32_t)x0,(int32_t) y0};
+    scissor.extent.width = x1-x0;
+    scissor.extent.height = y1-y0;
+    viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportStateCreateInfo.viewportCount = 1;
+    viewportStateCreateInfo.pViewports = &viewport;
+    viewportStateCreateInfo.scissorCount = 1;
+    viewportStateCreateInfo.pScissors = &scissor;
+}
+
+void PixelGraphicsPipeline::setPolygonMode(VkPolygonMode polygonMode) {
+    rasterizationStateCreateInfo.polygonMode = polygonMode;
 }
 
 
