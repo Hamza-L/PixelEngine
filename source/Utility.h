@@ -8,25 +8,34 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLFW_INCLUDE_VULKAN //includes vulkan automatically
 #include <GLFW/glfw3.h>
+
+#include <random>
+#include <fstream>
 #include <iostream>
 #include <vector>
 #include <cstring>
 
+
+inline std::random_device rd;
+inline std::mt19937 gen(rd());
+
 //vulkan struct component
-struct PixDevice{
+struct PixBackend{
     VkPhysicalDevice physicalDevice{};
     VkDevice logicalDevice{};
+    VkExtent2D extent{};
 };
 
 struct QueueFamilyIndices
 {
     int graphicsFamily = -1;
     int presentationFamily = -1;
+    int computeFamily = -1;
 
     //check if queue families are valid
     bool isValid() const
     {
-        return graphicsFamily >= 0 && presentationFamily >= 0;
+        return graphicsFamily >= 0 && presentationFamily >= 0  && computeFamily >= 0;
     }
 };
 
@@ -37,7 +46,7 @@ struct SwapchainDetails
     std::vector<VkPresentModeKHR> presentationMode;		//how image should be presented
 };
 
-static uint32_t findMemoryTypeIndex(VkPhysicalDevice physicalDevice, uint32_t allowedTypes, VkMemoryPropertyFlags propertyFlags)
+static inline uint32_t findMemoryTypeIndex(VkPhysicalDevice physicalDevice, uint32_t allowedTypes, VkMemoryPropertyFlags propertyFlags)
 {
     //Get properties from physical device
     VkPhysicalDeviceMemoryProperties deviceMemoryProperties{};
@@ -55,7 +64,7 @@ static uint32_t findMemoryTypeIndex(VkPhysicalDevice physicalDevice, uint32_t al
     return 0;
 }
 
-static bool checkInstanceExtensionSupport(const std::vector<const char*>* checkExtensions)
+static inline bool checkInstanceExtensionSupport(const std::vector<const char*>* checkExtensions)
 {
     //get the number of extensions
     uint32_t extensionCount = 0;
@@ -88,7 +97,7 @@ static bool checkInstanceExtensionSupport(const std::vector<const char*>* checkE
 
 }
 
-static bool checkInstanceLayerSupport(const std::vector<const char*>* checkLayers)
+static inline bool checkInstanceLayerSupport(const std::vector<const char*>* checkLayers)
 {
     //get the number of extensions
     uint32_t LayerCount = 0;
@@ -121,7 +130,7 @@ static bool checkInstanceLayerSupport(const std::vector<const char*>* checkLayer
 
 }
 
-static std::vector<const char*> getRequiredExtensions()
+static inline std::vector<const char*> getRequiredExtensions()
 {
     std::vector<const char*> extensions;
 
@@ -142,7 +151,7 @@ static std::vector<const char*> getRequiredExtensions()
 //best format is subjective but ours is:
 // format: VK_FORMAT_R8G8B8A8_UNORM (backup : VK_FORMAT_B8G8R8A8_UNORM)
 // colorspace: VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
-static VkSurfaceFormatKHR chooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats)
+static inline VkSurfaceFormatKHR chooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats)
 {
     if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
     {
@@ -162,7 +171,7 @@ static VkSurfaceFormatKHR chooseBestSurfaceFormat(const std::vector<VkSurfaceFor
 }
 
 
-static VkFormat chooseSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat> &formats, VkImageTiling imageTiling,
+static inline VkFormat chooseSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat> &formats, VkImageTiling imageTiling,
                                                      VkFormatFeatureFlags featureFlags) {
 
     //loop through options and find compatible one
@@ -189,7 +198,7 @@ static VkFormat chooseSupportedFormat(VkPhysicalDevice physicalDevice, const std
     //return VK_NULL_HANDLE;
 }
 
-static VkPresentModeKHR chooseBestPresentationMode(const std::vector<VkPresentModeKHR>& presentationModes)
+static inline VkPresentModeKHR chooseBestPresentationMode(const std::vector<VkPresentModeKHR>& presentationModes)
 {
     for (const auto& presentationMode : presentationModes)
     {
@@ -200,6 +209,58 @@ static VkPresentModeKHR chooseBestPresentationMode(const std::vector<VkPresentMo
     }
 
     return VK_PRESENT_MODE_FIFO_KHR; //this is always available so if the desired present mode is not found, we return FIFO Present mode
+}
+
+static inline std::vector<char> readFile(const std::string& filename) {
+
+    //open stream from given file
+    //binary to read file as a binary file (sprv)
+    //ate tells to read from end of file
+    std::ifstream file(filename, std::ios::binary | std::ios::ate);
+
+    //check if we found the file
+    if(!file.is_open())
+    {
+        throw std::runtime_error("failed to open the following file: " + filename);
+    }
+
+    size_t filesize = (size_t)file.tellg();
+
+    std::vector<char> outputBuffer(filesize);
+
+    file.seekg(0);
+    file.read(outputBuffer.data(), filesize);
+
+    file.close();
+
+    return outputBuffer;
+}
+
+static inline VkShaderModule addShaderModule(VkDevice device, const std::string &filename) {
+
+    std::vector<char> code = readFile(filename);
+
+    VkShaderModuleCreateInfo shaderCreateInfo = {};
+    shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    shaderCreateInfo.codeSize = code.size();
+    shaderCreateInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+    VkShaderModule shaderModule;
+    VkResult result = vkCreateShaderModule(device, &shaderCreateInfo, nullptr, &shaderModule);
+    if(result != VK_SUCCESS)
+    {
+        std::string outMessage = "failed to create shader module from file: %s\n";
+        outMessage.append(filename);
+        throw std::runtime_error(outMessage);
+    }
+
+    return shaderModule;
+}
+
+static inline float random(float center, float stdDev)
+{
+    std::normal_distribution<> d {center, stdDev};
+    return (float)d(gen);
 }
 
 #endif //PIXELENGINE_UTILITY_H

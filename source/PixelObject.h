@@ -5,17 +5,14 @@
 #ifndef PIXELENGINE_PIXELOBJECT_H
 #define PIXELENGINE_PIXELOBJECT_H
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 #include <assimp/Importer.hpp>      // C++ importer interface
 #include <assimp/scene.h>           // Output data structure
 #include <assimp/postprocess.h>     // Post processing flags
 #include <assimp/material.h>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
-#include "PixelImage.h"
 
+#include "PixelImage.h"
 
 #include <string>
 #include <array>
@@ -48,7 +45,7 @@ public:
         glm::vec2 texUV{};
     };
 
-    enum attributes
+    enum vertexAttributes
     {
         POSITION_ATTRIBUTEINDEX,
         NORMAL_ATTRIBUTEINDEX,
@@ -58,8 +55,8 @@ public:
     };
 
 
-    PixelObject(PixDevice* device, std::vector<Vertex> vertices, std::vector<uint32_t> indices);
-    PixelObject(PixDevice* device, std::string filename);
+    PixelObject(PixBackend* device, std::vector<Vertex> vertices, std::vector<uint32_t> indices);
+    PixelObject(PixBackend* device, std::string filename);
 
     //getters
     int getVertexCount();
@@ -95,6 +92,7 @@ public:
     void addTransform(glm::mat4 matTransform);
     void setTransform(glm::mat4 matTransform);
     void addTexture(std::string textureFile);
+    void addTexture(PixelImage* pixImage);
     void setTextureIDOffset(int offset){texIDOffset = offset;};
     void hide(){m_isHidden = true;};
     void unhide(){m_isHidden = false;};
@@ -113,7 +111,7 @@ private:
     PObj pushObj = {glm::mat4(1.0f)};
 
     //vulkan components
-    PixDevice* m_device = VK_NULL_HANDLE;
+    PixBackend* m_device = VK_NULL_HANDLE;
     VkBuffer vertexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
     VkBuffer indexBuffer = VK_NULL_HANDLE;

@@ -8,6 +8,8 @@ const bool enableValidationLayers = true;
 
 #include "PixelWindow.h"
 #include "PixelGraphicsPipeline.h"
+#include "PixelComputePipeline.h"
+#include "Utility.h"
 
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
@@ -21,6 +23,15 @@ const bool enableValidationLayers = true;
 #include <cstring>
 
 const int MAX_FRAME_DRAWS = 2; //we always have "MAX_FRAME_DRAWS" being drawing at once.
+static float dofFocus = 13.152946438f;
+static bool autoFocus = false;
+static bool autoFocusFinished = true;
+static float deltaFocus = 0.0f;
+static glm::uvec2 mouseCoord = {0,0};
+static glm::uvec2 lastClicked = {28,156};
+static ImColor color = ImColor(0.0,0.0f,0.0f,1.0f);
+static int MAX_COMPUTE_SAMPLE = 1;
+static bool guiItemHovered = false;
 
 class PixelRenderer
 {
@@ -58,7 +69,7 @@ private:
 #endif
 
     //logical and physical device
-    PixDevice mainDevice;
+    PixBackend mainDevice;
 
     //window component
     PixelWindow pixWindow{};
@@ -69,12 +80,15 @@ private:
 	VkInstance instance{};
 	VkQueue graphicsQueue{};
 	VkQueue presentationQueue{};
+	VkQueue computeQueue{};
 	VkSurfaceKHR surface{};
 	VkSwapchainKHR swapChain{};
     std::vector<VkFramebuffer> swapchainFramebuffers;
-    std::vector<VkFramebuffer> swapchainFramebuffersNoDepth;
     std::vector<VkCommandBuffer> commandBuffers;
+    std::vector<VkCommandBuffer> computeCommandBuffers;
     std::vector<std::unique_ptr<PixelGraphicsPipeline>> graphicsPipelines;
+    std::unique_ptr<PixelGraphicsPipeline> defaultGridGraphicsPipeline;
+    PixelComputePipeline computePipeline;
 
     //images
     std::vector<PixelImage> swapChainImages;
@@ -88,6 +102,7 @@ private:
 
     // Pools
     VkCommandPool graphicsCommandPool{};
+    VkCommandPool computeCommandPool{};
 
     // gui ressources
     VkDescriptorPool imguiPool{};
@@ -101,13 +116,17 @@ private:
 	VkDebugUtilsMessengerEXT debugMessenger{};
 
     //synchronization component
-    std::vector<VkSemaphore> imageAvailable;
-    std::vector<VkSemaphore> renderFinished;
-    std::vector<VkFence> drawFences;
+    std::vector<VkSemaphore> imageAvailableSemaphore;
+    std::vector<VkSemaphore> renderFinishedSemaphore;
+    std::vector<VkSemaphore> computeFinishedSemaphore;
+    std::vector<VkFence> inFlightDrawFences;
+    std::vector<VkFence> inFlightComputeFences;
     int currentFrame = 0;
+    std::array<glm::vec3, 512> randomArray;
 
     //objects
-    std::vector<std::shared_ptr<PixelScene>> scenes;
+    std::vector<PixelScene> scenes;
+	PixelScene defaultGridScene{};
 
 	//---------vulkan functions
 	//create functions
@@ -118,22 +137,33 @@ private:
 	void createSwapChain();
     void createGraphicsPipelines();
     void createFramebuffers();
-    void createCommandPool();
+    void createCommandPools();
     void createCommandBuffers();
+    void createComputeCommandBuffers();
 	void createScene();
+	void createDefaultGridScene();
     void createDepthBuffer();
 	void initializeScenes();
     void createSynchronizationObjects();
     void recordCommands(uint32_t currentImageIndex);
+    void recordComputeCommands(uint32_t currentImageIndex);
     VkCommandBuffer beginSingleUseCommandBuffer();
     void submitAndEndSingleUseCommandBuffer(VkCommandBuffer* commandBuffer);
 	QueueFamilyIndices setupQueueFamilies(VkPhysicalDevice device);
+	void init_io();
+    void init_compute();
+	void preDraw();
+
+    //gui functions
+    bool ColorPicker(const char* label, ImColor* color);
     void init_imgui();
+    void imGuiParameters();
 
 	//descriptor Set (for scene initialization)
 	void createDescriptorPool(PixelScene* pixScene);
 	void createDescriptorSets(PixelScene* pixScene);
 	void createUniformBuffers(PixelScene* pixScene);
+    void updateComputeTextureDescriptor();
 
     //debug validation layer
     void setupDebugMessenger();
@@ -144,6 +174,7 @@ private:
 	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 	VkExtent2D chooseSwapChainExtent(VkSurfaceCapabilitiesKHR surfaceCapabilities);
     void transitionImageLayout(VkImage imageToTransition, VkImageLayout currentLayout, VkImageLayout newLayout);
+    void transitionImageLayoutUsingCommandBuffer(VkCommandBuffer commandBuffer, VkImage imageToTransition, VkImageLayout currentLayout, VkImageLayout newLayout);
     void createBuffer(VkDeviceSize bufferSize,
                      VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags bufferproperties,
                      VkBuffer* buffer, VkDeviceMemory* bufferMemory);
@@ -155,7 +186,6 @@ private:
     void createIndexBuffer(PixelObject* pixObject);
     void createTextureBuffer(PixelImage* pixImage);
     void createTextureSampler();
-    void imGuiParametersSetup();
 
 	//getter functions
 	SwapchainDetails getSwapChainDetails(VkPhysicalDevice device);

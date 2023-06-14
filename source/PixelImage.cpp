@@ -4,7 +4,7 @@
 
 #include "PixelImage.h"
 
-PixelImage::PixelImage(PixDevice* device, uint32_t width, uint32_t height, bool isSwapChainImage) : m_device(device), m_width(width), m_height(height), m_IsSwapChainImage(isSwapChainImage) {
+PixelImage::PixelImage(PixBackend* device, uint32_t width, uint32_t height, bool isSwapChainImage) : m_device(device), m_width(width), m_height(height), m_IsSwapChainImage(isSwapChainImage) {
     if (m_device == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Logical device not created. current Image cannot be initialized");
@@ -25,6 +25,8 @@ void PixelImage::cleanUp()
         vkDestroyImage(m_device->logicalDevice, m_image, nullptr); //if swapchain image. it will be destroyed by the swapchain (just like it was created by the swapchain)
         vkFreeMemory(m_device->logicalDevice, m_imageMemory, nullptr);
     }
+
+    m_ressourcesCleaned = true;
 }
 
 //create an image view for the image
@@ -61,6 +63,7 @@ void PixelImage::createImageView(VkFormat format, VkImageAspectFlags aspectFlags
     }
 
     m_ImageInitialized = true;
+    m_ressourcesCleaned = false;
 }
 
 std::string PixelImage::getName()
@@ -164,5 +167,15 @@ void PixelImage::loadEmptyTexture() {
     m_format = VK_FORMAT_R8G8B8A8_UNORM; //here we set the format manually, we do not need to check if it is compatible with other features
 
     createImage(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    createImageView(m_format, VK_IMAGE_ASPECT_COLOR_BIT);
+}
+
+void PixelImage::loadEmptyTexture(uint32_t width, uint32_t height, VkImageUsageFlags flags) {
+    m_width = width;
+    m_height = height;
+    m_imageSize = width * height * 4;
+    m_format = VK_FORMAT_R8G8B8A8_UNORM; //here we set the format manually, we do not need to check if it is compatible with other features
+
+    createImage(VK_IMAGE_TILING_OPTIMAL, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     createImageView(m_format, VK_IMAGE_ASPECT_COLOR_BIT);
 }

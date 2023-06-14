@@ -8,8 +8,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include "PixelObject.h"
-#include "glm/glm.hpp"
-#include "glm/ext/matrix_relational.hpp"
+
 
 static const glm::mat4 MAT4_IDENTITY = {1,0,0,0,
                                         0,1,0,0,
@@ -25,7 +24,8 @@ enum DescSetLayoutIndex{
 
 class PixelScene {
 public:
-    PixelScene(VkDevice device, VkPhysicalDevice physicalDevice);
+    PixelScene(PixBackend* backend);
+    PixelScene() = default;
     //PixelScene(const PixelScene&) = delete;
 
     struct UboVP{
@@ -39,14 +39,14 @@ public:
 
     //getter functions
     VkDescriptorSetLayout* getDescriptorSetLayout(DescSetLayoutIndex indx);
-    std::vector<VkDescriptorSetLayout>* getAllDescriptorSetLayouts(){return &m_descriptorSetLayouts;}
+    std::vector<VkDescriptorSetLayout>* getAllDescriptorSetLayouts();
     VkDescriptorPool* getDescriptorPool();
     VkDescriptorSet* getUniformDescriptorSetAt(int index);
-    VkDescriptorSet* getTextureDescriptorSet(){return &m_textureDescriptorSet;}
+    VkDescriptorSet* getTextureDescriptorSet();
     std::vector<VkDescriptorSet>* getUniformDescriptorSets();
     static VkDeviceSize getUniformBufferSize();
-    VkDeviceSize getDynamicUniformBufferSize();
-    VkDeviceSize getMinAlignment();
+    VkDeviceSize getDynamicUniformBufferSize() const;
+    VkDeviceSize getMinAlignment() const;
     VkBuffer* getUniformBuffers(int index);
     VkDeviceMemory* getUniformBufferMemories(int index);
     VkBuffer* getDynamicUniformBuffers(int index);
@@ -80,7 +80,9 @@ public:
 private:
 
     //objects
-    std::vector<PixelObject> allObjects;
+    std::vector<PixelObject> allObjects{};
+    std::vector<PixelObject::Vertex> allVertices{};
+    std::vector<uint32_t> allIndices{};
 
     //helper functions
     void getMinUBOOffset(VkPhysicalDevice physicalDevice);
@@ -104,8 +106,7 @@ private:
     std::vector<bool> buffersUpdated;
 
     //vulkan component
-    VkDevice m_device = VK_NULL_HANDLE;
-    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+    PixBackend* m_backend{};
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> m_uniformDescriptorSets{};
     std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts{};

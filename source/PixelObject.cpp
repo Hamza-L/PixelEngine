@@ -8,7 +8,7 @@
 #include <fstream>
 
 
-PixelObject::PixelObject(PixDevice* device, std::vector<Vertex> vertices, std::vector<uint32_t> indices): m_device(device), m_vertices(std::move(vertices)), m_indices(std::move(indices)) {
+PixelObject::PixelObject(PixBackend* device, std::vector<Vertex> vertices, std::vector<uint32_t> indices): m_device(device), m_vertices(std::move(vertices)), m_indices(std::move(indices)) {
     //create the vertex buffer form the vertices
     printf("PixelObject user constructed\n");
     //createVertexBuffer(vertices);
@@ -18,7 +18,10 @@ void PixelObject::cleanup() {
 
     for(auto texture : m_textures)
     {
-        texture.cleanUp();
+        if(!texture.hasBeenCleaned())
+        {
+            texture.cleanUp();
+        }
     }
 
     vkFreeMemory(m_device->logicalDevice, vertexBufferMemory, nullptr);
@@ -75,7 +78,7 @@ PixelObject::PObj* PixelObject::getPushObj() {
     return &pushObj;
 }
 
-PixelObject::PixelObject(PixDevice *device, std::string filename) : m_device(device){
+PixelObject::PixelObject(PixBackend *device, std::string filename) : m_device(device){
     importFile(filename);
 }
 
@@ -166,6 +169,14 @@ void PixelObject::addTexture(std::string textureFile) {
     setTexID(0);
 
     m_textures.push_back(textureImage);
+
+}
+
+void PixelObject::addTexture(PixelImage* pixImage) {
+
+    setTexID(0);
+
+    m_textures.push_back(*pixImage);
 
 }
 

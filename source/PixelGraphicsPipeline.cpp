@@ -4,61 +4,14 @@
 
 #include "PixelGraphicsPipeline.h"
 
-#include <fstream>
 #include <array>
 
-std::vector<char> PixelGraphicsPipeline::readFile(const std::string& filename) {
-
-    //open stream from given file
-    //binary to read file as a binary file (sprv)
-    //ate tells to read from end of file
-    std::ifstream file(filename, std::ios::binary | std::ios::ate);
-
-    //check if we found the file
-    if(!file.is_open())
-    {
-        throw std::runtime_error("failed to open the following file: " + filename);
-    }
-
-    size_t filesize = (size_t)file.tellg();
-
-    std::vector<char> outputBuffer(filesize);
-
-    file.seekg(0);
-    file.read(outputBuffer.data(), filesize);
-
-    file.close();
-
-    return outputBuffer;
-}
-
-VkShaderModule PixelGraphicsPipeline::addShaderModule(const std::string &filename) {
-
-    std::vector<char> code = readFile(filename);
-
-    VkShaderModuleCreateInfo shaderCreateInfo = {};
-    shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    shaderCreateInfo.codeSize = code.size();
-    shaderCreateInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-    VkShaderModule shaderModule;
-    VkResult result = vkCreateShaderModule(device, &shaderCreateInfo, nullptr, &shaderModule);
-    if(result != VK_SUCCESS)
-    {
-        std::string outMessage = "failed to create shader module from file: %s\n";
-        outMessage.append(filename);
-        throw std::runtime_error(outMessage);
-    }
-
-    return shaderModule;
-}
-
 void PixelGraphicsPipeline::addVertexShader(const std::string &filename) {
-    vertexShaderModule = addShaderModule(filename);
+    vertexShaderModule = addShaderModule(m_device, filename);
 }
 
 void PixelGraphicsPipeline::addFragmentShader(const std::string &filename) {
-    fragmentShaderModule = addShaderModule(filename);
+    fragmentShaderModule = addShaderModule(m_device, filename);
 }
 
 void PixelGraphicsPipeline::createGraphicsPipeline(const VkRenderPass& inputRenderPass) {
@@ -66,7 +19,7 @@ void PixelGraphicsPipeline::createGraphicsPipeline(const VkRenderPass& inputRend
     //the shader create infos have to be passed in as an array
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertexCreateShaderInfo, fragmentCreateShaderInfo};
 
-    VkResult result = vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout);
+    VkResult result = vkCreatePipelineLayout(m_device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout);
     if(result != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create pipeline layout");
@@ -106,22 +59,22 @@ void PixelGraphicsPipeline::createGraphicsPipeline(const VkRenderPass& inputRend
     graphicsPipelineCreateInfo.basePipelineIndex = -1; //or index pipeline from of multiple pipelines created once suing specfic funciton
 
     //create graphics pipeline
-    result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr, &graphicsPipeline);
+    result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr, &graphicsPipeline);
     if(result != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create graphics pipeline");
     }
 
-    vkDestroyShaderModule(device, vertexShaderModule, nullptr);
-    vkDestroyShaderModule(device, fragmentShaderModule, nullptr);
+    vkDestroyShaderModule(m_device, vertexShaderModule, nullptr);
+    vkDestroyShaderModule(m_device, fragmentShaderModule, nullptr);
 }
 
 void PixelGraphicsPipeline::cleanUp() {
-    vkDestroyPipeline(device, graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+    vkDestroyPipeline(m_device, graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(m_device, pipelineLayout, nullptr);
 
     if(renderPass != VK_NULL_HANDLE && wasRenderPassCreated)
-    vkDestroyRenderPass(device, renderPass, nullptr);
+    vkDestroyRenderPass(m_device, renderPass, nullptr);
 }
 
 void PixelGraphicsPipeline::createRenderPass() {
@@ -181,7 +134,7 @@ void PixelGraphicsPipeline::createRenderPass() {
     renderPassCreateInfo.dependencyCount = static_cast<uint32_t>(subpassDependencies.size());
     renderPassCreateInfo.pDependencies = subpassDependencies.data();
 
-    VkResult result = vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &renderPass);
+    VkResult result = vkCreateRenderPass(m_device, &renderPassCreateInfo, nullptr, &renderPass);
     if(result != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create renderpass");
@@ -191,7 +144,7 @@ void PixelGraphicsPipeline::createRenderPass() {
     }
 }
 
-PixelGraphicsPipeline::PixelGraphicsPipeline(VkDevice& device, VkExtent2D inputExtent) : device(device), extent(inputExtent) {
+PixelGraphicsPipeline::PixelGraphicsPipeline(VkDevice device, VkExtent2D inputExtent) : m_device(device), extent(inputExtent) {
 
 }
 
@@ -373,9 +326,9 @@ PixelGraphicsPipeline::addRenderpassColorAttachment(VkFormat imageFormat, VkImag
     renderPassDepthAttachment.attachmentReference.attachment = renderPassColorAttachments.size();
 }
 
-void PixelGraphicsPipeline::addRenderpassDepthAttachment(PixelImage depthImage) {
+void PixelGraphicsPipeline::addRenderpassDepthAttachment(VkFormat depthImageFormat) {
 
-    renderPassDepthAttachment.attachmentDescription.format = depthImage.getFormat();
+    renderPassDepthAttachment.attachmentDescription.format = depthImageFormat;
     renderPassDepthAttachment.attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
     renderPassDepthAttachment.attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; //this clears the buffer when we start the renderpass
     renderPassDepthAttachment.attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; //we want to present the result so we keep it
@@ -392,6 +345,7 @@ void PixelGraphicsPipeline::addRenderpassDepthAttachment(PixelImage depthImage) 
 }
 
 void PixelGraphicsPipeline::setScreenDimensions(float x0, float x1, float y0, float y1) {
+
     viewport.x = x0;
     viewport.y = y0;
     viewport.width = x1-x0;

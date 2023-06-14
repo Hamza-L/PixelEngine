@@ -16,7 +16,7 @@
 
 class PixelImage {
 public:
-    PixelImage(PixDevice* devices, uint32_t width, uint32_t height, bool isSwapChainImage);
+    PixelImage(PixBackend* devices, uint32_t width, uint32_t height, bool isSwapChainImage);
     PixelImage() = default;
 
     //cleanup
@@ -44,12 +44,14 @@ public:
     VkDeviceSize getImageBufferSize(){return m_imageSize;}
     stbi_uc* getImageData(){return m_imageData;}
     bool hasBeenInitialized(){return m_ImageInitialized;}
+    bool hasBeenCleaned(){return m_ressourcesCleaned;}
 
     //helper functions
 
     //loader functions
     void loadTexture(std::string filename);
     void loadEmptyTexture();
+    void loadEmptyTexture(uint32_t width, uint32_t height, VkImageUsageFlags flags);
 
 private:
 
@@ -62,9 +64,10 @@ private:
     std::string imageName{};
     bool m_IsSwapChainImage = false;
     bool m_ImageInitialized = false;
+    bool m_ressourcesCleaned = false;
 
     //vulkan components
-    PixDevice* m_device;
+    PixBackend* m_device;
     VkFormat m_format{};
     VkDeviceSize m_imageSize{};
     VkImage m_image = VK_NULL_HANDLE;

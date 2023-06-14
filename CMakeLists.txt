@@ -22,7 +22,9 @@ set(Headers
     "source/PixelScene.h"
     "source/PixelImage.h"
     "source/Utility.h" 
-    "source/stb_image.h")
+    "source/stb_image.h"
+    "source/PixelComputePipeline.h"
+    "source/kb_input.h")
 source_group("Headers" FILES ${Headers})
 
 set(Sources
@@ -32,7 +34,9 @@ set(Sources
     "source/PixelGraphicsPipeline.cpp"
     "source/PixelObject.cpp"
     "source/PixelScene.cpp"
-    "source/PixelImage.cpp")
+    "source/PixelImage.cpp"
+    "source/PixelComputePipeline.cpp"
+    "source/kb_input.cpp")
 
 source_group("Sources" FILES ${Sources})
 
