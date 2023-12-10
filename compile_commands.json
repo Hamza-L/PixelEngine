@@ -1,0 +1,98 @@
+[
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\source\\main.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\main.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\main.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\source\\main.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\source\\PixelRenderer.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\PixelRenderer.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\PixelRenderer.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\source\\PixelRenderer.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\source\\PixelWindow.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\PixelWindow.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\PixelWindow.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\source\\PixelWindow.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\source\\PixelGraphicsPipeline.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\PixelGraphicsPipeline.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\PixelGraphicsPipeline.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\source\\PixelGraphicsPipeline.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\source\\PixelObject.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\PixelObject.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\PixelObject.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\source\\PixelObject.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\source\\PixelScene.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\PixelScene.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\PixelScene.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\source\\PixelScene.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\source\\PixelImage.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\PixelImage.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\PixelImage.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\source\\PixelImage.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\source\\PixelComputePipeline.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\PixelComputePipeline.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\PixelComputePipeline.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\source\\PixelComputePipeline.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\source\\kb_input.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\kb_input.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\source\\kb_input.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\source\\kb_input.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\external\\windows\\imgui\\imgui.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\external\\windows\\imgui\\imgui.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\external\\windows\\imgui\\imgui.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\external\\windows\\imgui\\imgui.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\external\\windows\\imgui\\imgui_demo.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\external\\windows\\imgui\\imgui_demo.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\external\\windows\\imgui\\imgui_demo.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\external\\windows\\imgui\\imgui_demo.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\external\\windows\\imgui\\imgui_draw.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\external\\windows\\imgui\\imgui_draw.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\external\\windows\\imgui\\imgui_draw.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\external\\windows\\imgui\\imgui_draw.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\external\\windows\\imgui\\imgui_widgets.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\external\\windows\\imgui\\imgui_widgets.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\external\\windows\\imgui\\imgui_widgets.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\external\\windows\\imgui\\imgui_widgets.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\external\\windows\\imgui\\imgui_tables.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\external\\windows\\imgui\\imgui_tables.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\external\\windows\\imgui\\imgui_tables.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\external\\windows\\imgui\\imgui_tables.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\external\\windows\\imgui\\backends\\imgui_impl_vulkan.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\external\\windows\\imgui\\backends\\imgui_impl_vulkan.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\external\\windows\\imgui\\backends\\imgui_impl_vulkan.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\external\\windows\\imgui\\backends\\imgui_impl_vulkan.cpp.obj"
+},
+{
+  "directory": "C:/Users/h_lahmimsi/PersonalProject/PixelEngine/build",
+  "command": "C:\\PROGRA~1\\LLVM\\bin\\CLANG_~1.EXE -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLFW64/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/GLM -IC:/VulkanSDK/1.3.268.0/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/assimp/include -IC:/Users/h_lahmimsi/PersonalProject/PixelEngine/external/windows/imgui -O0 -g -Xclang -gcodeview -std=gnu++17 -D_DEBUG -D_DLL -D_MT -Xclang --dependent-lib=msvcrtd -o CMakeFiles\\PixelEngine.dir\\external\\windows\\imgui\\backends\\imgui_impl_glfw.cpp.obj -c C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\external\\windows\\imgui\\backends\\imgui_impl_glfw.cpp",
+  "file": "C:\\Users\\h_lahmimsi\\PersonalProject\\PixelEngine\\external\\windows\\imgui\\backends\\imgui_impl_glfw.cpp",
+  "output": "CMakeFiles\\PixelEngine.dir\\external\\windows\\imgui\\backends\\imgui_impl_glfw.cpp.obj"
+}
+]

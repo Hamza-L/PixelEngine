@@ -3,6 +3,7 @@
 #include "PixelRenderer.h"
 
 #include <cmath>
+#include <cstdio>
 #include <glm/gtc/matrix_transform.hpp>
 #include "kb_input.h"
 
@@ -42,7 +43,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
 int PixelRenderer::initRenderer()
 {
-	pixWindow.initWindow("PixelRenderer", 1920, 1080);
+	pixWindow.initWindow("PixelRenderer", 960, 480);
 	try {
         createInstance();
 		createSurface();
@@ -140,6 +141,8 @@ void PixelRenderer::cleanup()
 
 void PixelRenderer::createInstance()
 {
+    printf("Creating Vulkan Instance\n");
+    fflush(stdout);
 	//information about the application itself
 	VkApplicationInfo appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -212,6 +215,8 @@ void PixelRenderer::createInstance()
 
 void PixelRenderer::setupPhysicalDevice()
 {
+    printf("Creating Vulkan Physical Device\n");
+    fflush(stdout);
 	// Enumerate the gpu devices available and fill list
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -237,6 +242,8 @@ void PixelRenderer::setupPhysicalDevice()
 
 void PixelRenderer::createLogicalDevice()
 {
+    printf("Creating Vulkan Logical Device\n");
+    fflush(stdout);
 	//get the queue families for the physical device
 	QueueFamilyIndices indices = setupQueueFamilies(mainDevice.physicalDevice);
 
@@ -295,6 +302,8 @@ void PixelRenderer::createLogicalDevice()
 
 void PixelRenderer::createSurface()
 {
+    printf("Creating Vulkan Surface\n");
+    fflush(stdout);
 	//create surface (helper function creating a surface create info struct for us, returns result)
 	VkResult result = glfwCreateWindowSurface(instance, pixWindow.getWindow(), nullptr, &surface);
 
@@ -306,6 +315,8 @@ void PixelRenderer::createSurface()
 
 void PixelRenderer::createSwapChain()
 {
+    printf("Creating Vulkan SwapChain\n");
+    fflush(stdout);
 	//get swapchain details so we can pick best settings
 	SwapchainDetails swapChainDetails = getSwapChainDetails(mainDevice.physicalDevice);
 
@@ -388,6 +399,8 @@ void PixelRenderer::createSwapChain()
 
 void PixelRenderer::setupDebugMessenger()
 {
+    printf("Creating Vulkan Debug Messenger\n");
+    fflush(stdout);
 	//exit function if validation layer is not enabled
 	if (!enableValidationLayers) return;
 
@@ -565,6 +578,8 @@ SwapchainDetails PixelRenderer::getSwapChainDetails(VkPhysicalDevice device)
 }
 
 void PixelRenderer::createGraphicsPipelines() {
+    printf("Initializing Scenes\n");
+    fflush(stdout);
 
     //pipeline1
     auto graphicsPipeline1 = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, swapChainExtent);
@@ -597,6 +612,8 @@ void PixelRenderer::createGraphicsPipelines() {
 
 void PixelRenderer::createFramebuffers() {
 
+    printf("Creating FrameBuffers\n");
+    fflush(stdout);
     swapchainFramebuffers.resize(swapChainImages.size());
 
     for(size_t i =0 ; i <swapchainFramebuffers.size(); i++)
@@ -627,6 +644,8 @@ void PixelRenderer::createFramebuffers() {
 
 void PixelRenderer::createCommandPools() {
 
+    printf("Creating Vulkan CommandPools\n");
+    fflush(stdout);
     QueueFamilyIndices queueFamilyIndices = setupQueueFamilies(mainDevice.physicalDevice);
 
     VkCommandPoolCreateInfo poolCreateInfo{};
@@ -654,6 +673,8 @@ void PixelRenderer::createCommandPools() {
 
 void PixelRenderer::createCommandBuffers() {
 
+    printf("Creating Vulkan Command Buffers\n");
+    fflush(stdout);
     //one commandbuffer per swapchain images
     commandBuffers.resize(swapChainImages.size());
 
@@ -673,6 +694,8 @@ void PixelRenderer::createCommandBuffers() {
 
 void PixelRenderer::createComputeCommandBuffers() {
 
+    printf("Creating Vulkan Command Buffer for Compute Shader\n");
+    fflush(stdout);
     //one commandbuffer per swapchain images
     computeCommandBuffers.resize(swapChainImages.size());
 
@@ -932,8 +955,6 @@ void PixelRenderer::draw() {
 void PixelRenderer::run() {
 
     //keyboard input
-
-
     while (!glfwWindowShouldClose(pixWindow.getWindow()))
     {
         glfwPollEvents();
@@ -956,6 +977,8 @@ void PixelRenderer::run() {
 
 
 void PixelRenderer::createSynchronizationObjects() {
+    printf("Creating Synchronization Objects\n");
+    fflush(stdout);
 
     imageAvailableSemaphore.resize(MAX_FRAME_DRAWS);
     renderFinishedSemaphore.resize(MAX_FRAME_DRAWS);
@@ -1186,6 +1209,8 @@ void PixelRenderer::createUniformBuffers(PixelScene *pixScene) {
 
 void PixelRenderer::initializeScenes() {
 
+    printf("Initializing Scenes\n");
+    fflush(stdout);
     //load an empty texture for use when texture is not defined.
     emptyTexture = PixelImage(&mainDevice, 0, 0, false);
     emptyTexture.loadEmptyTexture();
@@ -1212,6 +1237,8 @@ void PixelRenderer::initializeScenes() {
 }
 
 void PixelRenderer::createScene() {
+    printf("Creating Default Scene\n");
+    fflush(stdout);
 
     //create scene
     PixelScene scene1 = PixelScene(&mainDevice);
@@ -1399,6 +1426,8 @@ void PixelRenderer::createDescriptorSets(PixelScene *pixScene)
 }
 
 void PixelRenderer::createDepthBuffer() {
+    printf("Creating Depth Buffer\n");
+    fflush(stdout);
 
     //create our depth buffer image.
     depthImage = PixelImage(&mainDevice, swapChainExtent.width, swapChainExtent.height, false);
@@ -1664,6 +1693,8 @@ void PixelRenderer::transitionImageLayoutUsingCommandBuffer(VkCommandBuffer comm
 
 void PixelRenderer::createTextureSampler() {
 
+    printf("Creating Texture Sampler\n");
+    fflush(stdout);
     VkSamplerCreateInfo samplerCreateInfo{};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerCreateInfo.magFilter = VK_FILTER_LINEAR; //how to render when texture CLOSER to screen
@@ -1689,146 +1720,147 @@ void PixelRenderer::createTextureSampler() {
 }
 
 void PixelRenderer::init_imgui() {
+    printf("Initializing imgui\n");
+    fflush(stdout);
 
-        IMGUI_CHECKVERSION();
+    IMGUI_CHECKVERSION();
 
-        // 2: initialize imgui library
+    // 2: initialize imgui library
 
-        //this initializes the core structures of imgui
-        ImGui::CreateContext();
+    // this initializes the core structures of imgui
+    ImGui::CreateContext();
 
-        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable
+    // Keyboard Controls io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; //
+    // Enable Gamepad Controls
 
-        //1: create descriptor pool for IMGUI
-        // the size of the pool is very oversize, but it's copied from imgui demo itself.
-        VkDescriptorPoolSize pool_sizes[] =
-                {
-                        { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
-                        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
-                        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
-                        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
-                        { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
-                        { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
-                        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
-                        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
-                        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-                        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
-                        { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
-                };
+    // 1: create descriptor pool for IMGUI
+    //  the size of the pool is very oversize, but it's copied from imgui demo
+    //  itself.
+    VkDescriptorPoolSize pool_sizes[] = {
+        {VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
+        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
+        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
+        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
+        {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
+        {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
 
-        VkDescriptorPoolCreateInfo pool_info = {};
-        pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        pool_info.maxSets = 1000;
-        pool_info.poolSizeCount = std::size(pool_sizes);
-        pool_info.pPoolSizes = pool_sizes;
+    VkDescriptorPoolCreateInfo pool_info = {};
+    pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    pool_info.maxSets = 1000;
+    pool_info.poolSizeCount = std::size(pool_sizes);
+    pool_info.pPoolSizes = pool_sizes;
 
-        VkResult result = vkCreateDescriptorPool(mainDevice.logicalDevice, &pool_info, nullptr, &imguiPool);
-        if(result != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to create descriptor pool for ImGui");
-        }
+    VkResult result = vkCreateDescriptorPool(mainDevice.logicalDevice,
+                                             &pool_info, nullptr, &imguiPool);
+    if (result != VK_SUCCESS) {
+      throw std::runtime_error("Failed to create descriptor pool for ImGui");
+    }
 
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
 
-        //this initializes imgui for SDL
-        ImGui_ImplGlfw_InitForVulkan(pixWindow.getWindow(), true);
+    // this initializes imgui for SDL
+    ImGui_ImplGlfw_InitForVulkan(pixWindow.getWindow(), true);
 
-        //this initializes imgui for Vulkan
-        ImGui_ImplVulkan_InitInfo init_info = {};
-        init_info.Instance = instance;
-        init_info.PhysicalDevice = mainDevice.physicalDevice;
-        init_info.Device = mainDevice.logicalDevice;
-        init_info.Queue = graphicsQueue;
-        init_info.QueueFamily = setupQueueFamilies(mainDevice.physicalDevice).graphicsFamily;
-        init_info.PipelineCache = VK_NULL_HANDLE;
-        init_info.DescriptorPool = imguiPool;
-        init_info.MinImageCount = 3;
-        init_info.ImageCount = 3;
-        init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    // this initializes imgui for Vulkan
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = instance;
+    init_info.PhysicalDevice = mainDevice.physicalDevice;
+    init_info.Device = mainDevice.logicalDevice;
+    init_info.Queue = graphicsQueue;
+    init_info.QueueFamily =
+        setupQueueFamilies(mainDevice.physicalDevice).graphicsFamily;
+    init_info.PipelineCache = VK_NULL_HANDLE;
+    init_info.DescriptorPool = imguiPool;
+    init_info.MinImageCount = 3;
+    init_info.ImageCount = 3;
+    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-        ImGui_ImplVulkan_Init(&init_info, graphicsPipelines[0]->getRenderPass());
+    ImGui_ImplVulkan_Init(&init_info, graphicsPipelines[0]->getRenderPass());
 
-        //execute a gpu command to upload imgui font textures
-        VkCommandBuffer commandBuffer = beginSingleUseCommandBuffer();
-        ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
-        submitAndEndSingleUseCommandBuffer(&commandBuffer);
+    // execute a gpu command to upload imgui font textures
+    VkCommandBuffer commandBuffer = beginSingleUseCommandBuffer();
+    ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+    submitAndEndSingleUseCommandBuffer(&commandBuffer);
 
-        //clear font textures from cpu data
-        ImGui_ImplVulkan_DestroyFontUploadObjects();
-
+    // clear font textures from cpu data
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
 void PixelRenderer::imGuiParameters() {
-    ImGui::Begin("Simple Render Engine!", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);                          // Create a window called "Hello, world!" and append into it.
+  ImGui::Begin("Simple Render Engine!", NULL,
+               ImGuiWindowFlags_NoResize |
+                   ImGuiWindowFlags_NoMove); // Create a window called "Hello,
+                                             // world!" and append into it.
 
-    ImGui::SetWindowSize(ImVec2(350.0f,50.0f),0);
+  ImGui::SetWindowSize(ImVec2(350.0f, 50.0f), 0);
 
-    //ImGui::Text("Fog Effect intensity.");               // Display some text (you can use a format strings too)
-    //static float test = 0.0f;
-    //ImGui::SliderFloat("fog_pow", &test, 0.0f, 2.0f);
+  // ImGui::Text("Fog Effect intensity.");               // Display some text
+  // (you can use a format strings too) static float test = 0.0f;
+  // ImGui::SliderFloat("fog_pow", &test, 0.0f, 2.0f);
 
+  static const char *current_item = NULL;
+  static const char *current_texture = NULL;
+  static std::vector<std::string> textures = {
+      "MugTexture1.png", "MugTexture2.png", "MugTexture3.png",
+      "MugTexture4.png", "Skull.jpeg"};
 
-    static const char* current_item = NULL;
-    static const char* current_texture = NULL;
-    static std::vector<std::string> textures = {
-            "MugTexture1.png",
-            "MugTexture2.png",
-            "MugTexture3.png",
-            "MugTexture4.png",
-            "Skull.jpeg"
-    };
+  static std::vector<std::string> items = {"Mug.obj", "Skull.obj"};
 
-    static std::vector<std::string> items = {
-            "Mug.obj",
-            "Skull.obj"
-    };
+  /**
+  current_item = items[itemIndex].c_str();
+  if (ImGui::BeginCombo("##combo1", current_item)) // The second parameter is
+  the label previewed before opening the combo.
+  {
+      for (int n = 0; n < items.size(); n++)
+      {
+          bool is_selected = (current_item == items[n].c_str()); // You can
+  store your selection however you want, outside or inside your objects if
+  (ImGui::Selectable(items[n].c_str(), is_selected)){ current_item =
+  items[n].c_str(); itemIndex = n;
+          }
+          if (is_selected){
+              ImGui::SetItemDefaultFocus();   // You may set the initial focus
+  when opening the combo (scrolling + for keyboard navigation support)
+          }
+      }
+      ImGui::EndCombo();
+  }
 
-    /**
-    current_item = items[itemIndex].c_str();
-    if (ImGui::BeginCombo("##combo1", current_item)) // The second parameter is the label previewed before opening the combo.
-    {
-        for (int n = 0; n < items.size(); n++)
-        {
-            bool is_selected = (current_item == items[n].c_str()); // You can store your selection however you want, outside or inside your objects
-            if (ImGui::Selectable(items[n].c_str(), is_selected)){
-                current_item = items[n].c_str();
-                itemIndex = n;
-            }
-            if (is_selected){
-                ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
-            }
-        }
-        ImGui::EndCombo();
-    }
+  ImGui::Text("import texture");
+  current_texture = textures[texIndex].c_str();
+  if (ImGui::BeginCombo("##combo2", current_texture)) // The second parameter is
+  the label previewed before opening the combo.
+  {
+      for (int n = 0; n < textures.size(); n++)
+      {
+          bool is_selected = (current_texture == textures[n].c_str()); // You
+  can store your selection however you want, outside or inside your objects if
+  (ImGui::Selectable(textures[n].c_str(), is_selected)){ current_texture =
+  textures[n].c_str(); texIndex = n;
+          }
+          if (is_selected){
+              ImGui::SetItemDefaultFocus();   // You may set the initial focus
+  when opening the combo (scrolling + for keyboard navigation support)
+          }
+      }
+      ImGui::EndCombo();
+  }
+  **/
 
-    ImGui::Text("import texture");
-    current_texture = textures[texIndex].c_str();
-    if (ImGui::BeginCombo("##combo2", current_texture)) // The second parameter is the label previewed before opening the combo.
-    {
-        for (int n = 0; n < textures.size(); n++)
-        {
-            bool is_selected = (current_texture == textures[n].c_str()); // You can store your selection however you want, outside or inside your objects
-            if (ImGui::Selectable(textures[n].c_str(), is_selected)){
-                current_texture = textures[n].c_str();
-                texIndex = n;
-            }
-            if (is_selected){
-                ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
-            }
-        }
-        ImGui::EndCombo();
-    }
-    **/
+  guiItemHovered = ImGui::IsItemHovered();
 
-    guiItemHovered = ImGui::IsItemHovered();
+  ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+              1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-
-    ImGui::End();
+  ImGui::End();
 }
 
 void PixelRenderer::addScene(PixelScene *pixScene) {
@@ -1838,6 +1870,8 @@ void PixelRenderer::addScene(PixelScene *pixScene) {
 
 void PixelRenderer::init_compute() {
 
+    printf("Init Compute Pipeline\n");
+    fflush(stdout);
     computePipeline = PixelComputePipeline(&mainDevice, {});
     computePipeline.init();
 
@@ -1905,7 +1939,6 @@ void PixelRenderer::recordComputeCommands(uint32_t currentImageIndex) {
                        1, &imageCopy);
 
 
-
     transitionImageLayoutUsingCommandBuffer(computeCommandBuffers[currentImageIndex], computePipeline.getInputTexture()->getImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     transitionImageLayoutUsingCommandBuffer(computeCommandBuffers[currentImageIndex], computePipeline.getCustomTexture()->getImage(), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     transitionImageLayoutUsingCommandBuffer(computeCommandBuffers[currentImageIndex], computePipeline.getOutputTexture()->getImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -1938,6 +1971,8 @@ void PixelRenderer::updateComputeTextureDescriptor() {
 }
 
 void PixelRenderer::init_io() {
+    printf("Initialization GLFW IO\n");
+    fflush(stdout);
     glfwSetKeyCallback(pixWindow.getWindow(),key_callback);
     glfwSetMouseButtonCallback(pixWindow.getWindow(), mouse_callback);
     glfwSetScrollCallback(pixWindow.getWindow(), scroll_callback);
@@ -2007,6 +2042,8 @@ bool PixelRenderer::ColorPicker(const char* label, ImColor* color)
 }
 
 void PixelRenderer::createDefaultGridScene() {
+    printf("Creating Default Grid Scene\n");
+    fflush(stdout);
     defaultGridScene = PixelScene(&mainDevice);
 
     //create mesh

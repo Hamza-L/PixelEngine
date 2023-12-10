@@ -1,5 +1,0 @@
-C:\Users\hlahm\AppData\Local\JetBrains\Toolbox\apps\CLion\ch-0\222.3345.126\bin\cmake\win\bin\cmake.exe -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=C:/Users/hlahm/AppData/Local/JetBrains/Toolbox/apps/CLion/ch-0/222.3345.126/bin/ninja/win/ninja.exe -G Ninja -S C:\Users\hlahm\Documents\gitProjects\PixelEngine -B C:\Users\hlahm\Documents\gitProjects\PixelEngine\cmake-build-release
-Starting the Windows Build
--- Configuring done
--- Generating done
--- Build files have been written to: C:/Users/hlahm/Documents/gitProjects/PixelEngine/cmake-build-release

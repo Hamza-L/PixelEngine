@@ -81,11 +81,12 @@ if (WIN32)
             "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/assimp/include"
             "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui"
         )
+        message("vulkan var: " ${VULKAN_SDK})
 
         target_link_directories(${PROJECT_NAME} PRIVATE
                 "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW64/lib-vc2022"
-                "C:/VulkanSDK/1.3.246.1/Lib"
-                "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/assimp/lib/Release"
+                "${VULKAN_SDK}/Lib"
+                "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/assimp/lib/x64"
                 )
 
     elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
@@ -99,7 +100,7 @@ if (WIN32)
 
         target_link_directories(${PROJECT_NAME} PRIVATE
                 "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW/lib-vc2022"
-                "C:/VulkanSDK/1.3.246.1/Lib32"
+                "${VULKAN_SDK}/Lib32"
                 )
     endif()
 
