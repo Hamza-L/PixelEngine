@@ -107,29 +107,17 @@ std::vector<VkDescriptorSet>* PixelScene::getUniformDescriptorSets() {
 
 void PixelScene::updateUniformBuffer(uint32_t bufferIndex)
 {
-    bool bufferNeedUpdate = false;
-    //check if any buffer is expired and need updating
-    for(bool hasBufferUpdated : buffersUpdated)
-    {
-        if(!hasBufferUpdated)
-        {
-            bufferNeedUpdate = true;
-            break;
-        }
-    }
 
-    if(bufferNeedUpdate)
-    {
-        sceneVP.P[1][1] *= -1; //invert the y scale to flip the image. Vulkan is flipped by default
+        UboVP scenePFlipped = sceneVP;
+
+		scenePFlipped.P[1][1] *= -1; //invert the y scale to flip the image. Vulkan is flipped by default
 
         void* data;
         vkMapMemory(m_backend->logicalDevice, uniformBufferMemories[bufferIndex], 0, getUniformBufferSize(),0,&data);
-        memcpy(data, &sceneVP, getUniformBufferSize());
+        memcpy(data, &scenePFlipped, getUniformBufferSize());
         vkUnmapMemory(m_backend->logicalDevice, uniformBufferMemories[bufferIndex]);
 
         buffersUpdated[bufferIndex] = true;
-    }
-
 }
 
 void PixelScene::createDescriptorSetLayout() {
@@ -302,6 +290,22 @@ std::vector<VkDescriptorSetLayout> *PixelScene::getAllDescriptorSetLayouts() {
 
 VkDescriptorSet *PixelScene::getTextureDescriptorSet() {
     return &m_textureDescriptorSet;
+}
+
+glm::vec3 PixelScene::getCameraPos() {
+    return glm::vec3(sceneVP.V[3]);
+}
+
+glm::vec3 PixelScene::getLookAtVec() {
+    return glm::vec3(sceneVP.V[2]);
+}
+
+void PixelScene::setCameraPos(glm::vec3 camPos) {
+    m_cameraPos = camPos;
+}
+
+void PixelScene::setLookAtPos(glm::vec3 lookAtPos) {
+	m_lookAtVec = lookAtPos;
 }
 
 

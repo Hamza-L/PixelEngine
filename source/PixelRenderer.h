@@ -187,6 +187,8 @@ private:
     void createTextureBuffer(PixelImage* pixImage);
     void createTextureSampler();
 
+    void updateSceneCamera(PixelScene* pixScene);
+
 	//getter functions
 	SwapchainDetails getSwapChainDetails(VkPhysicalDevice device);
 

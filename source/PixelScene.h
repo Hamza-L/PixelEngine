@@ -55,11 +55,15 @@ public:
     PixelObject* getObjectAt(int index);
     std::vector<PixelImage> getAllTextures();
     UboVP getSceneVP();
+    glm::vec3 getCameraPos();
+    glm::vec3 getLookAtVec();
 
     //setter functions
     void setSceneVP(UboVP vpData);
     void setSceneV(glm::mat4 V);
     void setSceneP(glm::mat4 P);
+    void setCameraPos(glm::vec3 camPos);
+    void setLookAtPos(glm::vec3 lookAtPos);
 
     //create functions
     void createDescriptorSetLayout();
@@ -74,6 +78,8 @@ public:
     void resizeDesciptorSets(size_t newSize);
     static bool areMatricesEqual(glm::mat4 x, glm::mat4 y);
 
+
+
     //cleanup
     void cleanup();
 
@@ -83,6 +89,9 @@ private:
     std::vector<PixelObject> allObjects{};
     std::vector<PixelObject::Vertex> allVertices{};
     std::vector<uint32_t> allIndices{};
+
+    glm::vec3 m_lookAtVec{};
+    glm::vec3 m_cameraPos{};
 
     //helper functions
     void getMinUBOOffset(VkPhysicalDevice physicalDevice);

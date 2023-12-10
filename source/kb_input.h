@@ -7,6 +7,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <iostream>
+
 //imgui
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
@@ -14,6 +16,8 @@
 
 static const bool TEXTURE = true;
 static bool UP_PRESS = false;
+static bool E_KEY = false;
+static bool Q_KEY = false;
 static bool DOWN = false;
 static bool RIGHT = false;
 static bool LEFT = false;
@@ -29,7 +33,8 @@ static bool MPRESS_R_Release = true;
 static bool MPRESS_R = false;
 static bool MFLAG_R = true;
 static bool MPRESS_L = false;
-static bool MFLAG_L = true;
+static bool MRELEASE_L = false;
+static bool MCLICK_L = false;
 static bool MPRESS_M = false;
 static bool MFLAG_M = true;
 
@@ -44,6 +49,18 @@ void static key_callback(GLFWwindow *window, int key, int scancode, int action, 
     } else if(key == GLFW_KEY_W && action == GLFW_RELEASE){
         UP_PRESS = false;
     }
+
+	if (key == GLFW_KEY_E && action == GLFW_PRESS){
+		E_KEY = true;
+	} else if(key == GLFW_KEY_E && action == GLFW_RELEASE){
+		E_KEY = false;
+	}
+
+	if (key == GLFW_KEY_Q && action == GLFW_PRESS){
+		Q_KEY = true;
+	} else if(key == GLFW_KEY_Q && action == GLFW_RELEASE){
+		Q_KEY = false;
+	}
 
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
         ESC = true;
@@ -111,13 +128,15 @@ void static key_callback(GLFWwindow *window, int key, int scancode, int action, 
 void static mouse_callback(GLFWwindow *window, int button, int action, int mods) {
 
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)){
-        MPRESS_L = true;
-    } else {
+		MPRESS_L = true;
+		MCLICK_L = true;
+    } else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)){
+		MRELEASE_L = true;
+		MPRESS_L = false;
+		MCLICK_L = false;
+	} else {
         MPRESS_L = false;
-    }
-
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE){
-        MFLAG_L = true;
+		MCLICK_L = false;
     }
 
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)){
