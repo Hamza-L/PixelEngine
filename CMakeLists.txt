@@ -7,8 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(ROOT_NAMESPACE PixelEngine)
 set(CMAKE_VS_PLATFORM_NAME "x64")
-
-
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
 
 ################################################################################zZ
@@ -81,12 +80,11 @@ if (WIN32)
             "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/assimp/include"
             "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui"
         )
-        message("vulkan var: " ${VULKAN_SDK})
 
         target_link_directories(${PROJECT_NAME} PRIVATE
                 "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW64/lib-vc2022"
-                "${VULKAN_SDK}/Lib"
-                "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/assimp/lib/x64"
+                "C:/VulkanSDK/1.3.250.1/Lib"
+                "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/assimp/lib/Release"
                 )
 
     elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
@@ -100,7 +98,7 @@ if (WIN32)
 
         target_link_directories(${PROJECT_NAME} PRIVATE
                 "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW/lib-vc2022"
-                "${VULKAN_SDK}/Lib32"
+                "C:/VulkanSDK/1.3.250.1/Lib32"
                 )
     endif()
 
@@ -135,7 +133,7 @@ endif ()
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/external/windows/assimp/dll/assimp-vc143-mt.dll
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/cmake-build-debug)
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-
-
+file(COPY ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+        DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})
