@@ -84,63 +84,9 @@ PixelObject::PixelObject(PixBackend *device, std::string filename) : m_device(de
 
 void PixelObject::importFile(const std::string& filename) {
 
-
-
     enum Point {POSITION, TEXTURE, NORMAL};
 
     std::string fileLocation = "objects/" + filename;
-
-    Assimp::Importer importer;
-
-    const aiScene* scene = importer.ReadFile( fileLocation,
-                                              aiProcess_CalcTangentSpace       |
-                                              aiProcess_Triangulate|
-                                              aiProcess_FlipUVs);
-
-    if (nullptr == scene) {
-        throw std::runtime_error( importer.GetErrorString());
-    }
-
-    int vertCounter = 0;
-    int indxCounter = 0;
-    for(int m = 0; m < scene->mNumMeshes; m++)
-    {
-        vertCounter+=scene->mMeshes[m]->mNumVertices;
-        indxCounter+= (scene->mMeshes[m]->mNumFaces * 3);
-    }
-
-    for(int m = 0; m < scene->mNumMeshes; m++)
-    {
-        for(int f = 0; f < scene->mMeshes[m]->mNumFaces; f++)
-        {
-            for(int i = 0; i < scene->mMeshes[m]->mFaces[f].mNumIndices; i++)
-            {
-                m_indices.push_back(m_indices.size());
-            }
-        }
-
-        for(int i = 0; i<scene->mMeshes[m]->mNumVertices; i++)
-        {
-            Vertex v;
-            v.position = glm::vec4(scene->mMeshes[m]->mVertices[i].x,
-                                   scene->mMeshes[m]->mVertices[i].y,
-                                   scene->mMeshes[m]->mVertices[i].z,1.0f);
-            v.normal = glm::vec4(scene->mMeshes[m]->mNormals[i].x,
-                                 scene->mMeshes[m]->mNormals[i].y,
-                                 scene->mMeshes[m]->mNormals[i].z,0.0f);
-
-            if(scene->mMeshes[m]->HasTextureCoords(0))
-            {
-                v.texUV = glm::vec2(scene->mMeshes[m]->mTextureCoords[0][i].x,
-                                    scene->mMeshes[m]->mTextureCoords[0][i].y);
-            }
-
-            v.color = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
-
-            m_vertices.push_back(v);
-        }
-    }
-
 
 }
 

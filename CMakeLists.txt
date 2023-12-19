@@ -39,25 +39,25 @@ set(Sources
 
 source_group("Sources" FILES ${Sources})
 
-set(imguiSources
-        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui.h"
-        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui.cpp"
+# set(imguiSources
+        # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui.h"
+        # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui.cpp"
+        #
+        # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_demo.cpp"
+        # # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_draw.cpp"
+        # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_widgets.cpp"
+        # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_tables.cpp"
 
-        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_demo.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_draw.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_widgets.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_tables.cpp"
+        # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/backends/imgui_impl_vulkan.cpp"
+        # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/backends/imgui_impl_glfw.cpp"
+        # )
 
-        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/backends/imgui_impl_vulkan.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/backends/imgui_impl_glfw.cpp"
-        )
-
-source_group("imguiSources" FILES ${imguiSources})
+# source_group("imguiSources" FILES ${imguiSources})
 
 set(ALL_FILES
     ${Headers}
-    ${Sources}
-    ${imguiSources})
+    ${Sources})
+    # ${imguiSources})
 
 ################################################################################
 # Target
@@ -111,29 +111,31 @@ if (WIN32)
             )
 elseif(UNIX AND APPLE) # If the build is mac
     message("Starting the MacOS Build")
-    set(VULKAN_SDK "/Users/hamzalah/VulkanSDK/1.3.239.0/macOS")
+    set(VULKAN_SDK "/Users/h_lahmimsi/VulkanSDK/1.3.268.1/macOS")
 
     target_include_directories(${PROJECT_NAME} PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/external/macos/GLFW64/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/external/macos/GLM;"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/macos/GLM"
         "${VULKAN_SDK}/include"
     )
 
+    message("Include path for glm is : " "${CMAKE_CURRENT_SOURCE_DIR}/external/macos/GLM")
+
     target_link_directories(${PROJECT_NAME} PRIVATE
-            "${CMAKE_CURRENT_SOURCE_DIR}/external/macos/GLFW64/lib-x86_64"
+            "${CMAKE_CURRENT_SOURCE_DIR}/external/macos/GLFW64/lib-arm64"
             "${VULKAN_SDK}/lib"
             )
 
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
-            "libvulkan.1.3.239.dylib"
+            "libvulkan.dylib"
             "libglfw.3.dylib"
             )
 endif ()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/external/windows/assimp/dll/assimp-vc143-mt.dll
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+# file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/external/windows/assimp/dll/assimp-vc143-mt.dll
+        # DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-file(COPY ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
-        DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})
+# file(COPY ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+        # DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})

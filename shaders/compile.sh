@@ -6,5 +6,10 @@
 #  Created by Hamza Lahmimsi on 2021-02-13.
 #  
 
-/Users/hamzalah/VulkanSDK/1.3.239.0/macOS/bin/glslc shader.vert -o vert.spv
-/Users/hamzalah/VulkanSDK/1.3.239.0/macOS/bin/glslc shader.frag -o frag.spv
+glslc shader.vert -o vert.spv
+glslc shader.frag -o frag.spv
+glslc grid.vert -o gridVert.spv
+glslc grid.frag -o gridFrag.spv
+glslc shader.comp -o comp.spv
+glslc NoLightingShader.vert -o NoLightingShaderVert.spv
+glslc NoLightingShader.frag -o NoLightingShaderFrag.spv

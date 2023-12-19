@@ -11,10 +11,6 @@ const bool enableValidationLayers = true;
 #include "PixelComputePipeline.h"
 #include "Utility.h"
 
-#include <imgui.h>
-#include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_vulkan.h>
-
 #include <vector>
 #include <set>
 #include <algorithm>
@@ -29,7 +25,6 @@ static bool autoFocusFinished = true;
 static float deltaFocus = 0.0f;
 static glm::uvec2 mouseCoord = {0,0};
 static glm::uvec2 lastClicked = {28,156};
-static ImColor color = ImColor(0.0,0.0f,0.0f,1.0f);
 static int MAX_COMPUTE_SAMPLE = 1;
 static bool guiItemHovered = false;
 
@@ -106,8 +101,6 @@ private:
 
     // gui ressources
     VkDescriptorPool imguiPool{};
-    ImGuiIO* io{};
-    ImDrawData* draw_data{};
 
     //validation layer component
 	const std::vector<const char*> validationLayers = {
@@ -153,11 +146,6 @@ private:
 	void init_io();
     void init_compute();
 	void preDraw();
-
-    //gui functions
-    bool ColorPicker(const char* label, ImColor* color);
-    void init_imgui();
-    void imGuiParameters();
 
 	//descriptor Set (for scene initialization)
 	void createDescriptorPool(PixelScene* pixScene);

@@ -18,7 +18,7 @@ vec4 gridColorThick = vec4(0.50, 0.50, 0.50, 1.0);
 // minimum number of pixels between cell lines before LOD switch should occur.
 const float gridMinPixelsBetweenCells = 2.0;
 
-float log10(float x)
+float _log10(float x)
 {
     return log(x) / log(10.0);
 }
@@ -45,7 +45,7 @@ vec4 gridColor(vec2 uv, vec2 camPos)
     length(vec2(dFdx(uv.y), dFdy(uv.y)))
     );
 
-    float lodLevel = max(0.0, log10((length(dudv) * gridMinPixelsBetweenCells) / gridCellSize) + 1.0);
+    float lodLevel = max(0.0, _log10((length(dudv) * gridMinPixelsBetweenCells) / gridCellSize) + 1.0);
     float lodFade = fract(lodLevel);
 
     // cell sizes for lod0, lod1 and lod2

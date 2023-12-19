@@ -9,11 +9,6 @@
 
 #include <iostream>
 
-//imgui
-#include <imgui.h>
-#include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_vulkan.h>
-
 static const bool TEXTURE = true;
 static bool UP_PRESS = false;
 static bool E_KEY = false;
@@ -127,10 +122,10 @@ void static key_callback(GLFWwindow *window, int key, int scancode, int action, 
 }
 void static mouse_callback(GLFWwindow *window, int button, int action, int mods) {
 
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)){
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS){
 		MPRESS_L = true;
 		MCLICK_L = true;
-    } else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)){
+    } else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE){
 		MRELEASE_L = true;
 		MPRESS_L = false;
 		MCLICK_L = false;
@@ -139,7 +134,7 @@ void static mouse_callback(GLFWwindow *window, int button, int action, int mods)
 		MCLICK_L = false;
     }
 
-    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)){
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS){
         MPRESS_R = true;
     } else {
         MPRESS_R = false;
@@ -149,7 +144,7 @@ void static mouse_callback(GLFWwindow *window, int button, int action, int mods)
         MFLAG_R = true;
     }
 
-    if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)){
+    if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS){
         MPRESS_M = true;
     } else {
         MPRESS_M = false;

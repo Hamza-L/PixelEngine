@@ -5,10 +5,6 @@
 #ifndef PIXELENGINE_PIXELOBJECT_H
 #define PIXELENGINE_PIXELOBJECT_H
 
-#include <assimp/Importer.hpp>      // C++ importer interface
-#include <assimp/scene.h>           // Output data structure
-#include <assimp/postprocess.h>     // Post processing flags
-#include <assimp/material.h>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
