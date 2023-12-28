@@ -7,8 +7,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(ROOT_NAMESPACE PixelEngine)
 set(CMAKE_VS_PLATFORM_NAME "x64")
+set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
-
 
 ################################################################################zZ
 # Source groups
@@ -112,6 +112,9 @@ if (WIN32)
 elseif(UNIX AND APPLE) # If the build is mac
     message("Starting the MacOS Build")
     set(VULKAN_SDK "/Users/h_lahmimsi/VulkanSDK/1.3.268.1/macOS")
+
+    set(ENV{VK_ICD_FILENAMES} "${VULKAN_SDK}/macOS/share/vulkan/icd.d/MoltenVK_icd.json")
+    set(ENV{VK_LAYER_PATH} "${VULKAN_SDK}/vulkansdk/macOS/share/vulkan/explicit_layer.d")
 
     target_include_directories(${PROJECT_NAME} PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/external/macos/GLFW64/include"

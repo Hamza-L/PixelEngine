@@ -5,6 +5,7 @@
 #ifndef PIXELENGINE_UTILITY_H
 #define PIXELENGINE_UTILITY_H
 
+#include "vulkan/vulkan_core.h"
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLFW_INCLUDE_VULKAN //includes vulkan automatically
 #include <GLFW/glfw3.h>
@@ -97,6 +98,7 @@ static inline bool checkInstanceExtensionSupport(const std::vector<const char*>*
 
 }
 
+// Helper function to check if the instance layer is supported
 static inline bool checkInstanceLayerSupport(const std::vector<const char*>* checkLayers)
 {
     //get the number of extensions
@@ -200,15 +202,16 @@ static inline VkFormat chooseSupportedFormat(VkPhysicalDevice physicalDevice, co
 
 static inline VkPresentModeKHR chooseBestPresentationMode(const std::vector<VkPresentModeKHR>& presentationModes)
 {
+    VkPresentModeKHR selectedPresentMode = VK_PRESENT_MODE_FIFO_KHR;
     for (const auto& presentationMode : presentationModes)
     {
         if (presentationMode == VK_PRESENT_MODE_MAILBOX_KHR)
         {
-            return presentationMode;
+            selectedPresentMode = presentationMode;
         }
     }
 
-    return VK_PRESENT_MODE_FIFO_KHR; //this is always available so if the desired present mode is not found, we return FIFO Present mode
+    return selectedPresentMode; //this is always available so if the desired present mode is not found, we return FIFO Present mode
 }
 
 static inline std::vector<char> readFile(const std::string& filename) {

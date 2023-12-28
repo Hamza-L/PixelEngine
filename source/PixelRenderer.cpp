@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdio>
 #include <glm/gtc/matrix_transform.hpp>
+#include <set>
 
 static int texIndex = 0;
 static int itemIndex = 0;
@@ -84,8 +85,6 @@ void PixelRenderer::cleanup() {
 
     defaultGridScene.cleanup();
 
-    vkDestroyDescriptorPool(mainDevice.logicalDevice, imguiPool, nullptr);
-
     for (size_t i = 0; i < MAX_FRAME_DRAWS; i++) {
         vkDestroyFence(mainDevice.logicalDevice, inFlightDrawFences[i], nullptr);
         vkDestroyFence(mainDevice.logicalDevice, inFlightComputeFences[i], nullptr);
@@ -124,7 +123,6 @@ void PixelRenderer::cleanup() {
 
 void PixelRenderer::createInstance() {
     printf("Creating Vulkan Instance\n");
-    fflush(stdout);
     // information about the application itself
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -186,11 +184,11 @@ void PixelRenderer::createInstance() {
     if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create a vulkan instance \n");
     }
+    fflush(stdout);
 }
 
 void PixelRenderer::setupPhysicalDevice() {
     printf("Creating Vulkan Physical Device\n");
-    fflush(stdout);
     // Enumerate the gpu devices available and fill list
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -204,15 +202,15 @@ void PixelRenderer::setupPhysicalDevice() {
 
     for (const auto &device : deviceList) {
         if (checkIfPhysicalDeviceSuitable(device)) {
-            mainDevice.physicalDevice = deviceList[0];
+            mainDevice.physicalDevice = deviceList[0]; // pick the first device that is suitable
             break;
         }
     }
+    fflush(stdout);
 }
 
 void PixelRenderer::createLogicalDevice() {
     printf("Creating Vulkan Logical Device\n");
-    fflush(stdout);
     // get the queue families for the physical device
     QueueFamilyIndices indices = setupQueueFamilies(mainDevice.physicalDevice);
 
@@ -238,7 +236,7 @@ void PixelRenderer::createLogicalDevice() {
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
     deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size()); // these are logical device extensions
     deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
-    deviceCreateInfo.enabledLayerCount = 0; // validation layers
+    deviceCreateInfo.enabledLayerCount = 0; // Device specific validation layers have now been deprecated. Instance Layers apply to all
     deviceCreateInfo.ppEnabledLayerNames = nullptr;
 
     // supported features
@@ -264,22 +262,23 @@ void PixelRenderer::createLogicalDevice() {
     vkGetDeviceQueue(mainDevice.logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
     vkGetDeviceQueue(mainDevice.logicalDevice, indices.presentationFamily, 0, &presentationQueue);
     vkGetDeviceQueue(mainDevice.logicalDevice, indices.computeFamily, 0, &computeQueue);
+
+    fflush(stdout);
 }
 
 void PixelRenderer::createSurface() {
     printf("Creating Vulkan Surface\n");
-    fflush(stdout);
     // create surface (helper function creating a surface create info struct for us, returns result)
     VkResult result = glfwCreateWindowSurface(instance, pixWindow.getWindow(), nullptr, &surface);
 
     if (result != VK_SUCCESS) {
         throw std::runtime_error("Failed to create surface\n");
     }
+    fflush(stdout);
 }
 
 void PixelRenderer::createSwapChain() {
     printf("Creating Vulkan SwapChain\n");
-    fflush(stdout);
     // get swapchain details so we can pick best settings
     SwapchainDetails swapChainDetails = getSwapChainDetails(mainDevice.physicalDevice);
 
@@ -325,7 +324,7 @@ void PixelRenderer::createSwapChain() {
     }
 
     // if old swapchain been destroyed and this one replaces it, then link old swapchain to hand over responsibilities
-    swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+    swapChainCreateInfo.oldSwapchain = swapChain;
     swapChainCreateInfo.surface = surface;
 
     VkResult result = vkCreateSwapchainKHR(mainDevice.logicalDevice, &swapChainCreateInfo, nullptr, &swapChain);
@@ -352,11 +351,11 @@ void PixelRenderer::createSwapChain() {
     }
 
     // now that we swapchain image have been
+    fflush(stdout);
 }
 
 void PixelRenderer::setupDebugMessenger() {
     printf("Creating Vulkan Debug Messenger\n");
-    fflush(stdout);
     // exit function if validation layer is not enabled
     if (!enableValidationLayers)
         return;
@@ -368,6 +367,7 @@ void PixelRenderer::setupDebugMessenger() {
     if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
         throw std::runtime_error("failed to set up debug messenger!");
     }
+    fflush(stdout);
 }
 
 QueueFamilyIndices PixelRenderer::setupQueueFamilies(VkPhysicalDevice device) {
@@ -470,7 +470,7 @@ void PixelRenderer::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreate
 }
 
 VkExtent2D PixelRenderer::chooseSwapChainExtent(const VkSurfaceCapabilitiesKHR surfaceCapabilities) {
-    // if current excent at numeric limits then extent can vary.
+    // if current extent at numeric limits then extent can vary.
     if (surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
         return surfaceCapabilities.currentExtent;
     } else { // if value can vary, we need to set it manually
@@ -517,7 +517,6 @@ SwapchainDetails PixelRenderer::getSwapChainDetails(VkPhysicalDevice device) {
 
 void PixelRenderer::createGraphicsPipelines() {
     printf("Initializing Scenes\n");
-    fflush(stdout);
 
     // pipeline1
     auto graphicsPipeline1 = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, swapChainExtent);
@@ -543,12 +542,11 @@ void PixelRenderer::createGraphicsPipelines() {
     defaultGridGraphicsPipeline->createGraphicsPipeline(graphicsPipeline1->getRenderPass()); // creates a renderpass if none were provided
 
     graphicsPipelines.push_back(std::move(graphicsPipeline1));
+    fflush(stdout);
 }
 
 void PixelRenderer::createFramebuffers() {
-
     printf("Creating FrameBuffers\n");
-    fflush(stdout);
     swapchainFramebuffers.resize(swapChainImages.size());
 
     for (size_t i = 0; i < swapchainFramebuffers.size(); i++) {
@@ -570,12 +568,11 @@ void PixelRenderer::createFramebuffers() {
             throw std::runtime_error("failed to create framebuffer");
         }
     }
+    fflush(stdout);
 }
 
 void PixelRenderer::createCommandPools() {
-
     printf("Creating Vulkan CommandPools\n");
-    fflush(stdout);
     QueueFamilyIndices queueFamilyIndices = setupQueueFamilies(mainDevice.physicalDevice);
 
     VkCommandPoolCreateInfo poolCreateInfo{};
@@ -597,12 +594,11 @@ void PixelRenderer::createCommandPools() {
     if (result != VK_SUCCESS) {
         throw std::runtime_error("Failed to create Compute Command Pool");
     }
+    fflush(stdout);
 }
 
 void PixelRenderer::createCommandBuffers() {
-
     printf("Creating Vulkan Command Buffers\n");
-    fflush(stdout);
     // one commandbuffer per swapchain images
     commandBuffers.resize(swapChainImages.size());
 
@@ -619,12 +615,11 @@ void PixelRenderer::createCommandBuffers() {
         throw std::runtime_error("failed to allocate command buffers");
     }
     // no need to dealocate or destroyed the command buffers. they are destroy along the command pool
+    fflush(stdout);
 }
 
 void PixelRenderer::createComputeCommandBuffers() {
-
     printf("Creating Vulkan Command Buffer for Compute Shader\n");
-    fflush(stdout);
     // one commandbuffer per swapchain images
     computeCommandBuffers.resize(swapChainImages.size());
 
@@ -641,6 +636,7 @@ void PixelRenderer::createComputeCommandBuffers() {
         throw std::runtime_error("failed to allocate command buffers");
     }
     // no need to dealocate or destroyed the command buffers. they are destroy along the command pool
+    fflush(stdout);
 }
 
 void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
@@ -859,7 +855,6 @@ void PixelRenderer::run() {
 
 void PixelRenderer::createSynchronizationObjects() {
     printf("Creating Synchronization Objects\n");
-    fflush(stdout);
 
     imageAvailableSemaphore.resize(MAX_FRAME_DRAWS);
     renderFinishedSemaphore.resize(MAX_FRAME_DRAWS);
@@ -902,6 +897,7 @@ void PixelRenderer::createSynchronizationObjects() {
             throw std::runtime_error("Failed to create the inflight draw fences");
         }
     }
+    fflush(stdout);
 }
 
 void PixelRenderer::createBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags bufferproperties,
@@ -1074,7 +1070,6 @@ void PixelRenderer::createUniformBuffers(PixelScene *pixScene) {
 void PixelRenderer::initializeScenes() {
 
     printf("Initializing Scenes\n");
-    fflush(stdout);
     // load an empty texture for use when texture is not defined.
     emptyTexture = PixelImage(&mainDevice, 0, 0, false);
     emptyTexture.loadEmptyTexture();
@@ -1093,11 +1088,11 @@ void PixelRenderer::initializeScenes() {
         createDescriptorPool(&scene);
         createDescriptorSets(&scene);
     }
+    fflush(stdout);
 }
 
 void PixelRenderer::createScene() {
     printf("Creating Default Scene\n");
-    fflush(stdout);
 
     // create scene
     PixelScene scene1 = PixelScene(&mainDevice);
@@ -1126,6 +1121,8 @@ void PixelRenderer::createScene() {
     // mug.setTexID(1); //TODO:problem there. value not copied
 
     scenes.push_back(scene1);
+
+    fflush(stdout);
 }
 
 void PixelRenderer::createDescriptorPool(PixelScene *pixScene) {
@@ -1270,11 +1267,11 @@ void PixelRenderer::createDescriptorSets(PixelScene *pixScene) {
 
 void PixelRenderer::createDepthBuffer() {
     printf("Creating Depth Buffer\n");
-    fflush(stdout);
 
     // create our depth buffer image.
     depthImage = PixelImage(&mainDevice, swapChainExtent.width, swapChainExtent.height, false);
     depthImage.createDepthBufferImage();
+    fflush(stdout);
 }
 
 VkCommandBuffer PixelRenderer::beginSingleUseCommandBuffer() {
@@ -1513,9 +1510,7 @@ void PixelRenderer::transitionImageLayoutUsingCommandBuffer(VkCommandBuffer comm
 }
 
 void PixelRenderer::createTextureSampler() {
-
     printf("Creating Texture Sampler\n");
-    fflush(stdout);
     VkSamplerCreateInfo samplerCreateInfo{};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerCreateInfo.magFilter = VK_FILTER_LINEAR; // how to render when texture CLOSER to screen
@@ -1536,23 +1531,17 @@ void PixelRenderer::createTextureSampler() {
     if (result != VK_SUCCESS) {
         throw std::runtime_error("failed to create sampler");
     }
+    fflush(stdout);
 }
 
 void PixelRenderer::addScene(PixelScene *pixScene) { scenes.push_back(*pixScene); }
 
 void PixelRenderer::init_compute() {
-
     printf("Init Compute Pipeline\n");
-    fflush(stdout);
     computePipeline = PixelComputePipeline(&mainDevice, {});
     computePipeline.init();
 
-    for (int i = 0; i < 512; i++) {
-        float cameraX = random(0, 100) / 1024.0f;
-        float cameraY = random(0, 100) / 1024.0f;
-        float cameraZ = random(0, 100) / 1024.0f;
-        randomArray[i] = glm::vec3(cameraX, cameraY, cameraZ);
-    }
+    fflush(stdout);
 }
 
 void PixelRenderer::recordComputeCommands(uint32_t currentImageIndex) {
@@ -1638,10 +1627,11 @@ void PixelRenderer::updateComputeTextureDescriptor() {
 
 void PixelRenderer::init_io() {
     printf("Initialization GLFW IO\n");
-    fflush(stdout);
     glfwSetKeyCallback(pixWindow.getWindow(), key_callback);
     glfwSetMouseButtonCallback(pixWindow.getWindow(), mouse_callback);
     glfwSetScrollCallback(pixWindow.getWindow(), scroll_callback);
+
+    fflush(stdout);
 }
 
 void PixelRenderer::preDraw() {
@@ -1657,7 +1647,6 @@ void PixelRenderer::preDraw() {
 
 void PixelRenderer::createDefaultGridScene() {
     printf("Creating Default Grid Scene\n");
-    fflush(stdout);
     defaultGridScene = PixelScene(&mainDevice);
 
     // create mesh
@@ -1673,4 +1662,5 @@ void PixelRenderer::createDefaultGridScene() {
     square.setGraphicsPipelineIndex(0);
 
     defaultGridScene.addObject(square);
+    fflush(stdout);
 }
