@@ -72,42 +72,20 @@ if (WIN32)
     message("Starting the Windows Build")
     set(VULKAN_SDK $ENV{VULKAN_SDK})
 
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_include_directories(${PROJECT_NAME} PUBLIC
-            "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW64/include"
-            "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLM;"
-            "${VULKAN_SDK}/include"
-            "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/assimp/include"
-            "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui"
-        )
+    target_include_directories(${PROJECT_NAME} PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW64/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLM;"
+        "${VULKAN_SDK}/include"
+    )
 
-        target_link_directories(${PROJECT_NAME} PRIVATE
-                "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW64/lib-vc2022"
-                "C:/VulkanSDK/1.3.250.1/Lib"
-                "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/assimp/lib/Release"
-                )
-
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-        target_include_directories(${PROJECT_NAME} PUBLIC
-            "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW/include;"
-            "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLM;"
-            "${VULKAN_SDK}/include"
-            "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/assimp/include"
-            "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui"
-        )
-
-        target_link_directories(${PROJECT_NAME} PRIVATE
-                "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW/lib-vc2022"
-                "C:/VulkanSDK/1.3.250.1/Lib32"
-                )
-    endif()
-
-
+    target_link_directories(${PROJECT_NAME} PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW64/lib-vc2022"
+        "${VULKAN_SDK}/lib"
+    )
 
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
             "vulkan-1.lib"
             "glfw3.lib"
-            "assimp-vc143-mt.lib"
             )
 elseif(UNIX AND APPLE) # If the build is mac
     message("Starting the MacOS Build")
