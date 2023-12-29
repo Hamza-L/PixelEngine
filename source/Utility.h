@@ -10,6 +10,7 @@
 #define GLFW_INCLUDE_VULKAN //includes vulkan automatically
 #include <GLFW/glfw3.h>
 
+
 #include <random>
 #include <fstream>
 #include <iostream>
@@ -20,11 +21,22 @@
 inline std::random_device rd;
 inline std::mt19937 gen(rd());
 
+class PixelImage; //forward declaration
+
 //vulkan struct component
 struct PixBackend{
     VkPhysicalDevice physicalDevice{};
     VkDevice logicalDevice{};
     VkExtent2D extent{};
+};
+
+struct PixSwapchain{
+    VkSwapchainKHR swapchain{VK_NULL_HANDLE};
+    VkSwapchainKHR oldSwapchain{VK_NULL_HANDLE};
+    VkExtent2D extent{};
+    VkFormat format{};
+    std::vector<PixelImage> swapchainImages{};
+    PixelImage* depthImage = nullptr;
 };
 
 struct QueueFamilyIndices

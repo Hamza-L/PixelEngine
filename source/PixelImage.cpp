@@ -4,8 +4,8 @@
 
 #include "PixelImage.h"
 
-PixelImage::PixelImage(PixBackend* device, uint32_t width, uint32_t height, bool isSwapChainImage) : m_device(device), m_width(width), m_height(height), m_IsSwapChainImage(isSwapChainImage) {
-    if (m_device == VK_NULL_HANDLE)
+PixelImage::PixelImage(PixBackend* device, uint32_t width, uint32_t height, bool isSwapChainImage , VkFormat format) : m_device(device), m_width(width), m_height(height), m_IsSwapChainImage(isSwapChainImage), m_format(format) {
+    if (m_device->logicalDevice == VK_NULL_HANDLE || m_device->physicalDevice == VK_NULL_HANDLE)
     {
         throw std::runtime_error("Logical device not created. current Image cannot be initialized");
     }
@@ -30,16 +30,14 @@ void PixelImage::cleanUp()
 }
 
 //create an image view for the image
-void PixelImage::createImageView(VkFormat format, VkImageAspectFlags aspectFlags)
+void PixelImage::createImageView(VkImageAspectFlags aspectFlags)
 {
-
-    m_format = format; //keep the format for reference.
 
     VkImageViewCreateInfo imageViewCreateInfo = {};
     imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     imageViewCreateInfo.image = m_image;
     imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    imageViewCreateInfo.format = format;
+    imageViewCreateInfo.format = m_format;
     imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
     imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
     imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;

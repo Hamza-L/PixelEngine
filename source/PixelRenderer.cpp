@@ -2,7 +2,9 @@
 
 #include "PixelRenderer.h"
 
+#include "Utility.h"
 #include "kb_input.h"
+#include "vulkan/vulkan_core.h"
 #include <cmath>
 #include <cstdio>
 #include <glm/gtc/matrix_transform.hpp>
@@ -40,14 +42,14 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
 }
 
 int PixelRenderer::initRenderer() {
-    pixWindow.initWindow("PixelRenderer", 960, 480);
+    pixWindow.initWindow("PixelRenderer", 960, 480); // Initializes GLFW and GLFWwindow
     try {
-        createInstance();
-        createSurface();
-        setupDebugMessenger();
-        setupPhysicalDevice();
-        createLogicalDevice();
-        createSwapChain();
+        createInstance(&m_instance);
+        createSurface(&m_surface, &m_instance, pixWindow.getWindow());
+        setupDebugMessenger(&m_instance);
+        setupPhysicalDevice(&m_instance, &mainDevice.physicalDevice);
+        createLogicalDevice(&mainDevice.logicalDevice, &mainDevice.physicalDevice);
+        createSwapChain(&m_pixSwapchain, &mainDevice, &m_surface);
         createDepthBuffer();
         createCommandPools();
         createTextureSampler();
@@ -107,21 +109,21 @@ void PixelRenderer::cleanup() {
     defaultGridGraphicsPipeline->cleanUp();
 
     // cleaning up all swapchain images and depth image
-    depthImage.cleanUp();
-    for (PixelImage image : swapChainImages) {
+    m_pixSwapchain.depthImage->cleanUp();
+    for (PixelImage image : m_pixSwapchain.swapchainImages) {
         image.cleanUp();
     }
 
-    vkDestroySwapchainKHR(mainDevice.logicalDevice, swapChain, nullptr);
-    vkDestroySurfaceKHR(instance, surface, nullptr);
+    vkDestroySwapchainKHR(mainDevice.logicalDevice, m_swapChain, nullptr);
+    vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
     vkDestroyDevice(mainDevice.logicalDevice, nullptr);
     if (enableValidationLayers) {
-        DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+        DestroyDebugUtilsMessengerEXT(m_instance, debugMessenger, nullptr);
     }
-    vkDestroyInstance(instance, nullptr);
+    vkDestroyInstance(m_instance, nullptr);
 }
 
-void PixelRenderer::createInstance() {
+void PixelRenderer::createInstance(VkInstance* instance) {
     printf("Creating Vulkan Instance\n");
     // information about the application itself
     VkApplicationInfo appInfo = {};
@@ -181,38 +183,38 @@ void PixelRenderer::createInstance() {
     }
 
     // create the vulkan instance
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
+    if (vkCreateInstance(&createInfo, nullptr, instance) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create a vulkan instance \n");
     }
     fflush(stdout);
 }
 
-void PixelRenderer::setupPhysicalDevice() {
+void PixelRenderer::setupPhysicalDevice(VkInstance* instance, VkPhysicalDevice* physicalDevice) {
     printf("Creating Vulkan Physical Device\n");
     // Enumerate the gpu devices available and fill list
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+    vkEnumeratePhysicalDevices(*instance, &deviceCount, nullptr);
 
     if (deviceCount == 0) {
         throw std::runtime_error("Cannot find any GPU device with vulkan support\n");
     }
 
     std::vector<VkPhysicalDevice> deviceList(deviceCount);
-    vkEnumeratePhysicalDevices(instance, &deviceCount, deviceList.data());
+    vkEnumeratePhysicalDevices(*instance, &deviceCount, deviceList.data());
 
     for (const auto &device : deviceList) {
         if (checkIfPhysicalDeviceSuitable(device)) {
-            mainDevice.physicalDevice = deviceList[0]; // pick the first device that is suitable
+            *physicalDevice = deviceList[0]; // pick the first device that is suitable
             break;
         }
     }
     fflush(stdout);
 }
 
-void PixelRenderer::createLogicalDevice() {
+void PixelRenderer::createLogicalDevice(VkDevice* device, VkPhysicalDevice* physicalDevice) {
     printf("Creating Vulkan Logical Device\n");
     // get the queue families for the physical device
-    QueueFamilyIndices indices = setupQueueFamilies(mainDevice.physicalDevice);
+    QueueFamilyIndices indices = setupQueueFamilies(*physicalDevice);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<int> queueFamilyIndices = {indices.graphicsFamily, indices.presentationFamily, indices.computeFamily};
@@ -241,7 +243,7 @@ void PixelRenderer::createLogicalDevice() {
 
     // supported features
     VkPhysicalDeviceFeatures supportedDeviceFeatures{};
-    vkGetPhysicalDeviceFeatures(mainDevice.physicalDevice, &supportedDeviceFeatures);
+    vkGetPhysicalDeviceFeatures(*physicalDevice, &supportedDeviceFeatures);
 
     // enable solid line
     if (supportedDeviceFeatures.fillModeNonSolid == VK_TRUE && supportedDeviceFeatures.samplerAnisotropy == VK_TRUE) {
@@ -252,24 +254,24 @@ void PixelRenderer::createLogicalDevice() {
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
 
     // create logical device for the given phyisical device
-    VkResult result = vkCreateDevice(mainDevice.physicalDevice, &deviceCreateInfo, nullptr, &mainDevice.logicalDevice);
+    VkResult result = vkCreateDevice(*physicalDevice, &deviceCreateInfo, nullptr, device);
     if (result != VK_SUCCESS) {
         throw std::runtime_error("Error creating the logical device\n");
     }
 
     // we have implicitely created the graphics queue (using deviceQueueCreateInfo. we want access to them
     // from given logical device, of given queue family, of given queue index (only have 1 queue so queueIndex = 0)
-    vkGetDeviceQueue(mainDevice.logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
-    vkGetDeviceQueue(mainDevice.logicalDevice, indices.presentationFamily, 0, &presentationQueue);
-    vkGetDeviceQueue(mainDevice.logicalDevice, indices.computeFamily, 0, &computeQueue);
+    vkGetDeviceQueue(*device, indices.graphicsFamily, 0, &graphicsQueue);
+    vkGetDeviceQueue(*device, indices.presentationFamily, 0, &presentationQueue);
+    vkGetDeviceQueue(*device, indices.computeFamily, 0, &computeQueue);
 
     fflush(stdout);
 }
 
-void PixelRenderer::createSurface() {
+void PixelRenderer::createSurface(VkSurfaceKHR* surface, VkInstance* instance, GLFWwindow* window) {
     printf("Creating Vulkan Surface\n");
     // create surface (helper function creating a surface create info struct for us, returns result)
-    VkResult result = glfwCreateWindowSurface(instance, pixWindow.getWindow(), nullptr, &surface);
+    VkResult result = glfwCreateWindowSurface(*instance, window, nullptr, surface);
 
     if (result != VK_SUCCESS) {
         throw std::runtime_error("Failed to create surface\n");
@@ -277,10 +279,10 @@ void PixelRenderer::createSurface() {
     fflush(stdout);
 }
 
-void PixelRenderer::createSwapChain() {
+void PixelRenderer::createSwapChain(PixSwapchain* swapchain, PixBackend* devices, VkSurfaceKHR* surface) {
     printf("Creating Vulkan SwapChain\n");
     // get swapchain details so we can pick best settings
-    SwapchainDetails swapChainDetails = getSwapChainDetails(mainDevice.physicalDevice);
+    SwapchainDetails swapChainDetails = getSwapChainDetails(devices->physicalDevice);
 
     VkSurfaceFormatKHR surfaceFormat = chooseBestSurfaceFormat(swapChainDetails.format);
     VkPresentModeKHR surfacePresentationMode = chooseBestPresentationMode(swapChainDetails.presentationMode);
@@ -308,7 +310,7 @@ void PixelRenderer::createSwapChain() {
     swapChainCreateInfo.clipped = VK_TRUE;
 
     // get queue family indices
-    QueueFamilyIndices indices = setupQueueFamilies(mainDevice.physicalDevice);
+    QueueFamilyIndices indices = setupQueueFamilies(devices->physicalDevice);
 
     // if graphics and present queues are different, they have to be shared
     if (indices.graphicsFamily != indices.presentationFamily) {
@@ -324,37 +326,37 @@ void PixelRenderer::createSwapChain() {
     }
 
     // if old swapchain been destroyed and this one replaces it, then link old swapchain to hand over responsibilities
-    swapChainCreateInfo.oldSwapchain = swapChain;
-    swapChainCreateInfo.surface = surface;
+    swapChainCreateInfo.oldSwapchain = swapchain->oldSwapchain;
+    swapChainCreateInfo.surface = *surface;
 
-    VkResult result = vkCreateSwapchainKHR(mainDevice.logicalDevice, &swapChainCreateInfo, nullptr, &swapChain);
+    VkResult result = vkCreateSwapchainKHR(devices->logicalDevice, &swapChainCreateInfo, nullptr, &swapchain->swapchain);
     if (result != VK_SUCCESS) {
         throw std::runtime_error("failed to create a swapChain\n");
     }
 
     // store for later reference
-    swapChainImageFormat = surfaceFormat.format;
-    swapChainExtent = surfaceExtent;
+    swapchain->format = surfaceFormat.format;
+    swapchain->extent = surfaceExtent;
 
     // get the vkImages from the swapChain
     uint32_t swapChainImageCount;
-    vkGetSwapchainImagesKHR(mainDevice.logicalDevice, swapChain, &swapChainImageCount, nullptr);
+    vkGetSwapchainImagesKHR(devices->logicalDevice, swapchain->swapchain, &swapChainImageCount, nullptr);
     std::vector<VkImage> images(swapChainImageCount);
-    vkGetSwapchainImagesKHR(mainDevice.logicalDevice, swapChain, &swapChainImageCount, images.data());
+    vkGetSwapchainImagesKHR(devices->logicalDevice, swapchain->swapchain, &swapChainImageCount, images.data());
 
     for (VkImage image : images) {
-        PixelImage swapChainImage = {&mainDevice, swapChainExtent.width, swapChainExtent.height, true};
+        PixelImage swapChainImage = {devices, surfaceExtent.width, surfaceExtent.height, true, surfaceFormat.format};
         swapChainImage.setImage(image);
 
-        swapChainImage.createImageView(swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
-        swapChainImages.push_back(swapChainImage);
+        swapChainImage.createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
+        swapchain->swapchainImages.push_back(swapChainImage);
     }
 
     // now that we swapchain image have been
     fflush(stdout);
 }
 
-void PixelRenderer::setupDebugMessenger() {
+void PixelRenderer::setupDebugMessenger(VkInstance* instance) {
     printf("Creating Vulkan Debug Messenger\n");
     // exit function if validation layer is not enabled
     if (!enableValidationLayers)
@@ -364,7 +366,7 @@ void PixelRenderer::setupDebugMessenger() {
     populateDebugMessengerCreateInfo(createInfo);
     createInfo.pUserData = nullptr; // Optional
 
-    if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+    if (CreateDebugUtilsMessengerEXT(*instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
         throw std::runtime_error("failed to set up debug messenger!");
     }
     fflush(stdout);
@@ -394,7 +396,7 @@ QueueFamilyIndices PixelRenderer::setupQueueFamilies(VkPhysicalDevice device) {
 
         // check if queue family supports presentation
         VkBool32 presentationSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentationSupport);
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_surface, &presentationSupport);
 
         if (queueFamilyCount > 0 && presentationSupport) {
             indices.presentationFamily = i;
@@ -494,22 +496,22 @@ SwapchainDetails PixelRenderer::getSwapChainDetails(VkPhysicalDevice device) {
     SwapchainDetails swapChainDetails;
 
     // get the surface capabilities for the surface on the given device
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &swapChainDetails.surfaceCapabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_surface, &swapChainDetails.surfaceCapabilities);
 
     // get the formats
     uint32_t formatCount = 0;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface, &formatCount, nullptr);
     if (formatCount != 0) {
         swapChainDetails.format.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, swapChainDetails.format.data());
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface, &formatCount, swapChainDetails.format.data());
     }
 
     // get presentation modes
     uint32_t presentationCount = 0;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface, &presentationCount, nullptr);
     if (presentationCount != 0) {
         swapChainDetails.presentationMode.resize(presentationCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, swapChainDetails.presentationMode.data());
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface, &presentationCount, swapChainDetails.presentationMode.data());
     }
 
     return swapChainDetails;
@@ -519,24 +521,24 @@ void PixelRenderer::createGraphicsPipelines() {
     printf("Initializing Scenes\n");
 
     // pipeline1
-    auto graphicsPipeline1 = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, swapChainExtent);
+    auto graphicsPipeline1 = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, m_pixSwapchain.extent);
     graphicsPipeline1->addVertexShader("shaders/vert.spv");
     graphicsPipeline1->addFragmentShader("shaders/frag.spv");
     graphicsPipeline1->populateGraphicsPipelineInfo();
     graphicsPipeline1->addRenderpassColorAttachment(swapChainImages[0].getFormat(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                                                     VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    graphicsPipeline1->addRenderpassDepthAttachment(depthImage.getFormat());
+    graphicsPipeline1->addRenderpassDepthAttachment(m_pixSwapchain.depthImage->getFormat());
     graphicsPipeline1->populatePipelineLayout(&scenes[0]); // populate the pipeline layout based on the scene's descriptor set
 
     graphicsPipeline1->createGraphicsPipeline(VK_NULL_HANDLE); // creates a renderpass if none were provided
 
     // pipeline1
-    defaultGridGraphicsPipeline = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, swapChainExtent);
+    defaultGridGraphicsPipeline = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, m_pixSwapchain.extent);
     defaultGridGraphicsPipeline->addVertexShader("shaders/gridVert.spv");
     defaultGridGraphicsPipeline->addFragmentShader("shaders/gridFrag.spv");
     defaultGridGraphicsPipeline->populateGraphicsPipelineInfo();
 
-    defaultGridGraphicsPipeline->addRenderpassDepthAttachment(depthImage.getFormat());
+    defaultGridGraphicsPipeline->addRenderpassDepthAttachment(m_pixSwapchain.depthImage->getFormat());
     defaultGridGraphicsPipeline->populatePipelineLayout(&defaultGridScene); // populate the pipeline layout based on the scene's descriptor set
 
     defaultGridGraphicsPipeline->createGraphicsPipeline(graphicsPipeline1->getRenderPass()); // creates a renderpass if none were provided
@@ -551,7 +553,7 @@ void PixelRenderer::createFramebuffers() {
 
     for (size_t i = 0; i < swapchainFramebuffers.size(); i++) {
         // matches the RenderBuffer Attachment. order matters
-        std::vector<VkImageView> attachments = {swapChainImages[i].getImageView(), depthImage.getImageView()};
+        std::vector<VkImageView> attachments = {swapChainImages[i].getImageView(), m_pixSwapchain.depthImage->getImageView()};
 
         // create a framebuffer for each swapchain images;
         VkFramebufferCreateInfo framebufferCreateInfo{};
@@ -559,8 +561,8 @@ void PixelRenderer::createFramebuffers() {
         framebufferCreateInfo.renderPass = graphicsPipelines[0]->getRenderPass(); // grab the first graphics pipeline's renderpass
         framebufferCreateInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferCreateInfo.pAttachments = attachments.data();
-        framebufferCreateInfo.width = swapChainExtent.width;
-        framebufferCreateInfo.height = swapChainExtent.height;
+        framebufferCreateInfo.width = m_pixSwapchain.extent.width;
+        framebufferCreateInfo.height = m_pixSwapchain.extent.height;
         framebufferCreateInfo.layers = (uint32_t)1;
 
         VkResult result = vkCreateFramebuffer(mainDevice.logicalDevice, &framebufferCreateInfo, nullptr, &swapchainFramebuffers[i]);
@@ -657,7 +659,7 @@ void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
     VkRenderPassBeginInfo renderPassBeginInfo{};
     renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassBeginInfo.renderArea.offset = {0, 0};
-    renderPassBeginInfo.renderArea.extent = swapChainExtent;
+    renderPassBeginInfo.renderArea.extent = m_pixSwapchain.extent;
     renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassBeginInfo.pClearValues = clearValues.data();
     renderPassBeginInfo.framebuffer = swapchainFramebuffers[currentImageIndex]; // the framebuffer changes per swapchain image (ie command buffer)
@@ -774,11 +776,11 @@ void PixelRenderer::draw() {
 
     // Get index of the next image to draw to and signal semaphore
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(mainDevice.logicalDevice, swapChain, std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore[currentFrame],
+    vkAcquireNextImageKHR(mainDevice.logicalDevice, m_swapChain, std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore[currentFrame],
                           VK_NULL_HANDLE, &imageIndex);
 
     PixelScene::UboVP newVP1{};
-    newVP1.P = glm::perspective(glm::radians(45.0f), (float)swapChainExtent.width / (float)swapChainExtent.height, 0.01f, 100.0f);
+    newVP1.P = glm::perspective(glm::radians(45.0f), (float)m_pixSwapchain.extent.width / (float)m_pixSwapchain.extent.height, 0.01f, 100.0f);
     newVP1.V = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     newVP1.lightPos = glm::vec4(0.0f, 5.0f, 25.0f, 1.0f);
 
@@ -830,7 +832,7 @@ void PixelRenderer::draw() {
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = &renderFinishedSemaphore[currentFrame]; // semaphore to wait for
     presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &swapChain;
+    presentInfo.pSwapchains = &m_swapChain;
     presentInfo.pImageIndices = &imageIndex;
 
     result = vkQueuePresentKHR(graphicsQueue, &presentInfo);
@@ -1269,8 +1271,8 @@ void PixelRenderer::createDepthBuffer() {
     printf("Creating Depth Buffer\n");
 
     // create our depth buffer image.
-    depthImage = PixelImage(&mainDevice, swapChainExtent.width, swapChainExtent.height, false);
-    depthImage.createDepthBufferImage();
+    depthImage = PixelImage(&mainDevice, m_pixSwapchain.extent.width, m_pixSwapchain.extent.height, false);
+    m_pixSwapchain.depthImage->createDepthBufferImage();
     fflush(stdout);
 }
 

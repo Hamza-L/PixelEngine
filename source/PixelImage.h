@@ -5,6 +5,7 @@
 #ifndef PIXELENGINE_PIXELIMAGE_H
 #define PIXELENGINE_PIXELIMAGE_H
 
+#include "vulkan/vulkan_core.h"
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLFW_INCLUDE_VULKAN //includes vulkan automatically
 #include <GLFW/glfw3.h>
@@ -16,7 +17,7 @@
 
 class PixelImage {
 public:
-    PixelImage(PixBackend* devices, uint32_t width, uint32_t height, bool isSwapChainImage);
+    PixelImage(PixBackend* device, uint32_t width, uint32_t height, bool isSwapChainImage = false, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
     PixelImage() = default;
 
     //cleanup
@@ -24,7 +25,7 @@ public:
 
     //create functions
     void createImage(VkImageTiling imageTiling, VkImageUsageFlags useFlags, VkMemoryPropertyFlags propFlags);
-    void createImageView(VkFormat format, VkImageAspectFlags aspectFlags);
+    void createImageView(VkImageAspectFlags aspectFlags);
     void createDepthBufferImage();
     void createTexture(std::string fileName);
 

@@ -17,7 +17,7 @@ const bool enableValidationLayers = true;
 
 const int MAX_FRAME_DRAWS = 2; // we always have "MAX_FRAME_DRAWS" being drawing at once.
 static glm::uvec2 mouseCoord = {0, 0};
-static glm::uvec2 lastClicked = {28, 156};
+static glm::uvec2 lastClicked = {0, 0};
 
 class PixelRenderer {
   public:
@@ -45,7 +45,10 @@ class PixelRenderer {
 #endif
 
     // logical and physical device
-    PixBackend mainDevice;
+    PixBackend mainDevice{};
+
+    // swapchain component
+    PixSwapchain m_pixSwapchain{};
 
     // window component
     PixelWindow pixWindow{};
@@ -53,12 +56,12 @@ class PixelRenderer {
     // physical device features the logical device will be using
     VkPhysicalDeviceFeatures deviceFeatures = {};
 
-    VkInstance instance{};
+    VkInstance m_instance{};
     VkQueue graphicsQueue{};
     VkQueue presentationQueue{};
     VkQueue computeQueue{};
-    VkSurfaceKHR surface{};
-    VkSwapchainKHR swapChain{VK_NULL_HANDLE};
+    VkSurfaceKHR m_surface{};
+    VkSwapchainKHR m_swapChain{VK_NULL_HANDLE};
     std::vector<VkFramebuffer> swapchainFramebuffers;
     std::vector<VkCommandBuffer> commandBuffers;
     std::vector<VkCommandBuffer> computeCommandBuffers;
@@ -67,14 +70,8 @@ class PixelRenderer {
     PixelComputePipeline computePipeline;
 
     // images
-    std::vector<PixelImage> swapChainImages;
-    PixelImage depthImage;
     PixelImage emptyTexture;
     VkSampler imageSampler{};
-
-    // Utility
-    VkFormat swapChainImageFormat{};
-    VkExtent2D swapChainExtent{};
 
     // Pools
     VkCommandPool graphicsCommandPool{};
@@ -98,11 +95,11 @@ class PixelRenderer {
 
     //---------vulkan functions
     // create functions
-    void createInstance();
-    void setupPhysicalDevice();
-    void createLogicalDevice();
-    void createSurface();
-    void createSwapChain();
+    void createInstance(VkInstance* instance);
+    void setupPhysicalDevice(VkInstance* instance, VkPhysicalDevice* physicalDevice);
+    void createLogicalDevice(VkDevice* device, VkPhysicalDevice* physicalDevice);
+    void createSurface(VkSurfaceKHR* surface, VkInstance* instance, GLFWwindow* window);
+    void createSwapChain(PixSwapchain* swapchain, PixBackend* devices, VkSurfaceKHR* surface);
     void createGraphicsPipelines();
     void createFramebuffers();
     void createCommandPools();
@@ -129,7 +126,7 @@ class PixelRenderer {
     void updateComputeTextureDescriptor();
 
     // debug validation layer
-    void setupDebugMessenger();
+    void setupDebugMessenger(VkInstance* instance);
     static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
 
     // helper functions
