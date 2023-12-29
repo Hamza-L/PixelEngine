@@ -107,7 +107,7 @@ class PixelRenderer {
     void createComputeCommandBuffers();
     void createScene();
     void createDefaultGridScene();
-    void createDepthBuffer();
+    void createDepthBuffer(PixelImage* depthImage);
     void initializeScenes();
     void createSynchronizationObjects();
     void recordCommands(uint32_t currentImageIndex);

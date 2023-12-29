@@ -50,7 +50,7 @@ int PixelRenderer::initRenderer() {
         setupPhysicalDevice(&m_instance, &mainDevice.physicalDevice);
         createLogicalDevice(&mainDevice.logicalDevice, &mainDevice.physicalDevice);
         createSwapChain(&m_pixSwapchain, &mainDevice, &m_surface);
-        createDepthBuffer();
+        createDepthBuffer(m_pixSwapchain.depthImage);
         createCommandPools();
         createTextureSampler();
         createCommandBuffers();
@@ -525,7 +525,7 @@ void PixelRenderer::createGraphicsPipelines() {
     graphicsPipeline1->addVertexShader("shaders/vert.spv");
     graphicsPipeline1->addFragmentShader("shaders/frag.spv");
     graphicsPipeline1->populateGraphicsPipelineInfo();
-    graphicsPipeline1->addRenderpassColorAttachment(swapChainImages[0].getFormat(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+    graphicsPipeline1->addRenderpassColorAttachment(m_pixSwapchain.swapchainImages[0].getFormat(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                                                     VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     graphicsPipeline1->addRenderpassDepthAttachment(m_pixSwapchain.depthImage->getFormat());
     graphicsPipeline1->populatePipelineLayout(&scenes[0]); // populate the pipeline layout based on the scene's descriptor set
@@ -549,11 +549,11 @@ void PixelRenderer::createGraphicsPipelines() {
 
 void PixelRenderer::createFramebuffers() {
     printf("Creating FrameBuffers\n");
-    swapchainFramebuffers.resize(swapChainImages.size());
+    swapchainFramebuffers.resize(m_pixSwapchain.swapchainImages.size());
 
     for (size_t i = 0; i < swapchainFramebuffers.size(); i++) {
         // matches the RenderBuffer Attachment. order matters
-        std::vector<VkImageView> attachments = {swapChainImages[i].getImageView(), m_pixSwapchain.depthImage->getImageView()};
+        std::vector<VkImageView> attachments = {m_pixSwapchain.swapchainImages[i].getImageView(), m_pixSwapchain.depthImage->getImageView()};
 
         // create a framebuffer for each swapchain images;
         VkFramebufferCreateInfo framebufferCreateInfo{};
@@ -602,7 +602,7 @@ void PixelRenderer::createCommandPools() {
 void PixelRenderer::createCommandBuffers() {
     printf("Creating Vulkan Command Buffers\n");
     // one commandbuffer per swapchain images
-    commandBuffers.resize(swapChainImages.size());
+    commandBuffers.resize(m_pixSwapchain.swapchainImages.size());
 
     VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
     commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -623,7 +623,7 @@ void PixelRenderer::createCommandBuffers() {
 void PixelRenderer::createComputeCommandBuffers() {
     printf("Creating Vulkan Command Buffer for Compute Shader\n");
     // one commandbuffer per swapchain images
-    computeCommandBuffers.resize(swapChainImages.size());
+    computeCommandBuffers.resize(m_pixSwapchain.swapchainImages.size());
 
     VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
     commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1056,9 +1056,9 @@ void PixelRenderer::initializeObjectBuffers(PixelObject *pixObject) {
 
 void PixelRenderer::createUniformBuffers(PixelScene *pixScene) {
 
-    pixScene->resizeBuffers(swapChainImages.size());
+    pixScene->resizeBuffers(m_pixSwapchain.swapchainImages.size());
 
-    for (int i = 0; i < swapChainImages.size(); i++) { // create the buffer to be transfered somewhere else
+    for (int i = 0; i < m_pixSwapchain.swapchainImages.size(); i++) { // create the buffer to be transfered somewhere else
         createBuffer(PixelScene::getUniformBufferSize(), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, pixScene->getUniformBuffers(i),
                      pixScene->getUniformBufferMemories(i));
@@ -1130,7 +1130,7 @@ void PixelRenderer::createScene() {
 void PixelRenderer::createDescriptorPool(PixelScene *pixScene) {
 
     size_t numTextureDescriptorSet = 1;
-    size_t numUniformDescriptorSets = swapChainImages.size();
+    size_t numUniformDescriptorSets = m_pixSwapchain.swapchainImages.size();
 
     // number of descriptors and not descriptor sets. combined, it makes the pool size
     VkDescriptorPoolSize vpPoolSize{};
@@ -1163,7 +1163,7 @@ void PixelRenderer::createDescriptorPool(PixelScene *pixScene) {
 
 void PixelRenderer::createDescriptorSets(PixelScene *pixScene) {
     // we have 1 Descriptor Set and 2 bindings. one binding for the VP matrices. one binding for the dynamic buffer object for M matrix.
-    const size_t numImages = swapChainImages.size();
+    const size_t numImages = m_pixSwapchain.swapchainImages.size();
     // resize the descriptor sets to match the uniform buffers that contain its data
     pixScene->resizeDesciptorSets(numImages);
 
@@ -1267,11 +1267,11 @@ void PixelRenderer::createDescriptorSets(PixelScene *pixScene) {
     vkUpdateDescriptorSets(mainDevice.logicalDevice, 1, &textureSamplerDescriptorSet, 0, nullptr);
 }
 
-void PixelRenderer::createDepthBuffer() {
+void PixelRenderer::createDepthBuffer(PixelImage* depthImage) {
     printf("Creating Depth Buffer\n");
 
     // create our depth buffer image.
-    depthImage = PixelImage(&mainDevice, m_pixSwapchain.extent.width, m_pixSwapchain.extent.height, false);
+    *depthImage = PixelImage(&mainDevice, m_pixSwapchain.extent.width, m_pixSwapchain.extent.height, false);
     m_pixSwapchain.depthImage->createDepthBufferImage();
     fflush(stdout);
 }
