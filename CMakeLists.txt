@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(ROOT_NAMESPACE PixelEngine)
 set(CMAKE_VS_PLATFORM_NAME "x64")
 set(CMAKE_BUILD_TYPE "Debug")
+set(LLDB_EXPORT_ALL_SYMBOLS ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
 ################################################################################zZ

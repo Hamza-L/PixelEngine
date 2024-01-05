@@ -75,13 +75,13 @@ void PixelImage::setName(std::string name)
     imageName = name;
 }
 
-void PixelImage::createDepthBufferImage()
+void PixelImage::createDepthBufferImage(PixBackend* devices)
 {
 
-    m_format = chooseSupportedFormat(m_device->physicalDevice,
-                                     {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT}, //depth buffer at 32bit and stencil buffer at 8bit ideally
-                                     VK_IMAGE_TILING_OPTIMAL,
-                                      VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    m_format = chooseSupportedFormat(devices->physicalDevice,
+                                      {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT}, //depth buffer at 32bit and stencil buffer at 8bit ideally
+                                      VK_IMAGE_TILING_OPTIMAL,
+                                       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
     createImage(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     createImageView(VK_IMAGE_ASPECT_DEPTH_BIT);
 }

@@ -365,3 +365,4 @@ cmake-build-debug
 build
 .DS_Store
 compile_commands.json
+source/*lldb PixelEngine shell*

@@ -26,7 +26,7 @@ public:
     //create functions
     void createImage(VkImageTiling imageTiling, VkImageUsageFlags useFlags, VkMemoryPropertyFlags propFlags);
     void createImageView(VkImageAspectFlags aspectFlags);
-    void createDepthBufferImage();
+    void createDepthBufferImage(PixBackend* devices);
     void createTexture(std::string fileName);
 
     //setter functions
@@ -68,7 +68,7 @@ private:
     bool m_ressourcesCleaned = false;
 
     //vulkan components
-    PixBackend* m_device;
+    PixBackend* m_device = nullptr;
     VkFormat m_format{};
     VkDeviceSize m_imageSize{};
     VkImage m_image = VK_NULL_HANDLE;

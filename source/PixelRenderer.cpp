@@ -50,7 +50,6 @@ int PixelRenderer::initRenderer() {
         setupPhysicalDevice(&m_instance, &mainDevice.physicalDevice);
         createLogicalDevice(&mainDevice.logicalDevice, &mainDevice.physicalDevice);
         createSwapChain(&m_pixSwapchain, &mainDevice, &m_surface);
-        createDepthBuffer(m_pixSwapchain.depthImage);
         createCommandPools();
         createTextureSampler();
         createCommandBuffers();
@@ -114,7 +113,7 @@ void PixelRenderer::cleanup() {
         image.cleanUp();
     }
 
-    vkDestroySwapchainKHR(mainDevice.logicalDevice, m_swapChain, nullptr);
+    vkDestroySwapchainKHR(mainDevice.logicalDevice, m_pixSwapchain.swapchain, nullptr);
     vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
     vkDestroyDevice(mainDevice.logicalDevice, nullptr);
     if (enableValidationLayers) {
@@ -336,7 +335,8 @@ void PixelRenderer::createSwapChain(PixSwapchain* swapchain, PixBackend* devices
 
     // store for later reference
     swapchain->format = surfaceFormat.format;
-    swapchain->extent = surfaceExtent;
+    swapchain->extent.width = surfaceExtent.width;
+    swapchain->extent.height = surfaceExtent.height;
 
     // get the vkImages from the swapChain
     uint32_t swapChainImageCount;
@@ -351,6 +351,9 @@ void PixelRenderer::createSwapChain(PixSwapchain* swapchain, PixBackend* devices
         swapChainImage.createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
         swapchain->swapchainImages.push_back(swapChainImage);
     }
+
+    swapchain->depthImage = std::make_shared<PixelImage>(&mainDevice, m_pixSwapchain.extent.width, m_pixSwapchain.extent.height, false);
+    swapchain->depthImage->createDepthBufferImage(&mainDevice);
 
     // now that we swapchain image have been
     fflush(stdout);
@@ -776,7 +779,7 @@ void PixelRenderer::draw() {
 
     // Get index of the next image to draw to and signal semaphore
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(mainDevice.logicalDevice, m_swapChain, std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore[currentFrame],
+    vkAcquireNextImageKHR(mainDevice.logicalDevice, m_pixSwapchain.swapchain, std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore[currentFrame],
                           VK_NULL_HANDLE, &imageIndex);
 
     PixelScene::UboVP newVP1{};
@@ -832,7 +835,7 @@ void PixelRenderer::draw() {
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = &renderFinishedSemaphore[currentFrame]; // semaphore to wait for
     presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &m_swapChain;
+    presentInfo.pSwapchains = &m_pixSwapchain.swapchain;
     presentInfo.pImageIndices = &imageIndex;
 
     result = vkQueuePresentKHR(graphicsQueue, &presentInfo);
@@ -1265,15 +1268,6 @@ void PixelRenderer::createDescriptorSets(PixelScene *pixScene) {
 
     // update the descriptor sets with new buffer binding info
     vkUpdateDescriptorSets(mainDevice.logicalDevice, 1, &textureSamplerDescriptorSet, 0, nullptr);
-}
-
-void PixelRenderer::createDepthBuffer(PixelImage* depthImage) {
-    printf("Creating Depth Buffer\n");
-
-    // create our depth buffer image.
-    *depthImage = PixelImage(&mainDevice, m_pixSwapchain.extent.width, m_pixSwapchain.extent.height, false);
-    m_pixSwapchain.depthImage->createDepthBufferImage();
-    fflush(stdout);
 }
 
 VkCommandBuffer PixelRenderer::beginSingleUseCommandBuffer() {

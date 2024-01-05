@@ -36,7 +36,7 @@ struct PixSwapchain{
     VkExtent2D extent{};
     VkFormat format{};
     std::vector<PixelImage> swapchainImages{};
-    PixelImage* depthImage = nullptr;
+    std::shared_ptr<PixelImage> depthImage;
 };
 
 struct QueueFamilyIndices

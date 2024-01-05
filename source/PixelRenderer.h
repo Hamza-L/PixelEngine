@@ -61,7 +61,6 @@ class PixelRenderer {
     VkQueue presentationQueue{};
     VkQueue computeQueue{};
     VkSurfaceKHR m_surface{};
-    VkSwapchainKHR m_swapChain{VK_NULL_HANDLE};
     std::vector<VkFramebuffer> swapchainFramebuffers;
     std::vector<VkCommandBuffer> commandBuffers;
     std::vector<VkCommandBuffer> computeCommandBuffers;
@@ -107,7 +106,6 @@ class PixelRenderer {
     void createComputeCommandBuffers();
     void createScene();
     void createDefaultGridScene();
-    void createDepthBuffer(PixelImage* depthImage);
     void initializeScenes();
     void createSynchronizationObjects();
     void recordCommands(uint32_t currentImageIndex);

@@ -27,6 +27,11 @@ void PixelWindow::initWindow(std::string wName, const int width, const int heigh
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 	window = glfwCreateWindow(windowWidth, windowHeight, windowName.c_str(), nullptr, nullptr);
+
+    int testWidth, testHeight;
+
+    glfwGetFramebufferSize(window, &testWidth, &testHeight); //TODO: on Macos, the framebuffer size is somehow double the window size
+	printf("breakpoint here");
 }
 
 GLFWwindow* PixelWindow::getWindow()
