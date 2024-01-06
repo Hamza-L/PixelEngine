@@ -6,12 +6,8 @@
 
 #include <array>
 
-PixelComputePipeline::PixelComputePipeline(PixBackend* backend, VkExtent2D inputExtent): m_backend(backend), m_extent(inputExtent) {
-
-}
-
-void PixelComputePipeline::addComputeShader(const std::string &filename) {
-    computeShaderModule = addShaderModule(m_backend->logicalDevice, filename);
+void PixelComputePipeline::addComputeShader(PixBackend* devices, const std::string &filename) {
+    computeShaderModule = addShaderModule(devices->logicalDevice, filename);
 
     computeCreateShaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     computeCreateShaderInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -19,29 +15,29 @@ void PixelComputePipeline::addComputeShader(const std::string &filename) {
     computeCreateShaderInfo.pName = "main"; //the entry point of the shader
 }
 
-void PixelComputePipeline::cleanUp() {
+void PixelComputePipeline::cleanUp(PixBackend* devices) {
 
 
     if(!raytracedInputTexture.hasBeenCleaned())
     {
-        raytracedInputTexture.cleanUp();
+        raytracedInputTexture.cleanUp(devices);
     }
 
     if(!customTexture.hasBeenCleaned())
     {
-        customTexture.cleanUp();
+        customTexture.cleanUp(devices);
     }
 
     if(!raytracedOutputTexture.hasBeenCleaned())
     {
-        raytracedOutputTexture.cleanUp();
+        raytracedOutputTexture.cleanUp(devices);
     }
 
-    vkDestroyPipeline(m_backend->logicalDevice, computePipeline, nullptr);
-    vkDestroyPipelineLayout(m_backend->logicalDevice, computePipelineLayout, nullptr);
+    vkDestroyPipeline(devices->logicalDevice, computePipeline, nullptr);
+    vkDestroyPipelineLayout(devices->logicalDevice, computePipelineLayout, nullptr);
 
-    vkDestroyDescriptorPool(m_backend->logicalDevice, computeDescriptorPool, nullptr);
-    vkDestroyDescriptorSetLayout(m_backend->logicalDevice, computeDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorPool(devices->logicalDevice, computeDescriptorPool, nullptr);
+    vkDestroyDescriptorSetLayout(devices->logicalDevice, computeDescriptorSetLayout, nullptr);
 }
 
 void PixelComputePipeline::populatePipelineLayout() {
@@ -53,28 +49,28 @@ void PixelComputePipeline::populatePipelineLayout() {
     computePipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 }
 
-void PixelComputePipeline::initImageBufferStorage() {
+void PixelComputePipeline::initImageBufferStorage(PixBackend* devices) {
     uint32_t width = 1024;
     uint32_t height = 768;
-    raytracedInputTexture = PixelImage(m_backend, width, height, false);
-    raytracedInputTexture.loadEmptyTexture(width, height, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
-    raytracedOutputTexture = PixelImage(m_backend, width, height, false);
-    raytracedOutputTexture.loadEmptyTexture(width, height, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
-    customTexture = PixelImage(m_backend, width, height, false);
-    customTexture.loadEmptyTexture(width, height, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+    raytracedInputTexture = PixelImage(width, height, false);
+    raytracedInputTexture.loadEmptyTexture(devices, width, height, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+    raytracedOutputTexture = PixelImage(width, height, false);
+    raytracedOutputTexture.loadEmptyTexture(devices, width, height, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+    customTexture = PixelImage(width, height, false);
+    customTexture.loadEmptyTexture(devices, width, height, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
 }
 
-void PixelComputePipeline::init() {
-    addComputeShader("shaders/comp.spv");
-    initImageBufferStorage();
-    createDescriptorSetLayout();
-    createDescriptorPool();
-    createDescriptorSets();
-    createComputePipelineLayout();
-    createComputePipeline();
+void PixelComputePipeline::init(PixBackend* devices) {
+    addComputeShader(devices, "shaders/comp.spv");
+    initImageBufferStorage(devices);
+    createDescriptorSetLayout(devices);
+    createDescriptorPool(devices);
+    createDescriptorSets(devices);
+    createComputePipelineLayout(devices);
+    createComputePipeline(devices);
 }
 
-void PixelComputePipeline::createDescriptorSetLayout() {
+void PixelComputePipeline::createDescriptorSetLayout(PixBackend* devices) {
     std::array<VkDescriptorSetLayoutBinding, 3> layoutBindings{};
 
     layoutBindings[0].binding = 0;
@@ -100,12 +96,12 @@ void PixelComputePipeline::createDescriptorSetLayout() {
     layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
     layoutInfo.pBindings = layoutBindings.data();
 
-    if (vkCreateDescriptorSetLayout(m_backend->logicalDevice, &layoutInfo, nullptr, &computeDescriptorSetLayout) != VK_SUCCESS) {
+    if (vkCreateDescriptorSetLayout(devices->logicalDevice, &layoutInfo, nullptr, &computeDescriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create compute descriptor set layout!");
     }
 }
 
-void PixelComputePipeline::createDescriptorSets() {
+void PixelComputePipeline::createDescriptorSets(PixBackend* devices) {
 
     //allocate info for texture descriptor set. they are not created but allocated from the pool
     VkDescriptorSetAllocateInfo textureSetAllocateInfo{};
@@ -115,7 +111,7 @@ void PixelComputePipeline::createDescriptorSets() {
     textureSetAllocateInfo.pSetLayouts = &computeDescriptorSetLayout;
     // has to be 1:1 relationship with descriptor sets
 
-    VkResult result = vkAllocateDescriptorSets(m_backend->logicalDevice, &textureSetAllocateInfo, &computeDescriptorSet);
+    VkResult result = vkAllocateDescriptorSets(devices->logicalDevice, &textureSetAllocateInfo, &computeDescriptorSet);
     if(result != VK_SUCCESS)
     {
         throw std::runtime_error("failed to allocate descriptor set for compute textures");
@@ -162,10 +158,10 @@ void PixelComputePipeline::createDescriptorSets() {
     descriptorWrites[2].descriptorCount = 1;
     descriptorWrites[2].pImageInfo = &customImageBuffer;
 
-    vkUpdateDescriptorSets(m_backend->logicalDevice, 3, descriptorWrites.data(), 0, nullptr);
+    vkUpdateDescriptorSets(devices->logicalDevice, 3, descriptorWrites.data(), 0, nullptr);
 }
 
-void PixelComputePipeline::createDescriptorPool() {
+void PixelComputePipeline::createDescriptorPool(PixBackend* devices) {
 
     uint32_t MAX_DESCRIPTOR_SETS = 1000;
     uint32_t MAX_DESCRIPTOR_COUNT = 500;
@@ -192,7 +188,7 @@ void PixelComputePipeline::createDescriptorPool() {
     poolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolCreateInfo.pPoolSizes = poolSizes.data();
 
-    VkResult result = vkCreateDescriptorPool(m_backend->logicalDevice, &poolCreateInfo, nullptr, &computeDescriptorPool);
+    VkResult result = vkCreateDescriptorPool(devices->logicalDevice, &poolCreateInfo, nullptr, &computeDescriptorPool);
     if(result != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create descriptor pool for compute pipeline");
@@ -201,23 +197,23 @@ void PixelComputePipeline::createDescriptorPool() {
 
 }
 
-void PixelComputePipeline::createComputePipeline() {
+void PixelComputePipeline::createComputePipeline(PixBackend* devices) {
     VkComputePipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     pipelineInfo.layout = computePipelineLayout;
     pipelineInfo.stage = computeCreateShaderInfo;
 
-    VkResult result = vkCreateComputePipelines(m_backend->logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &computePipeline);
+    VkResult result = vkCreateComputePipelines(devices->logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &computePipeline);
     if(result != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create the compute pipeline");
     }
 
     //we no longer need it once the pipeline has been created
-    vkDestroyShaderModule(m_backend->logicalDevice, computeShaderModule, nullptr);
+    vkDestroyShaderModule(devices->logicalDevice, computeShaderModule, nullptr);
 }
 
-void PixelComputePipeline::createComputePipelineLayout() {
+void PixelComputePipeline::createComputePipelineLayout(PixBackend* devices) {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
@@ -225,7 +221,7 @@ void PixelComputePipeline::createComputePipelineLayout() {
     pipelineLayoutInfo.pushConstantRangeCount = 1;
     pipelineLayoutInfo.pPushConstantRanges = &PixelComputePipeline::pushComputeConstantRange;
 
-    if (vkCreatePipelineLayout(m_backend->logicalDevice, &pipelineLayoutInfo, nullptr, &computePipelineLayout) != VK_SUCCESS) {
+    if (vkCreatePipelineLayout(devices->logicalDevice, &pipelineLayoutInfo, nullptr, &computePipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create compute pipeline layout!");
     }
 }

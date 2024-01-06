@@ -4,33 +4,24 @@
 
 #include "PixelImage.h"
 
-PixelImage::PixelImage(PixBackend* device, uint32_t width, uint32_t height, bool isSwapChainImage , VkFormat format) : m_device(device), m_width(width), m_height(height), m_IsSwapChainImage(isSwapChainImage), m_format(format) {
-    if (m_device->logicalDevice == VK_NULL_HANDLE || m_device->physicalDevice == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("Logical device not created. current Image cannot be initialized");
-    }
+PixelImage::PixelImage(uint32_t width, uint32_t height, bool isSwapChainImage , VkFormat format) : m_width(width), m_height(height), m_IsSwapChainImage(isSwapChainImage), m_format(format) {
 }
 
-void PixelImage::cleanUp()
+void PixelImage::cleanUp(PixBackend* devices)
 {
-    if(m_device->logicalDevice == VK_NULL_HANDLE || m_device->physicalDevice == VK_NULL_HANDLE || m_imageView == VK_NULL_HANDLE)
-    {
-        return;
-    }
-
     stbi_image_free(m_imageData);
-    vkDestroyImageView(m_device->logicalDevice, m_imageView, nullptr);
+    vkDestroyImageView(devices->logicalDevice, m_imageView, nullptr);
     if(!m_IsSwapChainImage)
     {
-        vkDestroyImage(m_device->logicalDevice, m_image, nullptr); //if swapchain image. it will be destroyed by the swapchain (just like it was created by the swapchain)
-        vkFreeMemory(m_device->logicalDevice, m_imageMemory, nullptr);
+        vkDestroyImage(devices->logicalDevice, m_image, nullptr); //if swapchain image. it will be destroyed by the swapchain (just like it was created by the swapchain)
+        vkFreeMemory(devices->logicalDevice, m_imageMemory, nullptr);
     }
 
     m_ressourcesCleaned = true;
 }
 
 //create an image view for the image
-void PixelImage::createImageView(VkImageAspectFlags aspectFlags)
+void PixelImage::createImageView(PixBackend* devices, VkImageAspectFlags aspectFlags)
 {
 
     VkImageViewCreateInfo imageViewCreateInfo = {};
@@ -51,7 +42,7 @@ void PixelImage::createImageView(VkImageAspectFlags aspectFlags)
     imageViewCreateInfo.subresourceRange.layerCount = 1; //layers to view
 
     //create image view and return it
-    VkResult result = vkCreateImageView(m_device->logicalDevice, &imageViewCreateInfo, nullptr, &m_imageView);
+    VkResult result = vkCreateImageView(devices->logicalDevice, &imageViewCreateInfo, nullptr, &m_imageView);
 
     if (result != VK_SUCCESS)
     {
@@ -82,11 +73,11 @@ void PixelImage::createDepthBufferImage(PixBackend* devices)
                                       {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT}, //depth buffer at 32bit and stencil buffer at 8bit ideally
                                       VK_IMAGE_TILING_OPTIMAL,
                                        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-    createImage(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    createImageView(VK_IMAGE_ASPECT_DEPTH_BIT);
+    createImage(devices, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    createImageView(devices, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-void PixelImage::createImage(VkImageTiling imageTiling, VkImageUsageFlags useFlags, VkMemoryPropertyFlags propFlags) {
+void PixelImage::createImage(PixBackend* devices, VkImageTiling imageTiling, VkImageUsageFlags useFlags, VkMemoryPropertyFlags propFlags) {
 
     VkImageCreateInfo imageCreateInfo{};
     imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -103,37 +94,37 @@ void PixelImage::createImage(VkImageTiling imageTiling, VkImageUsageFlags useFla
     imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT; //TODO: implement multisampling
     imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; //can it be shared between queues
 
-    VkResult result = vkCreateImage(m_device->logicalDevice, &imageCreateInfo, nullptr, &m_image);
+    VkResult result = vkCreateImage(devices->logicalDevice, &imageCreateInfo, nullptr, &m_image);
     if(result != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create image");
     }
 
     VkMemoryRequirements imageMemoryRequirements;
-    vkGetImageMemoryRequirements(m_device->logicalDevice, m_image, &imageMemoryRequirements);
+    vkGetImageMemoryRequirements(devices->logicalDevice, m_image, &imageMemoryRequirements);
 
     VkMemoryAllocateInfo memoryAllocateInfo{};
     memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     memoryAllocateInfo.allocationSize = imageMemoryRequirements.size;
-    memoryAllocateInfo.memoryTypeIndex = findMemoryTypeIndex(m_device->physicalDevice,
+    memoryAllocateInfo.memoryTypeIndex = findMemoryTypeIndex(devices->physicalDevice,
                                                              imageMemoryRequirements.memoryTypeBits,
                                                              propFlags);
 
-    result = vkAllocateMemory(m_device->logicalDevice, &memoryAllocateInfo, nullptr, &m_imageMemory);
+    result = vkAllocateMemory(devices->logicalDevice, &memoryAllocateInfo, nullptr, &m_imageMemory);
     if(result != VK_SUCCESS)
     {
         throw std::runtime_error("failed to allocate memory for image");
     }
 
     //connect image to memory
-    vkBindImageMemory(m_device->logicalDevice, m_image, m_imageMemory, 0);
+    vkBindImageMemory(devices->logicalDevice, m_image, m_imageMemory, 0);
 }
 
 VkFormat PixelImage::getFormat() {
     return m_format;
 }
 
-void PixelImage::loadTexture(std::string filename) {
+void PixelImage::loadTexture(PixBackend* devices, std::string filename) {
 
     int channels, width, height;
 
@@ -154,26 +145,26 @@ void PixelImage::loadTexture(std::string filename) {
     //now that the image data and the information about the imagefile has been stored, we create the VkImage and the VkImageView for our texture
     m_format = VK_FORMAT_R8G8B8A8_UNORM; //here we set the format manually, we do not need to check if it is compatible with other features
 
-    createImage(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
+    createImage(devices, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    createImageView(devices, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void PixelImage::loadEmptyTexture() {
+void PixelImage::loadEmptyTexture(PixBackend* devices) {
     m_width = 1;
     m_height = 1;
     m_imageSize = 1;
     m_format = VK_FORMAT_R8G8B8A8_UNORM; //here we set the format manually, we do not need to check if it is compatible with other features
 
-    createImage(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
+    createImage(devices, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    createImageView(devices, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void PixelImage::loadEmptyTexture(uint32_t width, uint32_t height, VkImageUsageFlags flags) {
+void PixelImage::loadEmptyTexture(PixBackend* devices, uint32_t width, uint32_t height, VkImageUsageFlags flags) {
     m_width = width;
     m_height = height;
     m_imageSize = width * height * 4;
     m_format = VK_FORMAT_R8G8B8A8_UNORM; //here we set the format manually, we do not need to check if it is compatible with other features
 
-    createImage(VK_IMAGE_TILING_OPTIMAL, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
+    createImage(devices, VK_IMAGE_TILING_OPTIMAL, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    createImageView(devices, VK_IMAGE_ASPECT_COLOR_BIT);
 }

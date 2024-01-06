@@ -10,7 +10,6 @@
 
 class PixelComputePipeline {
 public:
-    PixelComputePipeline(PixBackend* backend, VkExtent2D inputExtent);
     PixelComputePipeline() = default;
 
     struct PObj{
@@ -27,16 +26,16 @@ public:
         uint32_t outlineEnabled;
     };
 
-    void addComputeShader(const std::string& filename);
-    void createDescriptorPool();
-    void createDescriptorSets();
-    void initImageBufferStorage();
+    void addComputeShader(PixBackend* devices, const std::string& filename);
+    void createDescriptorPool(PixBackend* devices);
+    void createDescriptorSets(PixBackend* devices);
+    void initImageBufferStorage(PixBackend* devices);
     void populatePipelineLayout();
-    void createDescriptorSetLayout();
-    void createComputePipeline();
-    void createComputePipelineLayout();
-    void init();
-    void cleanUp();
+    void createDescriptorSetLayout(PixBackend* devices);
+    void createComputePipeline(PixBackend* devices);
+    void createComputePipelineLayout(PixBackend* devices);
+    void init(PixBackend* devices);
+    void cleanUp(PixBackend* devices);
     static constexpr VkPushConstantRange pushComputeConstantRange {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PObj)};
 
     //getters
@@ -53,14 +52,12 @@ public:
 
 private:
 
-    VkExtent2D m_extent{};
     PixelImage raytracedInputTexture;
     PixelImage raytracedOutputTexture;
     PixelImage customTexture;
 
     PObj test = {{0.0f,1.0f,5.0f},35.0f,{0.0f,0.0f,0.0f},0.0f, {3.0f,4.0f,0.0f},0.0f,{1.0f,1.0f,1.0f,1.0f}, 0, 0, 0, 0};
 
-    PixBackend* m_backend{};
     VkPipelineShaderStageCreateInfo computeCreateShaderInfo{};
     VkPipeline computePipeline = VK_NULL_HANDLE;
     VkPipelineLayout computePipelineLayout = VK_NULL_HANDLE;

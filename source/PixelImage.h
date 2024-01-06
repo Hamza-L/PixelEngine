@@ -17,15 +17,15 @@
 
 class PixelImage {
 public:
-    PixelImage(PixBackend* device, uint32_t width, uint32_t height, bool isSwapChainImage = false, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
+    PixelImage(uint32_t width, uint32_t height, bool isSwapChainImage = false, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
     PixelImage() = default;
 
     //cleanup
-    void cleanUp();
+    void cleanUp(PixBackend* devices);
 
     //create functions
-    void createImage(VkImageTiling imageTiling, VkImageUsageFlags useFlags, VkMemoryPropertyFlags propFlags);
-    void createImageView(VkImageAspectFlags aspectFlags);
+    void createImage(PixBackend* devices, VkImageTiling imageTiling, VkImageUsageFlags useFlags, VkMemoryPropertyFlags propFlags);
+    void createImageView(PixBackend* devices, VkImageAspectFlags aspectFlags);
     void createDepthBufferImage(PixBackend* devices);
     void createTexture(std::string fileName);
 
@@ -50,9 +50,9 @@ public:
     //helper functions
 
     //loader functions
-    void loadTexture(std::string filename);
-    void loadEmptyTexture();
-    void loadEmptyTexture(uint32_t width, uint32_t height, VkImageUsageFlags flags);
+    void loadTexture(PixBackend* devices, std::string filename);
+    void loadEmptyTexture(PixBackend* devices);
+    void loadEmptyTexture(PixBackend* devices, uint32_t width, uint32_t height, VkImageUsageFlags flags);
 
 private:
 
@@ -68,7 +68,6 @@ private:
     bool m_ressourcesCleaned = false;
 
     //vulkan components
-    PixBackend* m_device = nullptr;
     VkFormat m_format{};
     VkDeviceSize m_imageSize{};
     VkImage m_image = VK_NULL_HANDLE;

@@ -51,8 +51,8 @@ public:
     };
 
 
-    PixelObject(PixBackend* device, std::vector<Vertex> vertices, std::vector<uint32_t> indices);
-    PixelObject(PixBackend* device, std::string filename);
+    PixelObject(std::vector<Vertex> vertices, std::vector<uint32_t> indices);
+    PixelObject(std::string filename);
 
     //getters
     int getVertexCount();
@@ -78,7 +78,7 @@ public:
     void setGraphicsPipelineIndex(int pipelineIndx){graphicsPipelineIndex = pipelineIndx;};
 
     //cleanup
-    void cleanup();
+    void cleanup(PixBackend* device);
 
 
     //helper functions
@@ -87,7 +87,7 @@ public:
     void setGenericColor(glm::vec4 color);
     void addTransform(glm::mat4 matTransform);
     void setTransform(glm::mat4 matTransform);
-    void addTexture(std::string textureFile);
+    void addTexture(PixBackend* devices, std::string textureFile);
     void addTexture(PixelImage* pixImage);
     void setTextureIDOffset(int offset){texIDOffset = offset;};
     void hide(){m_isHidden = true;};
@@ -107,7 +107,6 @@ private:
     PObj pushObj = {glm::mat4(1.0f)};
 
     //vulkan components
-    PixBackend* m_device = VK_NULL_HANDLE;
     VkBuffer vertexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
     VkBuffer indexBuffer = VK_NULL_HANDLE;

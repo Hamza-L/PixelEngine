@@ -66,14 +66,14 @@ public:
     void setLookAtPos(glm::vec3 lookAtPos);
 
     //create functions
-    void createDescriptorSetLayout();
+    void createDescriptorSetLayout(PixBackend* devices);
 
     //update functons
-    void updateUniformBuffer(uint32_t bufferIndex);
-    void updateDynamicUniformBuffer(uint32_t bufferIndex);
+    void updateUniformBuffer(PixBackend* devices, uint32_t bufferIndex);
+    void updateDynamicUniformBuffer(PixBackend* devices, uint32_t bufferIndex);
 
     //helper functions
-    void initialize();
+    void initialize(PixBackend* devices);
     void resizeBuffers(size_t newSize);
     void resizeDesciptorSets(size_t newSize);
     static bool areMatricesEqual(glm::mat4 x, glm::mat4 y);
@@ -81,7 +81,7 @@ public:
 
 
     //cleanup
-    void cleanup();
+    void cleanup(PixBackend* devices);
 
 private:
 
@@ -115,7 +115,6 @@ private:
     std::vector<bool> buffersUpdated;
 
     //vulkan component
-    PixBackend* m_backend{};
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> m_uniformDescriptorSets{};
     std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts{};

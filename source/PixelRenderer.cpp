@@ -77,14 +77,14 @@ void PixelRenderer::cleanup() {
 
     vkDestroySampler(mainDevice.logicalDevice, imageSampler, nullptr);
 
-    emptyTexture.cleanUp();
-    computePipeline.cleanUp();
+    emptyTexture.cleanUp(&mainDevice);
+    computePipeline.cleanUp(&mainDevice);
 
     for (auto scene : scenes) {
-        scene.cleanup();
+        scene.cleanup(&mainDevice);
     }
 
-    defaultGridScene.cleanup();
+    defaultGridScene.cleanup(&mainDevice);
 
     for (size_t i = 0; i < MAX_FRAME_DRAWS; i++) {
         vkDestroyFence(mainDevice.logicalDevice, inFlightDrawFences[i], nullptr);
@@ -108,9 +108,9 @@ void PixelRenderer::cleanup() {
     defaultGridGraphicsPipeline->cleanUp();
 
     // cleaning up all swapchain images and depth image
-    m_pixSwapchain.depthImage->cleanUp();
+    m_pixSwapchain.depthImage->cleanUp(&mainDevice);
     for (PixelImage image : m_pixSwapchain.swapchainImages) {
-        image.cleanUp();
+        image.cleanUp(&mainDevice);
     }
 
     vkDestroySwapchainKHR(mainDevice.logicalDevice, m_pixSwapchain.swapchain, nullptr);
@@ -345,14 +345,14 @@ void PixelRenderer::createSwapChain(PixSwapchain* swapchain, PixBackend* devices
     vkGetSwapchainImagesKHR(devices->logicalDevice, swapchain->swapchain, &swapChainImageCount, images.data());
 
     for (VkImage image : images) {
-        PixelImage swapChainImage = {devices, surfaceExtent.width, surfaceExtent.height, true, surfaceFormat.format};
+        PixelImage swapChainImage = {surfaceExtent.width, surfaceExtent.height, true, surfaceFormat.format};
         swapChainImage.setImage(image);
 
-        swapChainImage.createImageView(VK_IMAGE_ASPECT_COLOR_BIT);
+        swapChainImage.createImageView(&mainDevice, VK_IMAGE_ASPECT_COLOR_BIT);
         swapchain->swapchainImages.push_back(swapChainImage);
     }
 
-    swapchain->depthImage = std::make_shared<PixelImage>(&mainDevice, m_pixSwapchain.extent.width, m_pixSwapchain.extent.height, false);
+    swapchain->depthImage = std::make_shared<PixelImage>(m_pixSwapchain.extent.width, m_pixSwapchain.extent.height, false);
     swapchain->depthImage->createDepthBufferImage(&mainDevice);
 
     // now that we swapchain image have been
@@ -803,8 +803,8 @@ void PixelRenderer::draw() {
     // firstScene->getObjectAt(0)->addTransform({glm::rotate(glm::mat4(1.0f), currentTime,glm::vec3(0.0f,1.0f,0.0f))});
     // firstScene->getObjectAt(0)->addTransform({glm::rotate(glm::mat4(1.0f), glm::radians(45.0f),glm::vec3(1.0f,1.0f,0.0f))});
     // scenes[0]->getObjectAt(0)->setTransform({objTransform});
-    scenes[0].updateDynamicUniformBuffer(imageIndex);
-    scenes[0].updateUniformBuffer(imageIndex);
+    scenes[0].updateDynamicUniformBuffer(&mainDevice, imageIndex);
+    scenes[0].updateUniformBuffer(&mainDevice, imageIndex);
 
     // we do not want to update all command buffers. only update the current command buffer being written to.
     recordCommands(imageIndex);
@@ -1076,8 +1076,8 @@ void PixelRenderer::initializeScenes() {
 
     printf("Initializing Scenes\n");
     // load an empty texture for use when texture is not defined.
-    emptyTexture = PixelImage(&mainDevice, 0, 0, false);
-    emptyTexture.loadEmptyTexture();
+    emptyTexture = PixelImage(0, 0, false);
+    emptyTexture.loadEmptyTexture(&mainDevice);
     createTextureBuffer(&emptyTexture);
 
     // initialize all objects in the scene
@@ -1111,9 +1111,9 @@ void PixelRenderer::createScene() {
     };
     std::vector<uint32_t> indices{1, 2, 0, 2, 3, 0};
 
-    auto square = PixelObject(&mainDevice, vertices, indices);
+    auto square = PixelObject(vertices, indices);
 
-    square.addTexture("Skull.jpg");
+    square.addTexture(&mainDevice, "Skull.jpg");
     square.setGraphicsPipelineIndex(0);
     // square.addTexture(computePipeline.getOutputTexture());
     // square.addTexture(computePipeline.getCustomTexture());
@@ -1534,8 +1534,8 @@ void PixelRenderer::addScene(PixelScene *pixScene) { scenes.push_back(*pixScene)
 
 void PixelRenderer::init_compute() {
     printf("Init Compute Pipeline\n");
-    computePipeline = PixelComputePipeline(&mainDevice, {});
-    computePipeline.init();
+    computePipeline = PixelComputePipeline();
+    computePipeline.init(&mainDevice);
 
     fflush(stdout);
 }
@@ -1654,7 +1654,7 @@ void PixelRenderer::createDefaultGridScene() {
     };
     std::vector<uint32_t> indices{1, 2, 0, 2, 3, 0};
 
-    auto square = PixelObject(&mainDevice, vertices, indices);
+    auto square = PixelObject(vertices, indices);
     square.setGraphicsPipelineIndex(0);
 
     defaultGridScene.addObject(square);
