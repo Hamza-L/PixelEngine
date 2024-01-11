@@ -53,8 +53,8 @@ int PixelRenderer::initRenderer() {
         createCommandPools();
         createTextureSampler();
         createCommandBuffers();
-        createComputeCommandBuffers();
-        init_compute();
+        // createComputeCommandBuffers();
+        // init_compute();
         createDefaultGridScene();
         createScene();
         initializeScenes();
@@ -756,21 +756,21 @@ void PixelRenderer::draw() {
     // signals when it is finished rendering present image to screen when image is signaled as finished rendering
 
     // Compute submission
-    vkWaitForFences(mainDevice.logicalDevice, 1, &inFlightComputeFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
-    vkResetFences(mainDevice.logicalDevice, 1, &inFlightComputeFences[currentFrame]);
+    // vkWaitForFences(mainDevice.logicalDevice, 1, &inFlightComputeFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+    // vkResetFences(mainDevice.logicalDevice, 1, &inFlightComputeFences[currentFrame]);
 
-    recordComputeCommands(currentFrame);
+    // recordComputeCommands(currentFrame);
 
-    VkSubmitInfo computeSubmitInfo{};
-    computeSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    computeSubmitInfo.commandBufferCount = 1;
-    computeSubmitInfo.pCommandBuffers = &computeCommandBuffers[currentFrame];
-    computeSubmitInfo.signalSemaphoreCount = 1;
-    computeSubmitInfo.pSignalSemaphores = &computeFinishedSemaphore[currentFrame];
+    // VkSubmitInfo computeSubmitInfo{};
+    // computeSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    // computeSubmitInfo.commandBufferCount = 1;
+    // computeSubmitInfo.pCommandBuffers = &computeCommandBuffers[currentFrame];
+    // computeSubmitInfo.signalSemaphoreCount = 1;
+    // computeSubmitInfo.pSignalSemaphores = &computeFinishedSemaphore[currentFrame];
 
-    if (vkQueueSubmit(computeQueue, 1, &computeSubmitInfo, inFlightComputeFences[currentFrame]) != VK_SUCCESS) {
-        throw std::runtime_error("failed to submit compute command buffer!");
-    };
+    // if (vkQueueSubmit(computeQueue, 1, &computeSubmitInfo, inFlightComputeFences[currentFrame]) != VK_SUCCESS) {
+    //     throw std::runtime_error("failed to submit compute command buffer!");
+    // };
 
     // graphics submission
     // the only thing that will open this fence is the vkQueueSubmit
@@ -787,22 +787,7 @@ void PixelRenderer::draw() {
     newVP1.V = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     newVP1.lightPos = glm::vec4(0.0f, 5.0f, 25.0f, 1.0f);
 
-    PixelScene::UboVP newVP2{};
-    newVP2.P = glm::mat4(1.0f);
-    newVP2.V = glm::mat4(1.0f);
-    // newVP2.lightPos = glm::vec4(0.0f,0.0f,5.0f,1.0f);
-
     scenes[0].setSceneVP(newVP1);
-    // firstScene->getObjectAt(0)->addTransform({glm::rotate(glm::mat4(1.0f), deltaTime,glm::vec3(1.0f,0.0f,0.0f))});
-    glm::mat4 objTransform = glm::mat4(1.0f);
-    objTransform = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f)) * objTransform;
-    objTransform = glm::rotate(glm::mat4(1.0f), std::sin(currentTime * 1.5f) * 0.5f, glm::vec3(0.0f, 1.0f, 0.0f)) * objTransform;
-    objTransform = glm::rotate(glm::mat4(1.0f), std::cos(currentTime * 1.5f) * 0.5f, glm::vec3(1.0f, 0.0f, 0.0f)) * objTransform;
-    // objTransform = translate(glm::mat4(1.0f),glm::vec3(0.0f,sin(currentTime*1.5f)*0.3f,0.0f)) * objTransform;
-
-    // firstScene->getObjectAt(0)->addTransform({glm::rotate(glm::mat4(1.0f), currentTime,glm::vec3(0.0f,1.0f,0.0f))});
-    // firstScene->getObjectAt(0)->addTransform({glm::rotate(glm::mat4(1.0f), glm::radians(45.0f),glm::vec3(1.0f,1.0f,0.0f))});
-    // scenes[0]->getObjectAt(0)->setTransform({objTransform});
     scenes[0].updateDynamicUniformBuffer(&mainDevice, imageIndex);
     scenes[0].updateUniformBuffer(&mainDevice, imageIndex);
 
@@ -810,8 +795,8 @@ void PixelRenderer::draw() {
     recordCommands(imageIndex);
 
     // we have to wait for the compute queue to finish submitting
-    std::array<VkSemaphore, 2> waitSemaphores = {computeFinishedSemaphore[currentFrame], imageAvailableSemaphore[currentFrame]};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT};
+    std::array<VkSemaphore, 1> waitSemaphores = {imageAvailableSemaphore[currentFrame]};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

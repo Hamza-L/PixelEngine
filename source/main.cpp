@@ -14,6 +14,9 @@ int main()
 		return EXIT_FAILURE;
 	}
 
+	//PixelScene scene;
+	//pixRenderer.build(&scene) //creates the whole backend appropriate for the scene (ie connects the scene to the renderer)
+
     pixRenderer.run();
 
 
