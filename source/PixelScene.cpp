@@ -183,6 +183,14 @@ PixelScene::UboVP PixelScene::getSceneVP() {
     return sceneVP;
 }
 
+std::string PixelScene::getName(){
+    return m_sceneName;
+}
+
+void PixelScene::setSceneName(const char* name){
+    m_sceneName = name;
+}
+
 void PixelScene::setSceneVP(PixelScene::UboVP vpData)
 {
     sceneVP = vpData;

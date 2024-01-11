@@ -1082,18 +1082,24 @@ void PixelRenderer::initializeScenes() {
 
     // initialize all objects in the scene
     for (auto &scene : scenes) {
-        for (int i = 0; i < scene.getNumObjects(); i++) {
-            initializeObjectBuffers(scene.getObjectAt(i)); // depends on graphics command pool
-            for (auto texture : scene.getObjectAt(i)->getTextures()) {
-                createTextureBuffer(&texture);
-            }
-        }
-
-        createUniformBuffers(&scene);
-        createDescriptorPool(&scene);
-        createDescriptorSets(&scene);
+        initializeScene(&scene);
     }
     fflush(stdout);
+}
+
+void PixelRenderer::initializeScene(PixelScene* scene){
+    printf("Initializing Scene: %s\n", scene->getName().c_str());
+
+    for (int i = 0; i < scene->getNumObjects(); i++) {
+        initializeObjectBuffers(scene->getObjectAt(i)); // depends on graphics command pool
+        for (auto texture : scene->getObjectAt(i)->getTextures()) {
+            createTextureBuffer(&texture);
+        }
+    }
+
+    createUniformBuffers(scene);
+    createDescriptorPool(scene);
+    createDescriptorSets(scene);
 }
 
 void PixelRenderer::createScene() {

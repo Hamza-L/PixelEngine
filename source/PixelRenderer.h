@@ -107,6 +107,7 @@ class PixelRenderer {
     void createScene();
     void createDefaultGridScene();
     void initializeScenes();
+    void initializeScene(PixelScene* scene);
     void createSynchronizationObjects();
     void recordCommands(uint32_t currentImageIndex);
     void recordComputeCommands(uint32_t currentImageIndex);

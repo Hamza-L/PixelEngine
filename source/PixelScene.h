@@ -57,8 +57,10 @@ public:
     UboVP getSceneVP();
     glm::vec3 getCameraPos();
     glm::vec3 getLookAtVec();
+    std::string getName();
 
     //setter functions
+    void setSceneName(const char* name);
     void setSceneVP(UboVP vpData);
     void setSceneV(glm::mat4 V);
     void setSceneP(glm::mat4 P);
@@ -84,6 +86,8 @@ public:
     void cleanup(PixBackend* devices);
 
 private:
+
+    std::string m_sceneName{};
 
     //objects
     std::vector<PixelObject> allObjects{};
