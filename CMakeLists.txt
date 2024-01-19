@@ -15,6 +15,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 # Source groups
 ################################################################################
 set(Headers
+    "source/PixelLogger.h"
     "source/PixelRenderer.h"
     "source/PixelWindow.h"
     "source/PixelGraphicsPipeline.h"
@@ -29,6 +30,7 @@ source_group("Headers" FILES ${Headers})
 
 set(Sources
     "source/main.cpp"
+    "source/PixelLogger.cpp"
     "source/PixelRenderer.cpp"
     "source/PixelWindow.cpp"
     "source/PixelGraphicsPipeline.cpp"
@@ -40,25 +42,9 @@ set(Sources
 
 source_group("Sources" FILES ${Sources})
 
-# set(imguiSources
-        # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui.h"
-        # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui.cpp"
-        #
-        # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_demo.cpp"
-        # # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_draw.cpp"
-        # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_widgets.cpp"
-        # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_tables.cpp"
-
-        # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/backends/imgui_impl_vulkan.cpp"
-        # "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/backends/imgui_impl_glfw.cpp"
-        # )
-
-# source_group("imguiSources" FILES ${imguiSources})
-
 set(ALL_FILES
     ${Headers}
     ${Sources})
-    # ${imguiSources})
 
 ################################################################################
 # Target

@@ -16,7 +16,7 @@ public:
     void addVertexShader(const std::string& filename);
     void addFragmentShader(const std::string& filename);
     void populateGraphicsPipelineInfo();
-    void populatePipelineLayout(PixelScene* scene);
+    void populatePipelineLayout(std::shared_ptr<PixelScene> scene);
     void createGraphicsPipeline(const VkRenderPass& inputRenderPass);
     void addRenderpassColorAttachment(VkFormat imageFormat, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentStoreOp attachmentStoreOp, VkImageLayout attachmentReferenceLayout);
     void addRenderpassDepthAttachment(VkFormat depthImageFormat);

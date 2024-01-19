@@ -35,7 +35,7 @@ public:
     };
 
     //setter functions
-    void addObject(PixelObject pixObject);
+    void addObject(std::shared_ptr<PixelObject> pixObject);
 
     //getter functions
     VkDescriptorSetLayout* getDescriptorSetLayout(DescSetLayoutIndex indx);
@@ -52,7 +52,7 @@ public:
     VkBuffer* getDynamicUniformBuffers(int index);
     VkDeviceMemory* getDynamicUniformBufferMemories(int index);
     int getNumObjects();
-    PixelObject* getObjectAt(int index);
+    std::shared_ptr<PixelObject> getObjectAt(int index);
     std::vector<PixelImage> getAllTextures();
     UboVP getSceneVP();
     glm::vec3 getCameraPos();
@@ -90,7 +90,7 @@ private:
     std::string m_sceneName{};
 
     //objects
-    std::vector<PixelObject> allObjects{};
+    std::vector<std::shared_ptr<PixelObject>> allObjects{};
     std::vector<PixelObject::Vertex> allVertices{};
     std::vector<uint32_t> allIndices{};
 

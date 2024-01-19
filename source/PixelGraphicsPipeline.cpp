@@ -5,6 +5,7 @@
 #include "PixelGraphicsPipeline.h"
 
 #include <array>
+#include <future>
 
 void PixelGraphicsPipeline::addVertexShader(const std::string &filename) {
     vertexShaderModule = addShaderModule(m_device, filename);
@@ -287,7 +288,7 @@ VkPipeline PixelGraphicsPipeline::getPipeline() {
     return graphicsPipeline;
 }
 
-void PixelGraphicsPipeline::populatePipelineLayout(PixelScene* scene) {
+void PixelGraphicsPipeline::populatePipelineLayout(std::shared_ptr<PixelScene> scene) {
 
     //pipeline layout
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

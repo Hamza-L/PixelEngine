@@ -10,6 +10,7 @@ const bool enableValidationLayers = true;
 #include "PixelGraphicsPipeline.h"
 #include "PixelWindow.h"
 #include "Utility.h"
+#include "PixelLogger.h"
 
 #include <iostream>
 #include <memory>
@@ -28,7 +29,7 @@ class PixelRenderer {
     ~PixelRenderer() = default;
 
     int initRenderer();
-    void addScene(PixelScene *pixScene);
+    void addScene(std::shared_ptr<PixelScene> scene);
     void draw();
     void run();
     bool windowShouldClose();
@@ -89,8 +90,8 @@ class PixelRenderer {
     int currentFrame = 0;
 
     // objects
-    std::vector<PixelScene> scenes;
-    PixelScene defaultGridScene{};
+    std::vector<std::shared_ptr<PixelScene>> m_scenes;
+    std::shared_ptr<PixelScene> defaultGridScene{};
 
     //---------vulkan functions
     // create functions
@@ -107,7 +108,7 @@ class PixelRenderer {
     void createScene();
     void createDefaultGridScene();
     void initializeScenes();
-    void initializeScene(PixelScene* scene);
+    void initializeScene(std::shared_ptr<PixelScene> scene);
     void createSynchronizationObjects();
     void recordCommands(uint32_t currentImageIndex);
     void recordComputeCommands(uint32_t currentImageIndex);
@@ -119,9 +120,9 @@ class PixelRenderer {
     void preDraw();
 
     // descriptor Set (for scene initialization)
-    void createDescriptorPool(PixelScene *pixScene);
-    void createDescriptorSets(PixelScene *pixScene);
-    void createUniformBuffers(PixelScene *pixScene);
+    void createDescriptorPool(std::shared_ptr<PixelScene> scene);
+    void createDescriptorSets(std::shared_ptr<PixelScene> scene);
+    void createUniformBuffers(std::shared_ptr<PixelScene> scene);
     void updateComputeTextureDescriptor();
 
     // debug validation layer
@@ -140,9 +141,9 @@ class PixelRenderer {
     void copySrcBuffertoDstBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize bufferSize);
     void copySrcBuffertoDstImage(VkBuffer srcBuffer, VkImage dstImageBuffer, uint32_t width, uint32_t height);
 
-    void initializeObjectBuffers(PixelObject *pixObject);
-    void createVertexBuffer(PixelObject *pixObject);
-    void createIndexBuffer(PixelObject *pixObject);
+    void initializeObjectBuffers(std::shared_ptr<PixelObject> pixObject);
+    void createVertexBuffer(std::shared_ptr<PixelObject> pixObject);
+    void createIndexBuffer(std::shared_ptr<PixelObject> pixObject);
     void createTextureBuffer(PixelImage *pixImage);
     void createTextureSampler();
 

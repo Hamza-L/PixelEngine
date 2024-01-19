@@ -39,7 +39,7 @@ void PixelScene::cleanup(PixBackend* devices)
 
     for(auto& object : allObjects)
     {
-        object.cleanup(devices);
+        object->cleanup(devices);
     }
 }
 
@@ -73,10 +73,10 @@ void PixelScene::resizeBuffers(size_t newSize) {
     buffersUpdated.resize(newSize, false);
 }
 
-void PixelScene::addObject(PixelObject pixObject) {
-    if(pixObject.getTextures().size() > 0)
+void PixelScene::addObject(std::shared_ptr<PixelObject> pixObject) {
+    if(pixObject->getTextures().size() > 0)
     {
-        pixObject.setTextureIDOffset(getAllTextures().size());
+        pixObject->setTextureIDOffset(getAllTextures().size());
     }
     allObjects.push_back(pixObject);
 }
@@ -85,8 +85,8 @@ int PixelScene::getNumObjects() {
     return allObjects.size();
 }
 
-PixelObject* PixelScene::getObjectAt(int index) {
-    return &allObjects[index];
+std::shared_ptr<PixelObject> PixelScene::getObjectAt(int index) {
+    return allObjects[index];
 }
 
 VkDescriptorPool *PixelScene::getDescriptorPool() {
@@ -262,7 +262,7 @@ void PixelScene::updateDynamicUniformBuffer(PixBackend* devices, uint32_t buffer
     for(size_t i = 0; i<allObjects.size(); i++)
     {
         auto* currentPushM = (PixelObject::DynamicUBObj*)((uint64_t)modelTransferSpace + (i * objectUBOAllignment));
-        *currentPushM = *(allObjects[i].getDynamicUBObj());
+        *currentPushM = *(allObjects[i]->getDynamicUBObj());
     }
 
     //map the whole chunk of memory data
@@ -283,9 +283,9 @@ std::vector<PixelImage> PixelScene::getAllTextures() {
 
     for(int i = 0 ; i < allObjects.size(); i++)
     {
-        for(int j = 0; j < allObjects[i].getTextures().size(); j++)
+        for(int j = 0; j < allObjects[i]->getTextures().size(); j++)
         {
-            allTextures.push_back(allObjects[i].getTextures()[j]);
+            allTextures.push_back(allObjects[i]->getTextures()[j]);
         }
     }
 
