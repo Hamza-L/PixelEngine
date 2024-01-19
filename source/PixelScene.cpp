@@ -11,7 +11,7 @@
 
 PixelScene::PixelScene(PixBackend* devices)
 {
-    printf("PixelScene constructed\n");
+    LOG(Level::DEBUG, "PixelScene Constructed");
     initialize(devices);
 }
 

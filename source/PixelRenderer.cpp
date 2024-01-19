@@ -43,6 +43,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
 }
 
 int PixelRenderer::initRenderer() {
+    LOG(Level::INFO, "Initialization of the PixelRenderer");
     pixWindow.initWindow("PixelRenderer", 960, 480); // Initializes GLFW and GLFWwindow
     try {
         createInstance(&m_instance);
@@ -81,7 +82,7 @@ void PixelRenderer::cleanup() {
     emptyTexture.cleanUp(&mainDevice);
     computePipeline.cleanUp(&mainDevice);
 
-    for (auto& scene : m_scenes) {
+    for (auto &scene : m_scenes) {
         scene->cleanup(&mainDevice);
     }
 
@@ -124,7 +125,8 @@ void PixelRenderer::cleanup() {
 }
 
 void PixelRenderer::createInstance(VkInstance *instance) {
-    printf("Creating Vulkan Instance\n");
+    LOG(Level::INFO, "Creating Vulkan Instance");
+
     // information about the application itself
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -190,7 +192,7 @@ void PixelRenderer::createInstance(VkInstance *instance) {
 }
 
 void PixelRenderer::setupPhysicalDevice(VkInstance *instance, VkPhysicalDevice *physicalDevice) {
-    printf("Creating Vulkan Physical Device\n");
+    LOG(Level::INFO, "Creating Vulkan Physical Device");
     // Enumerate the gpu devices available and fill list
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(*instance, &deviceCount, nullptr);
@@ -212,7 +214,7 @@ void PixelRenderer::setupPhysicalDevice(VkInstance *instance, VkPhysicalDevice *
 }
 
 void PixelRenderer::createLogicalDevice(VkDevice *device, VkPhysicalDevice *physicalDevice) {
-    printf("Creating Vulkan Logical Device\n");
+    LOG(Level::INFO, "Creating Vulkan Logical Device");
     // get the queue families for the physical device
     QueueFamilyIndices indices = setupQueueFamilies(*physicalDevice);
 
@@ -269,7 +271,8 @@ void PixelRenderer::createLogicalDevice(VkDevice *device, VkPhysicalDevice *phys
 }
 
 void PixelRenderer::createSurface(VkSurfaceKHR *surface, VkInstance *instance, GLFWwindow *window) {
-    printf("Creating Vulkan Surface\n");
+    LOG(Level::INFO, "Creating Vulkan Surface");
+
     // create surface (helper function creating a surface create info struct for us, returns result)
     VkResult result = glfwCreateWindowSurface(*instance, window, nullptr, surface);
 
@@ -280,7 +283,8 @@ void PixelRenderer::createSurface(VkSurfaceKHR *surface, VkInstance *instance, G
 }
 
 void PixelRenderer::createSwapChain(PixSwapchain *swapchain, PixBackend *devices, VkSurfaceKHR *surface) {
-    printf("Creating Vulkan SwapChain\n");
+    LOG(Level::INFO, "Creating Vulkan SwapChain");
+
     // get swapchain details so we can pick best settings
     SwapchainDetails swapChainDetails = getSwapChainDetails(devices->physicalDevice);
 
@@ -361,7 +365,7 @@ void PixelRenderer::createSwapChain(PixSwapchain *swapchain, PixBackend *devices
 }
 
 void PixelRenderer::setupDebugMessenger(VkInstance *instance) {
-    printf("Creating Vulkan Debug Messenger\n");
+    LOG(Level::INFO, "Creating Vulkan Debug Messenger");
     // exit function if validation layer is not enabled
     if (!enableValidationLayers)
         return;
@@ -377,6 +381,8 @@ void PixelRenderer::setupDebugMessenger(VkInstance *instance) {
 }
 
 QueueFamilyIndices PixelRenderer::setupQueueFamilies(VkPhysicalDevice device) {
+    LOG(Level::INFO, "");
+
     QueueFamilyIndices indices;
 
     // get all queue family property info for the given device
@@ -417,6 +423,8 @@ QueueFamilyIndices PixelRenderer::setupQueueFamilies(VkPhysicalDevice device) {
 }
 
 bool PixelRenderer::checkIfPhysicalDeviceSuitable(VkPhysicalDevice device) {
+    LOG(Level::INFO, "");
+
     // check the properties of the device that has been passed down (ie vendor, ID, etc..)
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -438,6 +446,8 @@ bool PixelRenderer::checkIfPhysicalDeviceSuitable(VkPhysicalDevice device) {
 }
 
 bool PixelRenderer::checkDeviceExtensionSupport(VkPhysicalDevice device) {
+    LOG(Level::INFO, "");
+
     uint32_t extensionCount = 0;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
@@ -466,6 +476,8 @@ bool PixelRenderer::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 }
 
 void PixelRenderer::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
+    LOG(Level::INFO, "");
+
     createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
@@ -476,6 +488,8 @@ void PixelRenderer::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreate
 }
 
 VkExtent2D PixelRenderer::chooseSwapChainExtent(const VkSurfaceCapabilitiesKHR surfaceCapabilities) {
+    LOG(Level::INFO, "");
+
     // if current extent at numeric limits then extent can vary.
     if (surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
         return surfaceCapabilities.currentExtent;
@@ -497,6 +511,8 @@ VkExtent2D PixelRenderer::chooseSwapChainExtent(const VkSurfaceCapabilitiesKHR s
 }
 
 SwapchainDetails PixelRenderer::getSwapChainDetails(VkPhysicalDevice device) {
+    LOG(Level::INFO, "");
+
     SwapchainDetails swapChainDetails;
 
     // get the surface capabilities for the surface on the given device
@@ -522,7 +538,7 @@ SwapchainDetails PixelRenderer::getSwapChainDetails(VkPhysicalDevice device) {
 }
 
 void PixelRenderer::createGraphicsPipelines() {
-    printf("Initializing Scenes\n");
+    LOG(Level::INFO, "Initializing Scenes");
 
     // pipeline1
     auto graphicsPipeline1 = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, m_pixSwapchain.extent);
@@ -553,7 +569,14 @@ void PixelRenderer::createGraphicsPipelines() {
 }
 
 void PixelRenderer::createFramebuffers() {
-    printf("Creating FrameBuffers\n");
+    LOG(Level::INFO, "Creating FrameBuffers");
+    int randomVar = 4;
+    glm::vec4 randomVec = {1.2f,2.0f,3.0f,1.0f};
+    glm::mat4 randomMat(1.0f);
+    LOG_VAR(Level::INFO, randomVar);
+    LOG_VAR(Level::INFO, randomVec);
+    LOG_VAR(Level::INFO, randomMat);
+
     swapchainFramebuffers.resize(m_pixSwapchain.swapchainImages.size());
 
     for (size_t i = 0; i < swapchainFramebuffers.size(); i++) {
@@ -579,7 +602,8 @@ void PixelRenderer::createFramebuffers() {
 }
 
 void PixelRenderer::createCommandPools() {
-    printf("Creating Vulkan CommandPools\n");
+    LOG(Level::INFO, "Creating Vulkan CommandPools");
+
     QueueFamilyIndices queueFamilyIndices = setupQueueFamilies(mainDevice.physicalDevice);
 
     VkCommandPoolCreateInfo poolCreateInfo{};
@@ -605,7 +629,8 @@ void PixelRenderer::createCommandPools() {
 }
 
 void PixelRenderer::createCommandBuffers() {
-    printf("Creating Vulkan Command Buffers\n");
+    LOG(Level::INFO, "Creating Vulkan Command Buffers");
+
     // one commandbuffer per swapchain images
     commandBuffers.resize(m_pixSwapchain.swapchainImages.size());
 
@@ -626,7 +651,7 @@ void PixelRenderer::createCommandBuffers() {
 }
 
 void PixelRenderer::createComputeCommandBuffers() {
-    printf("Creating Vulkan Command Buffer for Compute Shader\n");
+    LOG(Level::INFO, "Creating Vulkan Command Buffer for Compute Shader");
     // one commandbuffer per swapchain images
     computeCommandBuffers.resize(m_pixSwapchain.swapchainImages.size());
 
@@ -647,7 +672,7 @@ void PixelRenderer::createComputeCommandBuffers() {
 }
 
 void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
-
+    // LOG(Level::INFO, "");
     // info about how to begin each command buffer
     VkCommandBufferBeginInfo bufferBeginInfo{};
     bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -846,7 +871,7 @@ void PixelRenderer::run() {
 }
 
 void PixelRenderer::createSynchronizationObjects() {
-    printf("Creating Synchronization Objects\n");
+    LOG(Level::INFO, "Creating Synchronization Objects");
 
     imageAvailableSemaphore.resize(MAX_FRAME_DRAWS);
     renderFinishedSemaphore.resize(MAX_FRAME_DRAWS);
@@ -894,6 +919,7 @@ void PixelRenderer::createSynchronizationObjects() {
 
 void PixelRenderer::createBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags bufferproperties,
                                  VkBuffer *buffer, VkDeviceMemory *bufferMemory) {
+    LOG(Level::INFO, "");
 
     // does not have any memory, just a header
     VkBufferCreateInfo bufferInfo{};
@@ -927,6 +953,7 @@ void PixelRenderer::createBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags buf
 }
 
 void PixelRenderer::copySrcBuffertoDstBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize bufferSize) {
+    LOG(Level::INFO, "");
 
     // Command Buffer to hold the commands
     VkCommandBuffer transferCommandBuffer = beginSingleUseCommandBuffer();
@@ -943,6 +970,7 @@ void PixelRenderer::copySrcBuffertoDstBuffer(VkBuffer srcBuffer, VkBuffer dstBuf
 }
 
 void PixelRenderer::createVertexBuffer(std::shared_ptr<PixelObject> pixObject) {
+    LOG(Level::INFO, "");
 
     // temporary buffer to stage the vertex buffer before being transfered to the GPU
     VkBuffer stagingBuffer;
@@ -974,6 +1002,7 @@ void PixelRenderer::createVertexBuffer(std::shared_ptr<PixelObject> pixObject) {
 }
 
 void PixelRenderer::createTextureBuffer(PixelImage *pixImage) {
+    LOG(Level::INFO,"");
 
     // temporary buffer to stage the vertex buffer before being transfered to the GPU
     VkBuffer stagingBuffer;
@@ -1010,6 +1039,8 @@ void PixelRenderer::createTextureBuffer(PixelImage *pixImage) {
 }
 
 void PixelRenderer::createIndexBuffer(std::shared_ptr<PixelObject> pixObject) {
+    LOG(Level::INFO, "");
+
     // temporary buffer to stage the vertex buffer before being transfered to the GPU
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -1040,11 +1071,14 @@ void PixelRenderer::createIndexBuffer(std::shared_ptr<PixelObject> pixObject) {
 }
 
 void PixelRenderer::initializeObjectBuffers(std::shared_ptr<PixelObject> pixObject) {
+    LOG(Level::INFO, "");
+
     createVertexBuffer(pixObject);
     createIndexBuffer(pixObject);
 }
 
 void PixelRenderer::createUniformBuffers(std::shared_ptr<PixelScene> scene) {
+    LOG(Level::INFO, "");
 
     scene->resizeBuffers(m_pixSwapchain.swapchainImages.size());
 
@@ -1060,8 +1094,8 @@ void PixelRenderer::createUniformBuffers(std::shared_ptr<PixelScene> scene) {
 }
 
 void PixelRenderer::initializeScenes() {
+    LOG(Level::INFO, "Initializing Scenes");
 
-    printf("Initializing Scenes\n");
     // load an empty texture for use when texture is not defined.
     emptyTexture = PixelImage(0, 0, false);
     emptyTexture.loadEmptyTexture(&mainDevice);
@@ -1075,7 +1109,7 @@ void PixelRenderer::initializeScenes() {
 }
 
 void PixelRenderer::initializeScene(std::shared_ptr<PixelScene> scene) {
-    printf("\tInitializing Scene named: %s\n", scene->getName().c_str());
+    LOG(Level::INFO, "Initializing Scene named: %s", scene->getName().c_str());
 
     for (int i = 0; i < scene->getNumObjects(); i++) {
         initializeObjectBuffers(scene->getObjectAt(i)); // depends on graphics command pool
@@ -1090,7 +1124,7 @@ void PixelRenderer::initializeScene(std::shared_ptr<PixelScene> scene) {
 }
 
 void PixelRenderer::createScene() {
-    printf("Creating Default Scene\n");
+    LOG(Level::INFO, "Creating Default Scene");
 
     // create scene
     auto scene1 = std::make_shared<PixelScene>(&mainDevice);
@@ -1124,6 +1158,7 @@ void PixelRenderer::createScene() {
 }
 
 void PixelRenderer::createDescriptorPool(std::shared_ptr<PixelScene> scene) {
+    LOG(Level::INFO, "");
 
     size_t numTextureDescriptorSet = 1;
     size_t numUniformDescriptorSets = m_pixSwapchain.swapchainImages.size();
@@ -1158,6 +1193,8 @@ void PixelRenderer::createDescriptorPool(std::shared_ptr<PixelScene> scene) {
 }
 
 void PixelRenderer::createDescriptorSets(std::shared_ptr<PixelScene> scene) {
+    LOG(Level::INFO, "");
+
     // we have 1 Descriptor Set and 2 bindings. one binding for the VP matrices. one binding for the dynamic buffer object for M matrix.
     const size_t numImages = m_pixSwapchain.swapchainImages.size();
     // resize the descriptor sets to match the uniform buffers that contain its data
@@ -1184,8 +1221,7 @@ void PixelRenderer::createDescriptorSets(std::shared_ptr<PixelScene> scene) {
     textureSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     textureSetAllocateInfo.descriptorPool = *scene->getDescriptorPool();
     textureSetAllocateInfo.descriptorSetCount = 1;
-    textureSetAllocateInfo.pSetLayouts =
-        scene->getDescriptorSetLayout(TEXTURES); // matches the number of swapchain images but they are all the same.
+    textureSetAllocateInfo.pSetLayouts = scene->getDescriptorSetLayout(TEXTURES); // matches the number of swapchain images but they are all the same.
     // has to be 1:1 relationship with descriptor sets
 
     result = vkAllocateDescriptorSets(mainDevice.logicalDevice, &textureSetAllocateInfo, scene->getTextureDescriptorSet());
@@ -1264,6 +1300,8 @@ void PixelRenderer::createDescriptorSets(std::shared_ptr<PixelScene> scene) {
 }
 
 VkCommandBuffer PixelRenderer::beginSingleUseCommandBuffer() {
+    LOG(Level::INFO, "");
+
     // Command Buffer to hold the commands
     VkCommandBuffer transferCommandBuffer;
 
@@ -1287,6 +1325,7 @@ VkCommandBuffer PixelRenderer::beginSingleUseCommandBuffer() {
 }
 
 void PixelRenderer::submitAndEndSingleUseCommandBuffer(VkCommandBuffer *commandBuffer) {
+    LOG(Level::INFO, "");
 
     // end the given command buffer
     vkEndCommandBuffer(*commandBuffer);
@@ -1304,6 +1343,7 @@ void PixelRenderer::submitAndEndSingleUseCommandBuffer(VkCommandBuffer *commandB
 }
 
 void PixelRenderer::copySrcBuffertoDstImage(VkBuffer srcBuffer, VkImage dstImageBuffer, uint32_t width, uint32_t height) {
+    LOG(Level::INFO, "");
 
     // copying buffer memory to image memory
     VkCommandBuffer transferCommandBuffer = beginSingleUseCommandBuffer();
@@ -1327,6 +1367,7 @@ void PixelRenderer::copySrcBuffertoDstImage(VkBuffer srcBuffer, VkImage dstImage
 }
 
 void PixelRenderer::transitionImageLayout(VkImage imageToTransition, VkImageLayout currentLayout, VkImageLayout newLayout) {
+    LOG(Level::INFO, "");
 
     VkCommandBuffer commandBuffer = beginSingleUseCommandBuffer();
 
@@ -1388,6 +1429,7 @@ void PixelRenderer::transitionImageLayout(VkImage imageToTransition, VkImageLayo
 
 void PixelRenderer::transitionImageLayoutUsingCommandBuffer(VkCommandBuffer commandBuffer, VkImage imageToTransition, VkImageLayout currentLayout,
                                                             VkImageLayout newLayout) {
+    LOG(Level::INFO, "");
 
     // VkCommandBuffer commandBuffer = beginSingleUseCommandBuffer();
 
@@ -1499,7 +1541,8 @@ void PixelRenderer::transitionImageLayoutUsingCommandBuffer(VkCommandBuffer comm
 }
 
 void PixelRenderer::createTextureSampler() {
-    printf("Creating Texture Sampler\n");
+    LOG(Level::INFO, "Creating Texture Sampler");
+
     VkSamplerCreateInfo samplerCreateInfo{};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerCreateInfo.magFilter = VK_FILTER_LINEAR; // how to render when texture CLOSER to screen
@@ -1526,7 +1569,8 @@ void PixelRenderer::createTextureSampler() {
 void PixelRenderer::addScene(std::shared_ptr<PixelScene> scene) { m_scenes.push_back(scene); }
 
 void PixelRenderer::init_compute() {
-    printf("Init Compute Pipeline\n");
+    LOG(Level::INFO, "Init Compute Pipeline");
+
     computePipeline = PixelComputePipeline();
     computePipeline.init(&mainDevice);
 
@@ -1534,6 +1578,8 @@ void PixelRenderer::init_compute() {
 }
 
 void PixelRenderer::recordComputeCommands(uint32_t currentImageIndex) {
+    LOG(Level::INFO, "");
+
     VkCommandBufferBeginInfo bufferBeginInfo{};
     bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -1595,6 +1641,8 @@ void PixelRenderer::recordComputeCommands(uint32_t currentImageIndex) {
 }
 
 void PixelRenderer::updateComputeTextureDescriptor() {
+    LOG(Level::INFO, "");
+
     std::array<VkWriteDescriptorSet, 1> textureDescriptorInfo{};
 
     VkDescriptorImageInfo textureSamplerDescriptorInfo{};
@@ -1615,7 +1663,8 @@ void PixelRenderer::updateComputeTextureDescriptor() {
 }
 
 void PixelRenderer::init_io() {
-    printf("Initialization GLFW IO\n");
+    LOG(Level::INFO, "Initialization GLFW IO");
+
     glfwSetKeyCallback(pixWindow.getWindow(), key_callback);
     glfwSetMouseButtonCallback(pixWindow.getWindow(), mouse_callback);
     glfwSetScrollCallback(pixWindow.getWindow(), scroll_callback);
@@ -1624,6 +1673,8 @@ void PixelRenderer::init_io() {
 }
 
 void PixelRenderer::preDraw() {
+    // LOG(Level::INFO, "");
+
     double posX, posY;
     glfwGetCursorPos(pixWindow.getWindow(), &posX, &posY);
     mouseCoord.x = (int)glm::clamp(posX, 0.0, 1024.0);
@@ -1635,7 +1686,8 @@ void PixelRenderer::preDraw() {
 }
 
 void PixelRenderer::createDefaultGridScene() {
-    printf("Creating Default Grid Scene\n");
+    LOG(Level::INFO, "Creating Default Grid Scene");
+
     defaultGridScene = std::make_shared<PixelScene>(&mainDevice);
 
     // create mesh

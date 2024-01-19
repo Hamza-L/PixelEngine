@@ -6,6 +6,10 @@
 
 int main()
 {
+    Logger* log = Logger::get_instance();
+    log->setSeverity(Level::INFO);
+
+	LOG(Level::INFO, "main() entry point");
 
 	PixelRenderer pixRenderer;
 

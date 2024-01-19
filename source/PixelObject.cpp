@@ -10,7 +10,7 @@
 
 PixelObject::PixelObject(std::vector<Vertex> vertices, std::vector<uint32_t> indices): m_vertices(vertices), m_indices(indices) {
     //create the vertex buffer form the vertices
-    printf("PixelObject user constructed\n");
+    LOG(Level::DEBUG, "PixelObject Constructed");
     //createVertexBuffer(vertices);
 }
 

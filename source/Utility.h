@@ -16,6 +16,7 @@
 #include <iostream>
 #include <vector>
 #include <cstring>
+#include "PixelLogger.h"
 
 
 inline std::random_device rd;

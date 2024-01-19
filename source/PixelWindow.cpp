@@ -16,6 +16,7 @@ PixelWindow::~PixelWindow()
 
 void PixelWindow::initWindow(std::string wName, const int width, const int height)
 {
+    LOG(Level::INFO, "Initializing glfw window");
 	windowName = wName;
 	windowWidth = width;
 	windowHeight = height;
@@ -31,7 +32,6 @@ void PixelWindow::initWindow(std::string wName, const int width, const int heigh
     int testWidth, testHeight;
 
     glfwGetFramebufferSize(window, &testWidth, &testHeight); //TODO: on Macos, the framebuffer size is somehow double the window size
-	printf("breakpoint here");
 }
 
 GLFWwindow* PixelWindow::getWindow()
