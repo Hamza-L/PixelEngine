@@ -1,10 +1,11 @@
 #include "PixelLogger.h"
+#include <cstring>
 
 Logger *Logger::oneAndOnlyInstance = nullptr;
 int Logger::uniqueID = 0;
 int Logger::severity = 0;
 std::vector<std::string> Logger::logMessages{};
-int ScopeTracker::indentTracker = 0;
+int ScopeTracker::indentTracker = 1;
 
 static std::string severityEnumToString(Level severityLevel) {
     switch (severityLevel) {
@@ -27,12 +28,16 @@ void Logger::Log(Level messageSeverity, const char* fileName, const int lineNumb
     std::string formatedFileName = fileName;
     std::stringstream message;
 
+    message << severityEnumToString(messageSeverity) << " - ";
     formatedFileName = formatedFileName.substr(formatedFileName.find_last_of('/') + 1);
     for( int i = 0 ; i < ScopeTracker::indentTracker; i++ )
     {
         message << "\t";
     }
-    message <<  formatedFileName <<":" << lineNumber << " - " << func << "(...) : " << severityEnumToString(messageSeverity) << " - ";
+    message <<  formatedFileName <<":" << lineNumber << " - " << func << "(...)";
+
+    if(std::strcmp(fmt, ""))
+        message << "{\t//";
 
     va_list args;
     va_start(args, fmt);

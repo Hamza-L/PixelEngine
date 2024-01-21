@@ -27,9 +27,9 @@ class ScopeTracker {
   public:
     ScopeTracker() {
         for (int i = 0; i < indentTracker; i++) {
-            std::cout << "\t";
+            // std::cout << "\t";
         }
-        std::cout << "{\n" << std::flush;
+        // std::cout << "{\n" << std::flush;
         indentTracker++;
     }
     ~ScopeTracker() {

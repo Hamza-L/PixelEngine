@@ -10,6 +10,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 #include <set>
+#include <stdexcept>
 
 static int texIndex = 0;
 static int itemIndex = 0;
@@ -37,7 +38,28 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
                                                     VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                     const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData) {
 
-    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+    std::string message{};
+    Level messageLevel{};
+
+    switch(messageSeverity){
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+            messageLevel = Level::DEBUG;
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+            messageLevel = Level::INFO;
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+            messageLevel = Level::WARNING;
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+            messageLevel = Level::ERROR;
+            break;
+    }
+    LOG( messageLevel , "Validation Layer : %s", pCallbackData->pMessage );
+
+    if(messageLevel == Level::FATAL) {
+        exit(1);
+    }
 
     return VK_FALSE;
 }
@@ -65,7 +87,7 @@ int PixelRenderer::initRenderer() {
         createSynchronizationObjects();
         init_io();
     } catch (const std::runtime_error &e) {
-        fprintf(stderr, "ERROR: %s\n", e.what());
+        LOG(Level::FATAL, "%s", e.what());
         return EXIT_FAILURE;
     }
 
