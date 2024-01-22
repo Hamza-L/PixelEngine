@@ -7,7 +7,7 @@
 int main()
 {
     Logger* log = Logger::get_instance();
-    log->setSeverity(Level::INFO);
+    log->setSeverity(Level::DEBUG);
 
 	LOG(Level::INFO, "main() entry point");
 

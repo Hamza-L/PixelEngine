@@ -3,7 +3,7 @@
 
 Logger *Logger::oneAndOnlyInstance = nullptr;
 int Logger::uniqueID = 0;
-int Logger::severity = 0;
+Level Logger::severity = INFO;
 std::vector<std::string> Logger::logMessages{};
 int ScopeTracker::indentTracker = 1;
 
@@ -22,6 +22,19 @@ static std::string severityEnumToString(Level severityLevel) {
     }
     return "";
 }
+
+ScopeTracker::~ScopeTracker() {
+
+    Level globalLevel = Logger::get_instance()->getSeverity();
+        if (m_severity <= Logger::get_instance()->getSeverity()) {
+            for (int i = 0; i < indentTracker; i++) {
+                std::cout << "\t";
+            }
+            std::cout << "}" << std::endl;
+        }
+        indentTracker--;
+
+    }
 
 void Logger::Log(Level messageSeverity, const char* fileName, const int lineNumber, const char* func, const char* fmt, ...) {
     std::string inputMessage = fmt;

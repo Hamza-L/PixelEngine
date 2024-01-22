@@ -9,7 +9,7 @@
 
 #define LOG(level, ...)                                                                                                                              \
     Logger::get_instance()->Log((level), __FILE__, __LINE__, __func__, __VA_ARGS__);                                                                 \
-    ScopeTracker tracker {}
+    ScopeTracker tracker {level}
 
 #define LOG_VAR(level, variable) Logger::get_instance()->LogVar((level), #variable ": %s", Logger::ToString(variable).c_str())
 
@@ -21,27 +21,16 @@ enum Level {
     INFO // ...
 };
 
-
 class ScopeTracker {
   private:
   public:
-    ScopeTracker() {
-        for (int i = 0; i < indentTracker; i++) {
-            // std::cout << "\t";
-        }
-        // std::cout << "{\n" << std::flush;
+    ScopeTracker(Level severity) : m_severity(severity){
         indentTracker++;
     }
-    ~ScopeTracker() {
-        indentTracker--;
-
-        for (int i = 0; i < indentTracker; i++) {
-            std::cout << "\t";
-        }
-        std::cout << "}" << std::endl;
-    }
+    ~ScopeTracker();
 
     static int indentTracker;
+    Level m_severity;
 };
 
 class Logger { // singleton
@@ -50,7 +39,7 @@ class Logger { // singleton
 
     static Logger *oneAndOnlyInstance;
     static int uniqueID;
-    static int severity;
+    static Level severity;
     static std::vector<std::string> logMessages;
 
   public:
@@ -64,6 +53,7 @@ class Logger { // singleton
     }
 
     static void setSeverity(Level severityLevel) { severity = severityLevel; }
+    static Level getSeverity() { return severity; }
 
     static std::string ToString(int variable) { return std::to_string(variable); }
     static std::string ToString(double variable) { return std::to_string(variable); }
