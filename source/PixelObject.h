@@ -117,7 +117,7 @@ private:
     int texIDOffset = 0;
 
     //pipeline used
-    int graphicsPipelineIndex;
+    int graphicsPipelineIndex = 0;
 };
 
 

@@ -28,7 +28,11 @@ class PixelRenderer {
     PixelRenderer &operator=(const PixelRenderer &) = delete;
     ~PixelRenderer() = default;
 
+    // factory creation function
+    PixelScene* createScene();
+
     int initRenderer();
+    void build(PixelScene* scene);
     void addScene(std::shared_ptr<PixelScene> scene);
     void draw();
     void run();
@@ -67,6 +71,7 @@ class PixelRenderer {
     std::vector<VkCommandBuffer> computeCommandBuffers;
     std::vector<std::unique_ptr<PixelGraphicsPipeline>> graphicsPipelines;
     std::unique_ptr<PixelGraphicsPipeline> defaultGridGraphicsPipeline;
+    std::shared_ptr<PixelGraphicsPipeline> defaultGraphicsPipeline;
     PixelComputePipeline computePipeline;
 
     // images
@@ -100,15 +105,15 @@ class PixelRenderer {
     void createLogicalDevice(VkDevice* device, VkPhysicalDevice* physicalDevice);
     void createSurface(VkSurfaceKHR* surface, VkInstance* instance, GLFWwindow* window);
     void createSwapChain(PixSwapchain* swapchain, PixBackend* devices, VkSurfaceKHR* surface);
-    void createGraphicsPipelines();
+    void createGraphicsPipeline(PixelScene* scene);
+    void createGridSceneGraphicsPipelines();
+    void createDefaultGraphicsPipeline();
     void createFramebuffers();
     void createCommandPools();
     void createCommandBuffers();
     void createComputeCommandBuffers();
-    void createScene();
     void createDefaultGridScene();
     void initializeScenes();
-    void initializeScene(std::shared_ptr<PixelScene> scene);
     void createSynchronizationObjects();
     void recordCommands(uint32_t currentImageIndex);
     void recordComputeCommands(uint32_t currentImageIndex);
@@ -120,9 +125,9 @@ class PixelRenderer {
     void preDraw();
 
     // descriptor Set (for scene initialization)
-    void createDescriptorPool(std::shared_ptr<PixelScene> scene);
-    void createDescriptorSets(std::shared_ptr<PixelScene> scene);
-    void createUniformBuffers(std::shared_ptr<PixelScene> scene);
+    void createDescriptorPool(PixelScene* scene);
+    void createDescriptorSets(PixelScene* scene);
+    void createUniformBuffers(PixelScene* scene);
     void updateComputeTextureDescriptor();
 
     // debug validation layer

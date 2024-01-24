@@ -160,7 +160,7 @@ void PixelGraphicsPipeline::populateGraphicsPipelineInfo() {
     vertexCreateShaderInfo.module = vertexShaderModule;
     vertexCreateShaderInfo.pName = "main"; //the entry point of the shader
 
-    //Vertex-Stage creation
+    //fragment-Stage creation
     fragmentCreateShaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragmentCreateShaderInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
     fragmentCreateShaderInfo.module = fragmentShaderModule;
@@ -288,7 +288,7 @@ VkPipeline PixelGraphicsPipeline::getPipeline() {
     return graphicsPipeline;
 }
 
-void PixelGraphicsPipeline::populatePipelineLayout(std::shared_ptr<PixelScene> scene) {
+void PixelGraphicsPipeline::populatePipelineLayout(PixelScene* scene) {
 
     //pipeline layout
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

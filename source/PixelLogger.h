@@ -13,6 +13,9 @@
 
 #define LOG_VAR(level, variable) Logger::get_instance()->LogVar((level), #variable ": %s", Logger::ToString(variable).c_str())
 
+#define VK_CHECK(vkFunc) if(vkFunc != VK_SUCCESS){ LOG(Level::ERROR, "");}
+
+
 enum Level {
     FATAL,
     ERROR,

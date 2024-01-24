@@ -2,10 +2,10 @@
 
 #include "PixelRenderer.h"
 
+#include "PixelLogger.h"
 #include "Utility.h"
 #include "kb_input.h"
 #include "vulkan/vulkan_core.h"
-#include <cmath>
 #include <cstdio>
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
@@ -54,11 +54,15 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
             messageLevel = Level::ERROR;
             break;
+        default:
+            messageLevel = Level::INFO;
+            break;
     }
-    LOG( messageLevel , "Validation Layer : %s", pCallbackData->pMessage );
+
+    std::cout << pCallbackData->pMessage << std::endl;
 
     if(messageLevel == Level::FATAL) {
-        exit(1);
+        throw std::runtime_error("Validation layer has returned fatal error");
     }
 
     return VK_FALSE;
@@ -79,10 +83,12 @@ int PixelRenderer::initRenderer() {
         createCommandBuffers();
         // createComputeCommandBuffers();
         // init_compute();
+        createDefaultGraphicsPipeline();
         createDefaultGridScene();
-        createScene();
+        createGridSceneGraphicsPipelines();
+        // createScene();
         initializeScenes();
-        createGraphicsPipelines(); // needs the descriptor set layout of the scene
+        // createGraphicsPipelines(); // needs the descriptor set layout of the scene
         createFramebuffers();      // need the renderbuffer for the graphics pipeline
         createSynchronizationObjects();
         init_io();
@@ -207,9 +213,7 @@ void PixelRenderer::createInstance(VkInstance *instance) {
     }
 
     // create the vulkan instance
-    if (vkCreateInstance(&createInfo, nullptr, instance) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create a vulkan instance \n");
-    }
+    VK_CHECK(vkCreateInstance(&createInfo, nullptr, instance));
     fflush(stdout);
 }
 
@@ -278,10 +282,7 @@ void PixelRenderer::createLogicalDevice(VkDevice *device, VkPhysicalDevice *phys
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
 
     // create logical device for the given phyisical device
-    VkResult result = vkCreateDevice(*physicalDevice, &deviceCreateInfo, nullptr, device);
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("Error creating the logical device\n");
-    }
+    VK_CHECK(vkCreateDevice(*physicalDevice, &deviceCreateInfo, nullptr, device));
 
     // we have implicitely created the graphics queue (using deviceQueueCreateInfo. we want access to them
     // from given logical device, of given queue family, of given queue index (only have 1 queue so queueIndex = 0)
@@ -296,11 +297,7 @@ void PixelRenderer::createSurface(VkSurfaceKHR *surface, VkInstance *instance, G
     LOG(Level::INFO, "Creating Vulkan Surface");
 
     // create surface (helper function creating a surface create info struct for us, returns result)
-    VkResult result = glfwCreateWindowSurface(*instance, window, nullptr, surface);
-
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create surface\n");
-    }
+    VK_CHECK(glfwCreateWindowSurface(*instance, window, nullptr, surface));
     fflush(stdout);
 }
 
@@ -355,10 +352,7 @@ void PixelRenderer::createSwapChain(PixSwapchain *swapchain, PixBackend *devices
     swapChainCreateInfo.oldSwapchain = swapchain->oldSwapchain;
     swapChainCreateInfo.surface = *surface;
 
-    VkResult result = vkCreateSwapchainKHR(devices->logicalDevice, &swapChainCreateInfo, nullptr, &swapchain->swapchain);
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("failed to create a swapChain\n");
-    }
+    VK_CHECK(vkCreateSwapchainKHR(devices->logicalDevice, &swapChainCreateInfo, nullptr, &swapchain->swapchain));
 
     // store for later reference
     swapchain->format = surfaceFormat.format;
@@ -396,9 +390,7 @@ void PixelRenderer::setupDebugMessenger(VkInstance *instance) {
     populateDebugMessengerCreateInfo(createInfo);
     createInfo.pUserData = nullptr; // Optional
 
-    if (CreateDebugUtilsMessengerEXT(*instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
-        throw std::runtime_error("failed to set up debug messenger!");
-    }
+    VK_CHECK(CreateDebugUtilsMessengerEXT(*instance, &createInfo, nullptr, &debugMessenger));
     fflush(stdout);
 }
 
@@ -559,7 +551,26 @@ SwapchainDetails PixelRenderer::getSwapChainDetails(VkPhysicalDevice device) {
     return swapChainDetails;
 }
 
-void PixelRenderer::createGraphicsPipelines() {
+void PixelRenderer::createDefaultGraphicsPipeline() {
+}
+
+void PixelRenderer::createGridSceneGraphicsPipelines() {
+    // default grid scene
+    defaultGridGraphicsPipeline = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, m_pixSwapchain.extent);
+    defaultGridGraphicsPipeline->addVertexShader("shaders/gridVert.spv");
+    defaultGridGraphicsPipeline->addFragmentShader("shaders/gridFrag.spv");
+    defaultGridGraphicsPipeline->populateGraphicsPipelineInfo();
+    defaultGridGraphicsPipeline->addRenderpassColorAttachment(m_pixSwapchain.swapchainImages[0].getFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
+                                                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ATTACHMENT_STORE_OP_STORE,
+                                                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+    defaultGridGraphicsPipeline->addRenderpassDepthAttachment(m_pixSwapchain.depthImage->getFormat());
+    defaultGridGraphicsPipeline->populatePipelineLayout(defaultGridScene.get()); // populate the pipeline layout based on the scene's descriptor set
+
+    defaultGridGraphicsPipeline->createGraphicsPipeline(VK_NULL_HANDLE); // creates a renderpass if none were provided
+}
+
+void PixelRenderer::createGraphicsPipeline(PixelScene* scene) {
     LOG(Level::INFO, "Initializing Scenes");
 
     // pipeline1
@@ -567,24 +578,11 @@ void PixelRenderer::createGraphicsPipelines() {
     graphicsPipeline1->addVertexShader("shaders/vert.spv");
     graphicsPipeline1->addFragmentShader("shaders/frag.spv");
     graphicsPipeline1->populateGraphicsPipelineInfo();
-    graphicsPipeline1->addRenderpassColorAttachment(m_pixSwapchain.swapchainImages[0].getFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
-                                                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ATTACHMENT_STORE_OP_STORE,
-                                                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     graphicsPipeline1->addRenderpassDepthAttachment(m_pixSwapchain.depthImage->getFormat());
-    graphicsPipeline1->populatePipelineLayout(m_scenes[0]); // populate the pipeline layout based on the scene's descriptor set
+    graphicsPipeline1->populatePipelineLayout(scene); // populate the pipeline layout based on the scene's descriptor set
 
-    graphicsPipeline1->createGraphicsPipeline(VK_NULL_HANDLE); // creates a renderpass if none were provided
+    graphicsPipeline1->createGraphicsPipeline(defaultGridGraphicsPipeline->getRenderPass()); // creates a renderpass if none were provided
 
-    // pipeline1
-    defaultGridGraphicsPipeline = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, m_pixSwapchain.extent);
-    defaultGridGraphicsPipeline->addVertexShader("shaders/gridVert.spv");
-    defaultGridGraphicsPipeline->addFragmentShader("shaders/gridFrag.spv");
-    defaultGridGraphicsPipeline->populateGraphicsPipelineInfo();
-
-    defaultGridGraphicsPipeline->addRenderpassDepthAttachment(m_pixSwapchain.depthImage->getFormat());
-    defaultGridGraphicsPipeline->populatePipelineLayout(defaultGridScene); // populate the pipeline layout based on the scene's descriptor set
-
-    defaultGridGraphicsPipeline->createGraphicsPipeline(graphicsPipeline1->getRenderPass()); // creates a renderpass if none were provided
 
     graphicsPipelines.push_back(std::move(graphicsPipeline1));
     fflush(stdout);
@@ -608,17 +606,14 @@ void PixelRenderer::createFramebuffers() {
         // create a framebuffer for each swapchain images;
         VkFramebufferCreateInfo framebufferCreateInfo{};
         framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferCreateInfo.renderPass = graphicsPipelines[0]->getRenderPass(); // grab the first graphics pipeline's renderpass
+        framebufferCreateInfo.renderPass = defaultGridGraphicsPipeline->getRenderPass(); // grab the first graphics pipeline's renderpass
         framebufferCreateInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferCreateInfo.pAttachments = attachments.data();
         framebufferCreateInfo.width = m_pixSwapchain.extent.width;
         framebufferCreateInfo.height = m_pixSwapchain.extent.height;
         framebufferCreateInfo.layers = (uint32_t)1;
 
-        VkResult result = vkCreateFramebuffer(mainDevice.logicalDevice, &framebufferCreateInfo, nullptr, &swapchainFramebuffers[i]);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to create framebuffer");
-        }
+        VK_CHECK(vkCreateFramebuffer(mainDevice.logicalDevice, &framebufferCreateInfo, nullptr, &swapchainFramebuffers[i]));
     }
     fflush(stdout);
 }
@@ -633,20 +628,14 @@ void PixelRenderer::createCommandPools() {
     poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // automatically forces reset when a vkBeginCmdBuffer is called
     poolCreateInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
 
-    VkResult result = vkCreateCommandPool(mainDevice.logicalDevice, &poolCreateInfo, nullptr, &graphicsCommandPool);
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create Graphics Command Pool");
-    }
+    VK_CHECK(vkCreateCommandPool(mainDevice.logicalDevice, &poolCreateInfo, nullptr, &graphicsCommandPool));
 
     VkCommandPoolCreateInfo computePoolCreateInfo{};
     computePoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     computePoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // automatically forces reset when a vkBeginCmdBuffer is called
     computePoolCreateInfo.queueFamilyIndex = queueFamilyIndices.computeFamily;
 
-    result = vkCreateCommandPool(mainDevice.logicalDevice, &computePoolCreateInfo, nullptr, &computeCommandPool);
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create Compute Command Pool");
-    }
+    VK_CHECK(vkCreateCommandPool(mainDevice.logicalDevice, &computePoolCreateInfo, nullptr, &computeCommandPool));
     fflush(stdout);
 }
 
@@ -663,11 +652,8 @@ void PixelRenderer::createCommandBuffers() {
                                                                        // can only be called by other commands buffers
     commandBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
-    VkResult result = vkAllocateCommandBuffers(mainDevice.logicalDevice, &commandBufferAllocateInfo,
-                                               commandBuffers.data()); // we create all the command buffers simultaneously
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate command buffers");
-    }
+    VK_CHECK(vkAllocateCommandBuffers(mainDevice.logicalDevice, &commandBufferAllocateInfo,
+                                               commandBuffers.data())); // we create all the command buffers simultaneously
     // no need to dealocate or destroyed the command buffers. they are destroy along the command pool
     fflush(stdout);
 }
@@ -684,11 +670,8 @@ void PixelRenderer::createComputeCommandBuffers() {
                                                                        // can only be called by other commands buffers
     commandBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(computeCommandBuffers.size());
 
-    VkResult result = vkAllocateCommandBuffers(mainDevice.logicalDevice, &commandBufferAllocateInfo,
-                                               computeCommandBuffers.data()); // we create all the command buffers simultaneously
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate command buffers");
-    }
+    VK_CHECK(vkAllocateCommandBuffers(mainDevice.logicalDevice, &commandBufferAllocateInfo,
+                                               computeCommandBuffers.data())); // we create all the command buffers simultaneously
     // no need to dealocate or destroyed the command buffers. they are destroy along the command pool
     fflush(stdout);
 }
@@ -716,10 +699,7 @@ void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
     renderPassBeginInfo.pClearValues = clearValues.data();
     renderPassBeginInfo.framebuffer = swapchainFramebuffers[currentImageIndex]; // the framebuffer changes per swapchain image (ie command buffer)
 
-    VkResult result = vkBeginCommandBuffer(commandBuffers[currentImageIndex], &bufferBeginInfo);
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("failed to being recording command");
-    }
+    VK_CHECK(vkBeginCommandBuffer(commandBuffers[currentImageIndex], &bufferBeginInfo));
 
     /*
      * Series of command to record
@@ -788,10 +768,7 @@ void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
      * End of the series of command to record
      * */
 
-    result = vkEndCommandBuffer(commandBuffers[currentImageIndex]);
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("failed to end recording command");
-    }
+    VK_CHECK(vkEndCommandBuffer(commandBuffers[currentImageIndex]));
 }
 
 void PixelRenderer::draw() {
@@ -858,10 +835,7 @@ void PixelRenderer::draw() {
     submitInfo.pSignalSemaphores = &renderFinishedSemaphore[currentFrame]; // semaphores to signal when the command buffer is finished
 
     // submit this commandBuffer[imageIndex] to this graphicsQueue. it's essentially our execute function
-    VkResult result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightDrawFences[currentFrame]);
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("failed to submit queue");
-    }
+    VK_CHECK(vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightDrawFences[currentFrame]));
 
     // present the rendered image to the screen
     VkPresentInfoKHR presentInfo{};
@@ -872,10 +846,7 @@ void PixelRenderer::draw() {
     presentInfo.pSwapchains = &m_pixSwapchain.swapchain;
     presentInfo.pImageIndices = &imageIndex;
 
-    result = vkQueuePresentKHR(graphicsQueue, &presentInfo);
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("failed to present image");
-    }
+    VK_CHECK(vkQueuePresentKHR(graphicsQueue, &presentInfo));
 
     currentFrame = (currentFrame + 1) % MAX_FRAME_DRAWS;
 }
@@ -911,30 +882,11 @@ void PixelRenderer::createSynchronizationObjects() {
     VkResult result;
 
     for (size_t i = 0; i < MAX_FRAME_DRAWS; i++) {
-        result = vkCreateSemaphore(mainDevice.logicalDevice, &semaphoreCreateInfo, nullptr, &imageAvailableSemaphore[i]);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create the imageAvailable Semaphore");
-        }
-
-        result = vkCreateSemaphore(mainDevice.logicalDevice, &semaphoreCreateInfo, nullptr, &renderFinishedSemaphore[i]);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create the renderFinished Semaphore");
-        }
-
-        result = vkCreateSemaphore(mainDevice.logicalDevice, &semaphoreCreateInfo, nullptr, &computeFinishedSemaphore[i]);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create the computeFinished Semaphore");
-        }
-
-        result = vkCreateFence(mainDevice.logicalDevice, &fenceCreateInfo, nullptr, &inFlightComputeFences[i]);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create the inflight compute fences");
-        }
-
-        result = vkCreateFence(mainDevice.logicalDevice, &fenceCreateInfo, nullptr, &inFlightDrawFences[i]);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create the inflight draw fences");
-        }
+        VK_CHECK(vkCreateSemaphore(mainDevice.logicalDevice, &semaphoreCreateInfo, nullptr, &imageAvailableSemaphore[i]));
+        VK_CHECK(vkCreateSemaphore(mainDevice.logicalDevice, &semaphoreCreateInfo, nullptr, &renderFinishedSemaphore[i]));
+        VK_CHECK(vkCreateSemaphore(mainDevice.logicalDevice, &semaphoreCreateInfo, nullptr, &computeFinishedSemaphore[i]));
+        VK_CHECK(vkCreateFence(mainDevice.logicalDevice, &fenceCreateInfo, nullptr, &inFlightComputeFences[i]));
+        VK_CHECK(vkCreateFence(mainDevice.logicalDevice, &fenceCreateInfo, nullptr, &inFlightDrawFences[i]));
     }
     fflush(stdout);
 }
@@ -950,11 +902,7 @@ void PixelRenderer::createBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags buf
     bufferInfo.usage = bufferUsageFlags;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    VkResult result = vkCreateBuffer(mainDevice.logicalDevice, &bufferInfo, nullptr, buffer);
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("failed to create vertex buffer");
-        // give access to memory [beep(2) boop(9) bop(4)]
-    }
+    VK_CHECK(vkCreateBuffer(mainDevice.logicalDevice, &bufferInfo, nullptr, buffer));
 
     // get buffer memory requirements
     VkMemoryRequirements memoryRequirements{};
@@ -966,10 +914,7 @@ void PixelRenderer::createBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags buf
     allocateInfo.allocationSize = memoryRequirements.size;
     allocateInfo.memoryTypeIndex = findMemoryTypeIndex(mainDevice.physicalDevice, memoryRequirements.memoryTypeBits, bufferproperties);
 
-    result = vkAllocateMemory(mainDevice.logicalDevice, &allocateInfo, nullptr, bufferMemory);
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("Failed to allocate device memory for object");
-    }
+    VK_CHECK(vkAllocateMemory(mainDevice.logicalDevice, &allocateInfo, nullptr, bufferMemory));
 
     vkBindBufferMemory(mainDevice.logicalDevice, *buffer, *bufferMemory, 0);
 }
@@ -1099,7 +1044,7 @@ void PixelRenderer::initializeObjectBuffers(std::shared_ptr<PixelObject> pixObje
     createIndexBuffer(pixObject);
 }
 
-void PixelRenderer::createUniformBuffers(std::shared_ptr<PixelScene> scene) {
+void PixelRenderer::createUniformBuffers(PixelScene* scene) {
     LOG(Level::INFO, "");
 
     scene->resizeBuffers(m_pixSwapchain.swapchainImages.size());
@@ -1124,14 +1069,16 @@ void PixelRenderer::initializeScenes() {
     createTextureBuffer(&emptyTexture);
 
     // initialize all objects in the scene
-    for (auto &scene : m_scenes) {
-        initializeScene(scene);
-    }
+    // for (auto &scene : m_scenes) {
+    //     initializeScene(scene);
+    // }
     fflush(stdout);
 }
 
-void PixelRenderer::initializeScene(std::shared_ptr<PixelScene> scene) {
+void PixelRenderer::build(PixelScene* scene) {
     LOG(Level::INFO, "Initializing Scene named: %s", scene->getName().c_str());
+
+    scene->initialize(&mainDevice);
 
     for (int i = 0; i < scene->getNumObjects(); i++) {
         initializeObjectBuffers(scene->getObjectAt(i)); // depends on graphics command pool
@@ -1143,43 +1090,11 @@ void PixelRenderer::initializeScene(std::shared_ptr<PixelScene> scene) {
     createUniformBuffers(scene);
     createDescriptorPool(scene);
     createDescriptorSets(scene);
+
+    createGraphicsPipeline(scene);
 }
 
-void PixelRenderer::createScene() {
-    LOG(Level::INFO, "Creating Default Scene");
-
-    // create scene
-    auto scene1 = std::make_shared<PixelScene>(&mainDevice);
-
-    // create mesh
-    std::vector<PixelObject::Vertex> vertices = {
-        {{-1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // 0
-        {{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},  // 1
-        {{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},   // 2
-        {{-1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}   // 3
-    };
-    std::vector<uint32_t> indices{1, 2, 0, 2, 3, 0};
-
-    auto square = std::make_shared<PixelObject>(vertices, indices);
-
-    square->addTexture(&mainDevice, "Skull.jpg");
-    square->setGraphicsPipelineIndex(0);
-    // square.addTexture(computePipeline.getOutputTexture());
-    // square.addTexture(computePipeline.getCustomTexture());
-
-    // square.hide();
-
-    // firstScene->addObject(object1);
-    scene1->addObject(square);
-
-    // mug.setTexID(1); //TODO:problem there. value not copied
-
-    m_scenes.push_back(scene1);
-
-    fflush(stdout);
-}
-
-void PixelRenderer::createDescriptorPool(std::shared_ptr<PixelScene> scene) {
+void PixelRenderer::createDescriptorPool(PixelScene* scene) {
     LOG(Level::INFO, "");
 
     size_t numTextureDescriptorSet = 1;
@@ -1208,13 +1123,10 @@ void PixelRenderer::createDescriptorPool(std::shared_ptr<PixelScene> scene) {
     poolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolCreateInfo.pPoolSizes = poolSizes.data();
 
-    VkResult result = vkCreateDescriptorPool(mainDevice.logicalDevice, &poolCreateInfo, nullptr, scene->getDescriptorPool());
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create descriptor pool");
-    }
+    VK_CHECK(vkCreateDescriptorPool(mainDevice.logicalDevice, &poolCreateInfo, nullptr, scene->getDescriptorPool()));
 }
 
-void PixelRenderer::createDescriptorSets(std::shared_ptr<PixelScene> scene) {
+void PixelRenderer::createDescriptorSets(PixelScene* scene) {
     LOG(Level::INFO, "");
 
     // we have 1 Descriptor Set and 2 bindings. one binding for the VP matrices. one binding for the dynamic buffer object for M matrix.
@@ -1233,10 +1145,7 @@ void PixelRenderer::createDescriptorSets(std::shared_ptr<PixelScene> scene) {
     uboSetAllocateInfo.pSetLayouts = uniformDescriptorSetLayouts.data(); // matches the number of swapchain images but they are all the same.
                                                                          //  has to be 1:1 relationship with descriptor sets
 
-    VkResult result = vkAllocateDescriptorSets(mainDevice.logicalDevice, &uboSetAllocateInfo, scene->getUniformDescriptorSets()->data());
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate descriptor set for ubos");
-    }
+    VK_CHECK(vkAllocateDescriptorSets(mainDevice.logicalDevice, &uboSetAllocateInfo, scene->getUniformDescriptorSets()->data()));
 
     // allocate info for texture descriptor set. they are not created but allocated from the pool
     VkDescriptorSetAllocateInfo textureSetAllocateInfo{};
@@ -1246,10 +1155,7 @@ void PixelRenderer::createDescriptorSets(std::shared_ptr<PixelScene> scene) {
     textureSetAllocateInfo.pSetLayouts = scene->getDescriptorSetLayout(TEXTURES); // matches the number of swapchain images but they are all the same.
     // has to be 1:1 relationship with descriptor sets
 
-    result = vkAllocateDescriptorSets(mainDevice.logicalDevice, &textureSetAllocateInfo, scene->getTextureDescriptorSet());
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate descriptor set for textures");
-    }
+    VK_CHECK(vkAllocateDescriptorSets(mainDevice.logicalDevice, &textureSetAllocateInfo, scene->getTextureDescriptorSet()));
 
     // all of the descriptor pool and descriptor set created are used to build these following struct
     for (size_t i = 0; i < scene->getUniformDescriptorSets()->size(); i++) {
@@ -1581,11 +1487,46 @@ void PixelRenderer::createTextureSampler() {
     samplerCreateInfo.anisotropyEnable = VK_TRUE;
     samplerCreateInfo.maxAnisotropy = 16; // number of samples taken for the anisotropy filtering
 
-    VkResult result = vkCreateSampler(mainDevice.logicalDevice, &samplerCreateInfo, nullptr, &imageSampler);
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("failed to create sampler");
-    }
+    VK_CHECK(vkCreateSampler(mainDevice.logicalDevice, &samplerCreateInfo, nullptr, &imageSampler));
     fflush(stdout);
+}
+
+
+PixelScene* PixelRenderer::createScene(){
+    LOG(Level::INFO, "Creating Scene");
+
+    // create scene
+    auto scene = std::make_shared<PixelScene>();
+    scene->setSceneID(m_scenes.size());
+
+    // // create mesh
+    // std::vector<PixelObject::Vertex> vertices = {
+    //     {{-1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // 0
+    //     {{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},  // 1
+    //     {{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},   // 2
+    //     {{-1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}   // 3
+    // };
+    // std::vector<uint32_t> indices{1, 2, 0, 2, 3, 0};
+
+    // auto square = std::make_shared<PixelObject>(vertices, indices);
+
+    // square->addTexture(&mainDevice, "Skull.jpg");
+    // square->setGraphicsPipelineIndex(0);
+    // // square.addTexture(computePipeline.getOutputTexture());
+    // // square.addTexture(computePipeline.getCustomTexture());
+
+    // // square.hide();
+
+    // // firstScene->addObject(object1);
+    // scene->addObject(square);
+
+    // // mug.setTexID(1); //TODO:problem there. value not copied
+
+    m_scenes.push_back(scene);
+
+    fflush(stdout);
+    return scene.get();
+
 }
 
 void PixelRenderer::addScene(std::shared_ptr<PixelScene> scene) { m_scenes.push_back(scene); }
@@ -1605,10 +1546,7 @@ void PixelRenderer::recordComputeCommands(uint32_t currentImageIndex) {
     VkCommandBufferBeginInfo bufferBeginInfo{};
     bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-    VkResult result = vkBeginCommandBuffer(computeCommandBuffers[currentImageIndex], &bufferBeginInfo);
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("failed to being recording compute command");
-    }
+    VK_CHECK(vkBeginCommandBuffer(computeCommandBuffers[currentImageIndex], &bufferBeginInfo));
 
     transitionImageLayoutUsingCommandBuffer(computeCommandBuffers[currentImageIndex], computePipeline.getInputTexture()->getImage(),
                                             VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
@@ -1656,10 +1594,7 @@ void PixelRenderer::recordComputeCommands(uint32_t currentImageIndex) {
     transitionImageLayoutUsingCommandBuffer(computeCommandBuffers[currentImageIndex], computePipeline.getOutputTexture()->getImage(),
                                             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    result = vkEndCommandBuffer(computeCommandBuffers[currentImageIndex]);
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("failed to record compute command buffer!");
-    }
+    VK_CHECK(vkEndCommandBuffer(computeCommandBuffers[currentImageIndex]));
 }
 
 void PixelRenderer::updateComputeTextureDescriptor() {
@@ -1710,7 +1645,7 @@ void PixelRenderer::preDraw() {
 void PixelRenderer::createDefaultGridScene() {
     LOG(Level::INFO, "Creating Default Grid Scene");
 
-    defaultGridScene = std::make_shared<PixelScene>(&mainDevice);
+    defaultGridScene = std::make_shared<PixelScene>();
 
     // create mesh
     std::vector<PixelObject::Vertex> vertices = {
@@ -1722,8 +1657,10 @@ void PixelRenderer::createDefaultGridScene() {
     std::vector<uint32_t> indices{1, 2, 0, 2, 3, 0};
 
     auto square = std::make_shared<PixelObject>(vertices, indices);
-    square->setGraphicsPipelineIndex(0);
+    // square->setGraphicsPipelineIndex(0);
 
     defaultGridScene->addObject(square);
+    defaultGridScene->initialize(&mainDevice);
+
     fflush(stdout);
 }

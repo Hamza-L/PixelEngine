@@ -18,9 +18,31 @@ int main()
 		return EXIT_FAILURE;
 	}
 
-	//PixelScene scene;
-	//pixRenderer.build(&scene) //creates the whole backend appropriate for the scene (ie connects the scene to the renderer)
+    PixelScene* mainScene = pixRenderer.createScene();
 
+    std::vector<PixelObject::Vertex> vertices = {
+        {{-1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // 0
+        {{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},  // 1
+        {{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},   // 2
+        {{-1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}   // 3
+    };
+    std::vector<uint32_t> indices{1, 2, 0, 2, 3, 0};
+
+    auto square = std::make_shared<PixelObject>(vertices, indices);
+
+    // square->addTexture(&mainDevice, "Skull.jpg");
+    square->setGraphicsPipelineIndex(0);
+    // square.addTexture(computePipeline.getOutputTexture());
+    // square.addTexture(computePipeline.getCustomTexture());
+
+    // square.hide();
+
+    // firstScene->addObject(object1);
+    mainScene->addObject(square);
+
+
+
+    pixRenderer.build(mainScene);
     pixRenderer.run();
 
 

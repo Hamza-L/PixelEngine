@@ -7,6 +7,9 @@
 PixelImage::PixelImage(uint32_t width, uint32_t height, bool isSwapChainImage , VkFormat format) : m_width(width), m_height(height), m_IsSwapChainImage(isSwapChainImage), m_format(format) {
 }
 
+PixelImage::PixelImage(const char* imageFile, VkFormat format) : fileName(imageFile), m_format(format){
+}
+
 void PixelImage::cleanUp(PixBackend* devices)
 {
     stbi_image_free(m_imageData);

@@ -18,6 +18,7 @@
 class PixelImage {
 public:
     PixelImage(uint32_t width, uint32_t height, bool isSwapChainImage = false, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
+    PixelImage(const char* imageFile, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
     PixelImage() = default;
 
     //cleanup
@@ -63,6 +64,7 @@ private:
     uint32_t m_width{};
     uint32_t m_height{};
     std::string imageName{};
+    std::string fileName{};
     bool m_IsSwapChainImage = false;
     bool m_ImageInitialized = false;
     bool m_ressourcesCleaned = false;

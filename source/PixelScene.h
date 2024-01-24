@@ -8,6 +8,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include "PixelObject.h"
+#include "PixelLogger.h"
 
 
 static const glm::mat4 MAT4_IDENTITY = {1,0,0,0,
@@ -24,8 +25,7 @@ enum DescSetLayoutIndex{
 
 class PixelScene {
 public:
-    PixelScene(PixBackend* backend);
-    PixelScene() = default;
+    PixelScene();
     //PixelScene(const PixelScene&) = delete;
 
     struct UboVP{
@@ -52,6 +52,7 @@ public:
     VkBuffer* getDynamicUniformBuffers(int index);
     VkDeviceMemory* getDynamicUniformBufferMemories(int index);
     int getNumObjects();
+    unsigned int getSceneID(){return m_sceneID;}
     std::shared_ptr<PixelObject> getObjectAt(int index);
     std::vector<PixelImage> getAllTextures();
     UboVP getSceneVP();
@@ -66,6 +67,8 @@ public:
     void setSceneP(glm::mat4 P);
     void setCameraPos(glm::vec3 camPos);
     void setLookAtPos(glm::vec3 lookAtPos);
+    void setSceneID(unsigned int sceneID){m_sceneID = sceneID;}
+
 
     //create functions
     void createDescriptorSetLayout(PixBackend* devices);
@@ -80,14 +83,13 @@ public:
     void resizeDesciptorSets(size_t newSize);
     static bool areMatricesEqual(glm::mat4 x, glm::mat4 y);
 
-
-
     //cleanup
     void cleanup(PixBackend* devices);
 
 private:
 
     std::string m_sceneName{};
+    unsigned int m_sceneID{};
 
     //objects
     std::vector<std::shared_ptr<PixelObject>> allObjects{};

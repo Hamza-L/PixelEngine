@@ -9,10 +9,9 @@
 #include <vector>
 #include <cstdlib>
 
-PixelScene::PixelScene(PixBackend* devices)
+PixelScene::PixelScene()
 {
     LOG(Level::DEBUG, "PixelScene Constructed");
-    initialize(devices);
 }
 
 void PixelScene::cleanup(PixBackend* devices)
@@ -121,6 +120,7 @@ void PixelScene::updateUniformBuffer(PixBackend* devices, uint32_t bufferIndex)
 }
 
 void PixelScene::createDescriptorSetLayout(PixBackend* devices) {
+    LOG(Level::DEBUG, "Creating Descriptor set Layout");
 
     VkDescriptorSetLayout uniformDescriptorSetLayout{};
     VkDescriptorSetLayout textureDescriptorSetLayout{};
@@ -157,11 +157,7 @@ void PixelScene::createDescriptorSetLayout(PixBackend* devices) {
     uniformBufferObjectDescriptorSetlayoutCreateInfo.pBindings = descriptorSetLayoutBindings.data();
     uniformBufferObjectDescriptorSetlayoutCreateInfo.bindingCount = static_cast<uint32_t>(descriptorSetLayoutBindings.size());
 
-    VkResult result = vkCreateDescriptorSetLayout(devices->logicalDevice, &uniformBufferObjectDescriptorSetlayoutCreateInfo, nullptr, &uniformDescriptorSetLayout);
-    if(result != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create descriptor set layout for ubos");
-    }
+    VK_CHECK(vkCreateDescriptorSetLayout(devices->logicalDevice, &uniformBufferObjectDescriptorSetlayoutCreateInfo, nullptr, &uniformDescriptorSetLayout));
 
     //Create descriptor set layout given binding
     VkDescriptorSetLayoutCreateInfo textureDescriptorSetLayoutCreateInfo{};
@@ -169,11 +165,7 @@ void PixelScene::createDescriptorSetLayout(PixBackend* devices) {
     textureDescriptorSetLayoutCreateInfo.pBindings = &textureSamplerLayoutBinding;
     textureDescriptorSetLayoutCreateInfo.bindingCount = 1;
 
-    result = vkCreateDescriptorSetLayout(devices->logicalDevice, &textureDescriptorSetLayoutCreateInfo, nullptr, &textureDescriptorSetLayout);
-    if(result != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create descriptor set layout for textures");
-    }
+    VK_CHECK(vkCreateDescriptorSetLayout(devices->logicalDevice, &textureDescriptorSetLayoutCreateInfo, nullptr, &textureDescriptorSetLayout));
 
     m_descriptorSetLayouts.push_back(uniformDescriptorSetLayout);
     m_descriptorSetLayouts.push_back(textureDescriptorSetLayout);

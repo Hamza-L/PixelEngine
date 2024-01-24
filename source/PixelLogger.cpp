@@ -47,7 +47,9 @@ void Logger::Log(Level messageSeverity, const char* fileName, const int lineNumb
     {
         message << "\t";
     }
-    message <<  formatedFileName <<":" << lineNumber << " - " << func << "(...)";
+    if(strlen(fileName)>0) message <<  formatedFileName << ":";
+    if(lineNumber >= 0) message << lineNumber;
+    if(strlen(func)>0) message << " - " << func << "(...)";
 
     if(std::strcmp(fmt, ""))
         message << "{\t//";
