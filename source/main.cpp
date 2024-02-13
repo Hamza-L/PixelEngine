@@ -1,4 +1,5 @@
 
+#include "glm/ext/matrix_transform.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "PixelScene.h"
@@ -39,6 +40,13 @@ int main()
 
     // firstScene->addObject(object1);
     mainScene->addObject(square);
+
+    PixelScene::UboVP newVP1{};
+    newVP1.P = glm::perspective(glm::radians(45.0f), 960.0f/480.0f , 0.01f, 100.0f);
+    newVP1.V = glm::lookAt(glm::vec3(5.0f, 5.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    newVP1.lightPos = glm::vec4(0.0f, 5.0f, 25.0f, 1.0f);
+
+    mainScene->setSceneVP(newVP1);
 
 
 

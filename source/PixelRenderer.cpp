@@ -813,7 +813,7 @@ void PixelRenderer::draw() {
     newVP1.V = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     newVP1.lightPos = glm::vec4(0.0f, 5.0f, 25.0f, 1.0f);
 
-    m_scenes[0]->setSceneVP(newVP1);
+    // m_scenes[0]->setSceneVP(newVP1);
     m_scenes[0]->updateDynamicUniformBuffer(&mainDevice, imageIndex);
     m_scenes[0]->updateUniformBuffer(&mainDevice, imageIndex);
 
