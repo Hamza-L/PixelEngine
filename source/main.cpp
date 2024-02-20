@@ -2,8 +2,26 @@
 #include "glm/ext/matrix_transform.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 
+#include "kb_input.h"
+#include "PixelLogger.h"
 #include "PixelScene.h"
 #include "PixelRenderer.h"
+
+
+bool updateMyScene(PixelScene* pixScene){
+
+    extern float scroll;
+    PixelScene::UboVP newVP1{};
+    newVP1.P = glm::perspective(glm::radians(45.0f + scroll), 960.0f/480.0f , 0.01f, 100.0f);
+    newVP1.V = glm::lookAt(glm::vec3(5.0f, 5.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    newVP1.lightPos = glm::vec4(5.0f, 5.0f, 10.0f, 1.0f);
+
+    pixScene->setSceneVP(newVP1);
+    float tempScroll = scroll;
+
+    // LOG(Level::DEBUG, "Scroll value is: %f", tempScroll);
+    return true;
+}
 
 int main()
 {
@@ -20,35 +38,14 @@ int main()
 	}
 
     PixelScene* mainScene = pixRenderer.createScene();
-
-    std::vector<PixelObject::Vertex> vertices = {
-        {{-1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // 0
-        {{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},  // 1
-        {{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},   // 2
-        {{-1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}   // 3
-    };
-    std::vector<uint32_t> indices{1, 2, 0, 2, 3, 0};
-
-    auto square = std::make_shared<PixelObject>(vertices, indices);
-
-    // square->addTexture(&mainDevice, "Skull.jpg");
-    square->setGraphicsPipelineIndex(0);
+    mainScene->update = updateMyScene;
     // square.addTexture(computePipeline.getOutputTexture());
     // square.addTexture(computePipeline.getCustomTexture());
 
     // square.hide();
 
     // firstScene->addObject(object1);
-    mainScene->addObject(square);
-
-    PixelScene::UboVP newVP1{};
-    newVP1.P = glm::perspective(glm::radians(45.0f), 960.0f/480.0f , 0.01f, 100.0f);
-    newVP1.V = glm::lookAt(glm::vec3(5.0f, 5.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    newVP1.lightPos = glm::vec4(0.0f, 5.0f, 25.0f, 1.0f);
-
-    mainScene->setSceneVP(newVP1);
-
-
+    mainScene->addObject(std::make_shared<PixelObject>(PixelObject::Square()));
 
     pixRenderer.build(mainScene);
     pixRenderer.run();

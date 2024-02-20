@@ -14,6 +14,7 @@
 
 static int texIndex = 0;
 static int itemIndex = 0;
+extern bool MPRESS_L;
 
 // We have to look up the address of the debug callback create function ourselves using vkGetInstanceProcAddr
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
@@ -757,6 +758,12 @@ void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
 
             vkCmdBindPipeline(commandBuffers[currentImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, defaultGridGraphicsPipeline->getPipeline());
 
+            VkBuffer vertexBuffers[] = {*(gridObject->getVertexBuffer())}; // buffers to bind
+            VkBuffer indexBuffer = *gridObject->getIndexBuffer();
+            VkDeviceSize offsets[] = {0}; // offsets into buffers
+            vkCmdBindVertexBuffers(commandBuffers[currentImageIndex], 0, 1, vertexBuffers, offsets);
+            vkCmdBindIndexBuffer(commandBuffers[currentImageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
             vkCmdDrawIndexed(commandBuffers[currentImageIndex], 6, 1, 0, 0, 0);
         }
 
@@ -808,11 +815,6 @@ void PixelRenderer::draw() {
     vkAcquireNextImageKHR(mainDevice.logicalDevice, m_pixSwapchain.swapchain, std::numeric_limits<uint64_t>::max(),
                           imageAvailableSemaphore[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-    PixelScene::UboVP newVP1{};
-    newVP1.P = glm::perspective(glm::radians(45.0f), (float)m_pixSwapchain.extent.width / (float)m_pixSwapchain.extent.height, 0.01f, 100.0f);
-    newVP1.V = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    newVP1.lightPos = glm::vec4(0.0f, 5.0f, 25.0f, 1.0f);
-
     // m_scenes[0]->setSceneVP(newVP1);
     m_scenes[0]->updateDynamicUniformBuffer(&mainDevice, imageIndex);
     m_scenes[0]->updateUniformBuffer(&mainDevice, imageIndex);
@@ -858,6 +860,8 @@ void PixelRenderer::run() {
         glfwPollEvents();
 
         preDraw();
+
+        updateAll();
 
         draw();
     }
@@ -1597,6 +1601,13 @@ void PixelRenderer::recordComputeCommands(uint32_t currentImageIndex) {
     VK_CHECK(vkEndCommandBuffer(computeCommandBuffers[currentImageIndex]));
 }
 
+void PixelRenderer::updateAll(){
+    for(auto& scene : m_scenes){
+        if(scene->update != nullptr)
+            scene->update(scene.get());
+    }
+}
+
 void PixelRenderer::updateComputeTextureDescriptor() {
     LOG(Level::INFO, "");
 
@@ -1649,10 +1660,10 @@ void PixelRenderer::createDefaultGridScene() {
 
     // create mesh
     std::vector<PixelObject::Vertex> vertices = {
-        {{-1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // 0
-        {{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},  // 1
-        {{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},   // 2
-        {{-1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}   // 3
+        {{-1.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // 0
+        {{1.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},  // 1
+        {{1.0f, 0.0f, -1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},   // 2
+        {{-1.0f, 0.0f, -1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}   // 3
     };
     std::vector<uint32_t> indices{1, 2, 0, 2, 3, 0};
 
@@ -1661,6 +1672,13 @@ void PixelRenderer::createDefaultGridScene() {
 
     defaultGridScene->addObject(square);
     defaultGridScene->initialize(&mainDevice);
+
+    for (int i = 0; i < defaultGridScene->getNumObjects(); i++) {
+        initializeObjectBuffers(defaultGridScene->getObjectAt(i)); // depends on graphics command pool
+        for (auto texture : defaultGridScene->getObjectAt(i)->getTextures()) {
+            createTextureBuffer(&texture);
+        }
+    }
 
     fflush(stdout);
 }

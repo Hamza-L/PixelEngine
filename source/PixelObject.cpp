@@ -4,6 +4,7 @@
 
 #include "PixelObject.h"
 
+#include <string>
 #include <utility>
 #include <fstream>
 
@@ -16,6 +17,42 @@ PixelObject::PixelObject(std::vector<Vertex> vertices, std::vector<uint32_t> ind
 
 PixelObject::PixelObject(std::string filename){
     importFile(filename);
+}
+
+PixelObject PixelObject::Square(){
+
+    std::vector<PixelObject::Vertex> vertices = {
+        {{-1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // 0
+        {{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},  // 1
+        {{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},   // 2
+        {{-1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}   // 3
+    };
+
+    std::vector<uint32_t> indices{1, 2, 0, 2, 3, 0};
+
+    PixelObject object = PixelObject(vertices, indices);
+    object.setTexID(-1);
+    object.setGraphicsPipelineIndex(0);
+
+    return object;
+}
+
+PixelObject PixelObject::Cube(){
+
+    std::vector<PixelObject::Vertex> vertices = {
+        {{-1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // 0
+        {{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},  // 1
+        {{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},   // 2
+        {{-1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}   // 3
+    };
+
+    std::vector<uint32_t> indices{1, 2, 0, 2, 3, 0};
+
+    PixelObject object = PixelObject(vertices, indices);
+    object.setTexID(-1);
+    object.setGraphicsPipelineIndex(0);
+
+    return object;
 }
 
 void PixelObject::cleanup(PixBackend* device) {
@@ -82,8 +119,17 @@ PixelObject::PObj* PixelObject::getPushObj() {
     return &pushObj;
 }
 
-void PixelObject::importFile(const std::string& filename) {
+void PixelObject::importObjFile(const std::string& filename) {
     std::string fileLocation = "objects/" + filename;
+
+    std::ifstream fileStream = std::ifstream(filename);
+    std::string fileContent{};
+    while(std::getline(fileStream, fileContent)){
+        //get file content line by line
+    }
+
+    fileStream.close();
+
 }
 
 void PixelObject::addTransform(glm::mat4 matTransform) {

@@ -53,6 +53,7 @@ public:
 
     PixelObject(std::vector<Vertex> vertices, std::vector<uint32_t> indices);
     PixelObject(std::string filename);
+    PixelObject() = default;
 
     //getters
     int getVertexCount();
@@ -83,7 +84,7 @@ public:
 
     //helper functions
     //returns the number of members of the Vertex Struct
-    void importFile(const std::string& filename);
+    void importObjFile(const std::string& filename);
     void setGenericColor(glm::vec4 color);
     void addTransform(glm::mat4 matTransform);
     void setTransform(glm::mat4 matTransform);
@@ -93,6 +94,13 @@ public:
     void hide(){m_isHidden = true;};
     void unhide(){m_isHidden = false;};
     bool isHidden(){return m_isHidden;};
+
+    //make shapes
+    static PixelObject Square();
+    static PixelObject Cube();
+
+    // cached shape (to avoid importing for every shape)
+    bool cubeCached = false;
 
 
 private:

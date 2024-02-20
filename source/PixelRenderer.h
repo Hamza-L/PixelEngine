@@ -153,6 +153,7 @@ class PixelRenderer {
     void createTextureSampler();
 
     void updateSceneCamera(PixelScene *pixScene);
+    void updateAll();
 
     // getter functions
     SwapchainDetails getSwapChainDetails(VkPhysicalDevice device);

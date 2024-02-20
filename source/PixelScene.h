@@ -34,16 +34,19 @@ public:
         glm::vec4 lightPos = glm::vec4(0.0f);
     };
 
+    //update function
+    bool (*update)(PixelScene* pixScene) = nullptr;
+
     //setter functions
     void addObject(std::shared_ptr<PixelObject> pixObject);
 
     //getter functions
-    VkDescriptorSetLayout* getDescriptorSetLayout(DescSetLayoutIndex indx);
-    std::vector<VkDescriptorSetLayout>* getAllDescriptorSetLayouts();
     VkDescriptorPool* getDescriptorPool();
+    std::vector<VkDescriptorSetLayout>* getAllDescriptorSetLayouts();
+    VkDescriptorSetLayout* getDescriptorSetLayout(DescSetLayoutIndex indx);
+    std::vector<VkDescriptorSet>* getUniformDescriptorSets();
     VkDescriptorSet* getUniformDescriptorSetAt(int index);
     VkDescriptorSet* getTextureDescriptorSet();
-    std::vector<VkDescriptorSet>* getUniformDescriptorSets();
     static VkDeviceSize getUniformBufferSize();
     VkDeviceSize getDynamicUniformBufferSize() const;
     VkDeviceSize getMinAlignment() const;
