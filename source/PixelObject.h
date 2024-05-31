@@ -9,6 +9,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 #include "PixelImage.h"
+#include "PixelMemManager.h"
 
 #include <string>
 #include <array>

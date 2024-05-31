@@ -16,7 +16,7 @@ PixelObject::PixelObject(std::vector<Vertex> vertices, std::vector<uint32_t> ind
 }
 
 PixelObject::PixelObject(std::string filename){
-    importFile(filename);
+    importObjFile(filename);
 }
 
 PixelObject PixelObject::Square(){

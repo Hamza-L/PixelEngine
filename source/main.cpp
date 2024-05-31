@@ -1,18 +1,18 @@
 
 #include "glm/ext/matrix_transform.hpp"
+#include <iostream>
 #define STB_IMAGE_IMPLEMENTATION
 
-#include "kb_input.h"
 #include "PixelLogger.h"
-#include "PixelScene.h"
 #include "PixelRenderer.h"
+#include "PixelScene.h"
+#include "kb_input.h"
 
-
-bool updateMyScene(PixelScene* pixScene){
+inline bool updateMyScene(PixelScene *pixScene) {
 
     extern float scroll;
     PixelScene::UboVP newVP1{};
-    newVP1.P = glm::perspective(glm::radians(45.0f + scroll), 960.0f/480.0f , 0.01f, 100.0f);
+    newVP1.P = glm::perspective(glm::radians(45.0f + scroll), 960.0f / 480.0f, 0.01f, 100.0f);
     newVP1.V = glm::lookAt(glm::vec3(5.0f, 5.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     newVP1.lightPos = glm::vec4(5.0f, 5.0f, 10.0f, 1.0f);
 
@@ -23,21 +23,19 @@ bool updateMyScene(PixelScene* pixScene){
     return true;
 }
 
-int main()
-{
-    Logger* log = Logger::get_instance();
+int main() {
+    Logger *log = Logger::get_instance();
     log->setSeverity(Level::DEBUG);
 
-	LOG(Level::INFO, "main() entry point");
+    LOG(Level::INFO, "main() entry point");
 
-	PixelRenderer pixRenderer;
+    PixelRenderer pixRenderer;
 
-	if (pixRenderer.initRenderer() == EXIT_FAILURE)
-	{
-		return EXIT_FAILURE;
-	}
+    if (pixRenderer.initRenderer() == EXIT_FAILURE) {
+        return EXIT_FAILURE;
+    }
 
-    PixelScene* mainScene = pixRenderer.createScene();
+    PixelScene *mainScene = pixRenderer.createScene();
     mainScene->update = updateMyScene;
     // square.addTexture(computePipeline.getOutputTexture());
     // square.addTexture(computePipeline.getCustomTexture());
@@ -45,13 +43,15 @@ int main()
     // square.hide();
 
     // firstScene->addObject(object1);
-    mainScene->addObject(std::make_shared<PixelObject>(PixelObject::Square()));
+    PixelObject square = PixelObject::Square();
+
+    // square.addTexture();
+    mainScene->addObject(std::make_shared<PixelObject>(square));
 
     pixRenderer.build(mainScene);
     pixRenderer.run();
 
+    pixRenderer.cleanup();
 
-	pixRenderer.cleanup();
-
-	return 0;
+    return 0;
 }

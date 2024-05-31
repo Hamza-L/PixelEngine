@@ -10,9 +10,7 @@ const bool enableValidationLayers = true;
 #include "PixelGraphicsPipeline.h"
 #include "PixelWindow.h"
 #include "Utility.h"
-#include "PixelLogger.h"
 
-#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -38,6 +36,8 @@ class PixelRenderer {
     void run();
     bool windowShouldClose();
     void cleanup();
+
+    PixBackend getDevices(){return mainDevice;}
 
     float currentTime = 0;
 

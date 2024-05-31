@@ -42,27 +42,27 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
     std::string message{};
     Level messageLevel{};
 
-    switch(messageSeverity){
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-            messageLevel = Level::DEBUG;
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-            messageLevel = Level::INFO;
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-            messageLevel = Level::WARNING;
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-            messageLevel = Level::ERROR;
-            break;
-        default:
-            messageLevel = Level::INFO;
-            break;
+    switch (messageSeverity) {
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+        messageLevel = Level::DEBUG;
+        break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+        messageLevel = Level::INFO;
+        break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+        messageLevel = Level::WARNING;
+        break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+        messageLevel = Level::ERROR;
+        break;
+    default:
+        messageLevel = Level::INFO;
+        break;
     }
 
     std::cout << pCallbackData->pMessage << std::endl;
 
-    if(messageLevel == Level::FATAL) {
+    if (messageLevel == Level::FATAL) {
         throw std::runtime_error("Validation layer has returned fatal error");
     }
 
@@ -90,7 +90,7 @@ int PixelRenderer::initRenderer() {
         // createScene();
         initializeScenes();
         // createGraphicsPipelines(); // needs the descriptor set layout of the scene
-        createFramebuffers();      // need the renderbuffer for the graphics pipeline
+        createFramebuffers(); // need the renderbuffer for the graphics pipeline
         createSynchronizationObjects();
         init_io();
     } catch (const std::runtime_error &e) {
@@ -552,8 +552,7 @@ SwapchainDetails PixelRenderer::getSwapChainDetails(VkPhysicalDevice device) {
     return swapChainDetails;
 }
 
-void PixelRenderer::createDefaultGraphicsPipeline() {
-}
+void PixelRenderer::createDefaultGraphicsPipeline() {}
 
 void PixelRenderer::createGridSceneGraphicsPipelines() {
     // default grid scene
@@ -562,8 +561,8 @@ void PixelRenderer::createGridSceneGraphicsPipelines() {
     defaultGridGraphicsPipeline->addFragmentShader("shaders/gridFrag.spv");
     defaultGridGraphicsPipeline->populateGraphicsPipelineInfo();
     defaultGridGraphicsPipeline->addRenderpassColorAttachment(m_pixSwapchain.swapchainImages[0].getFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
-                                                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ATTACHMENT_STORE_OP_STORE,
-                                                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                                                              VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ATTACHMENT_STORE_OP_STORE,
+                                                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
     defaultGridGraphicsPipeline->addRenderpassDepthAttachment(m_pixSwapchain.depthImage->getFormat());
     defaultGridGraphicsPipeline->populatePipelineLayout(defaultGridScene.get()); // populate the pipeline layout based on the scene's descriptor set
@@ -571,7 +570,7 @@ void PixelRenderer::createGridSceneGraphicsPipelines() {
     defaultGridGraphicsPipeline->createGraphicsPipeline(VK_NULL_HANDLE); // creates a renderpass if none were provided
 }
 
-void PixelRenderer::createGraphicsPipeline(PixelScene* scene) {
+void PixelRenderer::createGraphicsPipeline(PixelScene *scene) {
     LOG(Level::INFO, "Initializing Scenes");
 
     // pipeline1
@@ -584,7 +583,6 @@ void PixelRenderer::createGraphicsPipeline(PixelScene* scene) {
 
     graphicsPipeline1->createGraphicsPipeline(defaultGridGraphicsPipeline->getRenderPass()); // creates a renderpass if none were provided
 
-
     graphicsPipelines.push_back(std::move(graphicsPipeline1));
     fflush(stdout);
 }
@@ -592,7 +590,7 @@ void PixelRenderer::createGraphicsPipeline(PixelScene* scene) {
 void PixelRenderer::createFramebuffers() {
     LOG(Level::INFO, "Creating FrameBuffers");
     int randomVar = 4;
-    glm::vec4 randomVec = {1.2f,2.0f,3.0f,1.0f};
+    glm::vec4 randomVec = {1.2f, 2.0f, 3.0f, 1.0f};
     glm::mat4 randomMat(1.0f);
     LOG_VAR(Level::INFO, randomVar);
     LOG_VAR(Level::INFO, randomVec);
@@ -654,7 +652,7 @@ void PixelRenderer::createCommandBuffers() {
     commandBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
     VK_CHECK(vkAllocateCommandBuffers(mainDevice.logicalDevice, &commandBufferAllocateInfo,
-                                               commandBuffers.data())); // we create all the command buffers simultaneously
+                                      commandBuffers.data())); // we create all the command buffers simultaneously
     // no need to dealocate or destroyed the command buffers. they are destroy along the command pool
     fflush(stdout);
 }
@@ -672,7 +670,7 @@ void PixelRenderer::createComputeCommandBuffers() {
     commandBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(computeCommandBuffers.size());
 
     VK_CHECK(vkAllocateCommandBuffers(mainDevice.logicalDevice, &commandBufferAllocateInfo,
-                                               computeCommandBuffers.data())); // we create all the command buffers simultaneously
+                                      computeCommandBuffers.data())); // we create all the command buffers simultaneously
     // no need to dealocate or destroyed the command buffers. they are destroy along the command pool
     fflush(stdout);
 }
@@ -973,7 +971,7 @@ void PixelRenderer::createVertexBuffer(std::shared_ptr<PixelObject> pixObject) {
 }
 
 void PixelRenderer::createTextureBuffer(PixelImage *pixImage) {
-    LOG(Level::INFO,"");
+    LOG(Level::INFO, "");
 
     // temporary buffer to stage the vertex buffer before being transfered to the GPU
     VkBuffer stagingBuffer;
@@ -1048,7 +1046,7 @@ void PixelRenderer::initializeObjectBuffers(std::shared_ptr<PixelObject> pixObje
     createIndexBuffer(pixObject);
 }
 
-void PixelRenderer::createUniformBuffers(PixelScene* scene) {
+void PixelRenderer::createUniformBuffers(PixelScene *scene) {
     LOG(Level::INFO, "");
 
     scene->resizeBuffers(m_pixSwapchain.swapchainImages.size());
@@ -1079,7 +1077,7 @@ void PixelRenderer::initializeScenes() {
     fflush(stdout);
 }
 
-void PixelRenderer::build(PixelScene* scene) {
+void PixelRenderer::build(PixelScene *scene) {
     LOG(Level::INFO, "Initializing Scene named: %s", scene->getName().c_str());
 
     scene->initialize(&mainDevice);
@@ -1098,7 +1096,7 @@ void PixelRenderer::build(PixelScene* scene) {
     createGraphicsPipeline(scene);
 }
 
-void PixelRenderer::createDescriptorPool(PixelScene* scene) {
+void PixelRenderer::createDescriptorPool(PixelScene *scene) {
     LOG(Level::INFO, "");
 
     size_t numTextureDescriptorSet = 1;
@@ -1130,7 +1128,7 @@ void PixelRenderer::createDescriptorPool(PixelScene* scene) {
     VK_CHECK(vkCreateDescriptorPool(mainDevice.logicalDevice, &poolCreateInfo, nullptr, scene->getDescriptorPool()));
 }
 
-void PixelRenderer::createDescriptorSets(PixelScene* scene) {
+void PixelRenderer::createDescriptorSets(PixelScene *scene) {
     LOG(Level::INFO, "");
 
     // we have 1 Descriptor Set and 2 bindings. one binding for the VP matrices. one binding for the dynamic buffer object for M matrix.
@@ -1495,8 +1493,7 @@ void PixelRenderer::createTextureSampler() {
     fflush(stdout);
 }
 
-
-PixelScene* PixelRenderer::createScene(){
+PixelScene *PixelRenderer::createScene() {
     LOG(Level::INFO, "Creating Scene");
 
     // create scene
@@ -1530,7 +1527,6 @@ PixelScene* PixelRenderer::createScene(){
 
     fflush(stdout);
     return scene.get();
-
 }
 
 void PixelRenderer::addScene(std::shared_ptr<PixelScene> scene) { m_scenes.push_back(scene); }
@@ -1601,9 +1597,9 @@ void PixelRenderer::recordComputeCommands(uint32_t currentImageIndex) {
     VK_CHECK(vkEndCommandBuffer(computeCommandBuffers[currentImageIndex]));
 }
 
-void PixelRenderer::updateAll(){
-    for(auto& scene : m_scenes){
-        if(scene->update != nullptr)
+void PixelRenderer::updateAll() {
+    for (auto &scene : m_scenes) {
+        if (scene->update != nullptr)
             scene->update(scene.get());
     }
 }
@@ -1662,8 +1658,8 @@ void PixelRenderer::createDefaultGridScene() {
     std::vector<PixelObject::Vertex> vertices = {
         {{-1.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // 0
         {{1.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},  // 1
-        {{1.0f, 0.0f, -1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},   // 2
-        {{-1.0f, 0.0f, -1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}   // 3
+        {{1.0f, 0.0f, -1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}}, // 2
+        {{-1.0f, 0.0f, -1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}} // 3
     };
     std::vector<uint32_t> indices{1, 2, 0, 2, 3, 0};
 
