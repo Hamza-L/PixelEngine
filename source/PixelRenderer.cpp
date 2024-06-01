@@ -140,7 +140,7 @@ void PixelRenderer::cleanup() {
 
     // cleaning up all swapchain images and depth image
     m_pixSwapchain.depthImage->cleanUp(&mainDevice);
-    for (PixelImage image : m_pixSwapchain.swapchainImages) {
+    for (VKWPixelImage image : m_pixSwapchain.swapchainImages) {
         image.cleanUp(&mainDevice);
     }
 
@@ -367,14 +367,14 @@ void PixelRenderer::createSwapChain(PixSwapchain *swapchain, PixBackend *devices
     vkGetSwapchainImagesKHR(devices->logicalDevice, swapchain->swapchain, &swapChainImageCount, images.data());
 
     for (VkImage image : images) {
-        PixelImage swapChainImage = {surfaceExtent.width, surfaceExtent.height, true, surfaceFormat.format};
+        VKWPixelImage swapChainImage = {surfaceExtent.width, surfaceExtent.height, true, surfaceFormat.format};
         swapChainImage.setImage(image);
 
         swapChainImage.createImageView(&mainDevice, VK_IMAGE_ASPECT_COLOR_BIT);
         swapchain->swapchainImages.push_back(swapChainImage);
     }
 
-    swapchain->depthImage = std::make_shared<PixelImage>(m_pixSwapchain.extent.width, m_pixSwapchain.extent.height, false);
+    swapchain->depthImage = std::make_shared<VKWPixelImage>(m_pixSwapchain.extent.width, m_pixSwapchain.extent.height, false);
     swapchain->depthImage->createDepthBufferImage(&mainDevice);
 
     // now that we swapchain image have been
@@ -970,7 +970,7 @@ void PixelRenderer::createVertexBuffer(std::shared_ptr<PixelObject> pixObject) {
     vkFreeMemory(mainDevice.logicalDevice, stagingBufferMemory, nullptr);
 }
 
-void PixelRenderer::createTextureBuffer(PixelImage *pixImage) {
+void PixelRenderer::createTextureBuffer(VKWPixelImage *pixImage) {
     LOG(Level::INFO, "");
 
     // temporary buffer to stage the vertex buffer before being transfered to the GPU
@@ -1066,7 +1066,7 @@ void PixelRenderer::initializeScenes() {
     LOG(Level::INFO, "Initializing Scenes");
 
     // load an empty texture for use when texture is not defined.
-    emptyTexture = PixelImage(0, 0, false);
+    emptyTexture = VKWPixelImage(0, 0, false);
     emptyTexture.loadEmptyTexture(&mainDevice);
     createTextureBuffer(&emptyTexture);
 

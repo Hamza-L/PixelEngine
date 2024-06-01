@@ -22,7 +22,7 @@
 inline std::random_device rd;
 inline std::mt19937 gen(rd());
 
-class PixelImage; //forward declaration
+class VKWPixelImage; //forward declaration
 
 //vulkan struct component
 struct PixBackend{
@@ -36,8 +36,8 @@ struct PixSwapchain{
     VkSwapchainKHR oldSwapchain{VK_NULL_HANDLE};
     VkExtent2D extent{};
     VkFormat format{};
-    std::vector<PixelImage> swapchainImages{};
-    std::shared_ptr<PixelImage> depthImage;
+    std::vector<VKWPixelImage> swapchainImages{};
+    std::shared_ptr<VKWPixelImage> depthImage;
 };
 
 struct QueueFamilyIndices

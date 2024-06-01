@@ -151,7 +151,7 @@ PixelObject::DynamicUBObj* PixelObject::getDynamicUBObj() {
 }
 
 void PixelObject::addTexture(PixBackend* devices, std::string textureFile) {
-    PixelImage textureImage = PixelImage(0, 0, false);
+    VKWPixelImage textureImage = VKWPixelImage(0, 0, false);
     textureImage.loadTexture(devices, textureFile);
 
     setTexID(0);
@@ -160,7 +160,7 @@ void PixelObject::addTexture(PixBackend* devices, std::string textureFile) {
 
 }
 
-void PixelObject::addTexture(PixelImage* pixImage) {
+void PixelObject::addTexture(VKWPixelImage* pixImage) {
 
     setTexID(0);
 

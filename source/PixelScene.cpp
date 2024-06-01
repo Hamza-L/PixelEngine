@@ -270,8 +270,8 @@ void PixelScene::initialize(PixBackend* devices) {
     createDescriptorSetLayout(devices);
 }
 
-std::vector<PixelImage> PixelScene::getAllTextures() {
-    std::vector<PixelImage> allTextures;
+std::vector<VKWPixelImage> PixelScene::getAllTextures() {
+    std::vector<VKWPixelImage> allTextures;
 
     for(int i = 0 ; i < allObjects.size(); i++)
     {

@@ -52,11 +52,11 @@ void PixelComputePipeline::populatePipelineLayout() {
 void PixelComputePipeline::initImageBufferStorage(PixBackend* devices) {
     uint32_t width = 1024;
     uint32_t height = 768;
-    raytracedInputTexture = PixelImage(width, height, false);
+    raytracedInputTexture = VKWPixelImage(width, height, false);
     raytracedInputTexture.loadEmptyTexture(devices, width, height, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
-    raytracedOutputTexture = PixelImage(width, height, false);
+    raytracedOutputTexture = VKWPixelImage(width, height, false);
     raytracedOutputTexture.loadEmptyTexture(devices, width, height, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
-    customTexture = PixelImage(width, height, false);
+    customTexture = VKWPixelImage(width, height, false);
     customTexture.loadEmptyTexture(devices, width, height, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
 }
 
@@ -238,15 +238,15 @@ VkDescriptorSet PixelComputePipeline::getDescriptorSet() {
     return computeDescriptorSet;
 }
 
-PixelImage* PixelComputePipeline::getInputTexture() {
+VKWPixelImage* PixelComputePipeline::getInputTexture() {
     return &raytracedInputTexture;
 }
 
-PixelImage* PixelComputePipeline::getCustomTexture() {
+VKWPixelImage* PixelComputePipeline::getCustomTexture() {
     return &customTexture;
 }
 
-PixelImage* PixelComputePipeline::getOutputTexture() {
+VKWPixelImage* PixelComputePipeline::getOutputTexture() {
     return &raytracedOutputTexture;
 }
 

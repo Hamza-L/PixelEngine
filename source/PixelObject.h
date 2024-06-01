@@ -69,7 +69,7 @@ public:
     VkDeviceMemory* getIndexBufferMemory();
     PObj* getPushObj();
     DynamicUBObj* getDynamicUBObj();
-    std::vector<PixelImage> getTextures(){return m_textures;}
+    std::vector<VKWPixelImage> getTextures(){return m_textures;}
     int getGraphicsPipelineIndex(){return graphicsPipelineIndex;};
     static constexpr VkPushConstantRange pushConstantRange {VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PObj)};
 
@@ -90,7 +90,7 @@ public:
     void addTransform(glm::mat4 matTransform);
     void setTransform(glm::mat4 matTransform);
     void addTexture(PixBackend* devices, std::string textureFile);
-    void addTexture(PixelImage* pixImage);
+    void addTexture(VKWPixelImage* pixImage);
     void setTextureIDOffset(int offset){texIDOffset = offset;};
     void hide(){m_isHidden = true;};
     void unhide(){m_isHidden = false;};
@@ -122,7 +122,7 @@ private:
     VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
 
     //texture used
-    std::vector<PixelImage> m_textures;
+    std::vector<VKWPixelImage> m_textures;
     int texIDOffset = 0;
 
     //pipeline used

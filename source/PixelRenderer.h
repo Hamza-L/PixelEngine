@@ -75,7 +75,7 @@ class PixelRenderer {
     PixelComputePipeline computePipeline;
 
     // images
-    PixelImage emptyTexture;
+    VKWPixelImage emptyTexture;
     VkSampler imageSampler{};
 
     // Pools
@@ -149,7 +149,7 @@ class PixelRenderer {
     void initializeObjectBuffers(std::shared_ptr<PixelObject> pixObject);
     void createVertexBuffer(std::shared_ptr<PixelObject> pixObject);
     void createIndexBuffer(std::shared_ptr<PixelObject> pixObject);
-    void createTextureBuffer(PixelImage *pixImage);
+    void createTextureBuffer(VKWPixelImage *pixImage);
     void createTextureSampler();
 
     void updateSceneCamera(PixelScene *pixScene);

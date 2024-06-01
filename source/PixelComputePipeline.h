@@ -42,9 +42,9 @@ public:
     VkPipeline getPipeline();
     VkPipelineLayout getPipelineLayout();
     VkDescriptorSet getDescriptorSet();
-    PixelImage* getInputTexture();
-    PixelImage* getOutputTexture();
-    PixelImage* getCustomTexture();
+    VKWPixelImage* getInputTexture();
+    VKWPixelImage* getOutputTexture();
+    VKWPixelImage* getCustomTexture();
     PObj* getPushObj(){return &test;}
 
     //setters
@@ -52,9 +52,9 @@ public:
 
 private:
 
-    PixelImage raytracedInputTexture;
-    PixelImage raytracedOutputTexture;
-    PixelImage customTexture;
+    VKWPixelImage raytracedInputTexture;
+    VKWPixelImage raytracedOutputTexture;
+    VKWPixelImage customTexture;
 
     PObj test = {{0.0f,1.0f,5.0f},35.0f,{0.0f,0.0f,0.0f},0.0f, {3.0f,4.0f,0.0f},0.0f,{1.0f,1.0f,1.0f,1.0f}, 0, 0, 0, 0};
 

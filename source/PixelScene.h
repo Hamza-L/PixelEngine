@@ -57,7 +57,7 @@ public:
     int getNumObjects();
     unsigned int getSceneID(){return m_sceneID;}
     std::shared_ptr<PixelObject> getObjectAt(int index);
-    std::vector<PixelImage> getAllTextures();
+    std::vector<VKWPixelImage> getAllTextures();
     UboVP getSceneVP();
     glm::vec3 getCameraPos();
     glm::vec3 getLookAtVec();
