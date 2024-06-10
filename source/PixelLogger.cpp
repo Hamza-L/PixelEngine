@@ -3,21 +3,23 @@
 
 Logger *Logger::oneAndOnlyInstance = nullptr;
 int Logger::uniqueID = 0;
-Level Logger::severity = INFO;
+ErrorLevel Logger::severity = INFO;
 std::vector<std::string> Logger::logMessages{};
 int ScopeTracker::indentTracker = 1;
 
-static std::string severityEnumToString(Level severityLevel) {
+static std::string severityEnumToString(ErrorLevel severityLevel) {
     switch (severityLevel) {
-    case Level::FATAL:
+    case ErrorLevel::FATAL:
         return "FATAL";
-    case Level::ERROR:
+    case ErrorLevel::ERROR:
         return "ERROR";
-    case Level::WARNING:
+    case ErrorLevel::WARNING:
         return "WARNING";
-    case Level::DEBUG:
+    case ErrorLevel::OK:
+        return "OK";
+    case ErrorLevel::DEBUG:
         return "DEBUG";
-    case Level::INFO:
+    case ErrorLevel::INFO:
         return "INFO";
     }
     return "";
@@ -25,7 +27,7 @@ static std::string severityEnumToString(Level severityLevel) {
 
 ScopeTracker::~ScopeTracker() {
 
-    Level globalLevel = Logger::get_instance()->getSeverity();
+    ErrorLevel globalLevel = Logger::get_instance()->getSeverity();
         if (m_severity <= Logger::get_instance()->getSeverity()) {
             for (int i = 0; i < indentTracker; i++) {
                 std::cout << "\t";
@@ -36,7 +38,7 @@ ScopeTracker::~ScopeTracker() {
 
     }
 
-void Logger::Log(Level messageSeverity, const char* fileName, const int lineNumber, const char* func, const char* fmt, ...) {
+void Logger::Log(ErrorLevel messageSeverity, const char* fileName, const int lineNumber, const char* func, const char* fmt, ...) {
     std::string inputMessage = fmt;
     std::string formatedFileName = fileName;
     std::stringstream message;
@@ -101,7 +103,7 @@ void Logger::Log(Level messageSeverity, const char* fileName, const int lineNumb
     }
 }
 
-void Logger::LogVar(Level messageSeverity, const char *fmt, ...) {
+void Logger::LogVar(ErrorLevel messageSeverity, const char *fmt, ...) {
     std::string inputMessage = fmt;
     std::stringstream message;
 

@@ -33,20 +33,20 @@ void main()
 
     //here we use the texture image
 
-    vec3 albedo;
+    vec4 albedo;
     if(texID >= 0 )
     {
-        albedo = texture(texSampler[texID], fragTex).xyz;
+        albedo = texture(texSampler[texID], fragTex);
     } else
     {
-        albedo = fragColor.xyz;
+        albedo = fragColor;
     }
 
-    vec3 scatteredLight =  albedo * diffuse;
+    vec3 scatteredLight =  albedo.xyz * diffuse;
     vec3 reflectedLight = vec3(1.0f,1.0f,1.0f) * specular;
     vec3 ambientLight = albedo.xyz * 0.08f;
 
     //outColor = vec4(normalForFP.xyz,1.0f);
 
-    outColor = vec4(min( ambientLight + scatteredLight + reflectedLight, vec3(1,1,1)), fragColor.w);
+    outColor = vec4(min( ambientLight + scatteredLight + reflectedLight, vec3(1,1,1)), albedo.w);
 }

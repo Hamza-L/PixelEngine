@@ -6,7 +6,7 @@
 #include <cstdio>
 
 const bool TEXTURE = true;
-bool UP_PRESS = false;
+bool UP= false;
 bool E_KEY = false;
 bool Q_KEY = false;
 bool DOWN = false;
@@ -36,9 +36,9 @@ float GAIN = 2.0f;
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
 
     if (key == GLFW_KEY_W && action == GLFW_PRESS){
-        UP_PRESS = true;
+        UP= true;
     } else if(key == GLFW_KEY_W && action == GLFW_RELEASE){
-        UP_PRESS = false;
+        UP= false;
     }
 
 	if (key == GLFW_KEY_E && action == GLFW_PRESS){

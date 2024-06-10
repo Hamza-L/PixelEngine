@@ -16,7 +16,7 @@ PixelWindow::~PixelWindow()
 
 void PixelWindow::initWindow(std::string wName, const int width, const int height)
 {
-    LOG(Level::INFO, "Initializing glfw window");
+    LOG_SCOPED(ErrorLevel::INFO, "Initializing glfw window");
 	windowName = wName;
 	windowWidth = width;
 	windowHeight = height;

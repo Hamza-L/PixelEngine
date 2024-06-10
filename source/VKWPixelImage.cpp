@@ -2,17 +2,18 @@
 // Created by Zara Hussain on 2023-04-27.
 //
 
-#Include "VKWPixelImage.h"
+#include "VKWPixelImage.h"
 
-VKWPixelImage::VKWPixelImage(uint32_t width, uint32_t height, bool isSwapChainImage , VkFormat format) : m_width(width), m_height(height), m_IsSwapChainImage(isSwapChainImage), m_format(format) {
+VKWPixelImage::VKWPixelImage(uint32_t width, uint32_t height, bool isSwapChainImage , VkFormat format) : m_IsSwapChainImage(isSwapChainImage), m_format(format) {
+    m_pixelImage.LoadEmptyImage(width, height);
 }
 
-VKWPixelImage::VKWPixelImage(const char* imageFile, VkFormat format) : fileName(imageFile), m_format(format){
+VKWPixelImage::VKWPixelImage(const char* imageFile, VkFormat format) : m_format(format){
+    m_pixelImage.LoadImageFile(imageFile);
 }
 
 void VKWPixelImage::cleanUp(PixBackend* devices)
 {
-    stbi_image_free(m_imageData);
     vkDestroyImageView(devices->logicalDevice, m_imageView, nullptr);
     if(!m_IsSwapChainImage)
     {
@@ -26,7 +27,6 @@ void VKWPixelImage::cleanUp(PixBackend* devices)
 //create an image view for the image
 void VKWPixelImage::createImageView(PixBackend* devices, VkImageAspectFlags aspectFlags)
 {
-
     VkImageViewCreateInfo imageViewCreateInfo = {};
     imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     imageViewCreateInfo.image = m_image;
@@ -50,23 +50,12 @@ void VKWPixelImage::createImageView(PixBackend* devices, VkImageAspectFlags aspe
     if (result != VK_SUCCESS)
     {
         std::string message = "Was not able to create image view for image: ";
-        message.append(imageName);
+        message.append(m_pixelImage.GetName());
         throw std::runtime_error(message.c_str());
     }
 
     m_ImageInitialized = true;
     m_ressourcesCleaned = false;
-}
-
-std::string VKWPixelImage::getName()
-{
-    return imageName;
-}
-
-void VKWPixelImage::setName(std::string name)
-{
-    imageName.clear();
-    imageName = name;
 }
 
 void VKWPixelImage::createDepthBufferImage(PixBackend* devices)
@@ -85,8 +74,8 @@ void VKWPixelImage::createImage(PixBackend* devices, VkImageTiling imageTiling, 
     VkImageCreateInfo imageCreateInfo{};
     imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageCreateInfo.extent.width = m_width;
-    imageCreateInfo.extent.height = m_height;
+    imageCreateInfo.extent.width = m_pixelImage.GetWidth();
+    imageCreateInfo.extent.height = m_pixelImage.GetHeight();
     imageCreateInfo.extent.depth = 1; //no 3D aspect
     imageCreateInfo.mipLevels = 1; //TODO: implement mipmap
     imageCreateInfo.arrayLayers = 1;
@@ -127,46 +116,28 @@ VkFormat VKWPixelImage::getFormat() {
     return m_format;
 }
 
-void VKWPixelImage::loadTexture(PixBackend* devices, std::string filename) {
+void VKWPixelImage::loadTexture(PixBackend* devices, const char* filename) {
 
-    int channels, width, height;
-
-    std::string fileLocation = "Textures/" + filename;
-    stbi_uc* image = stbi_load(fileLocation.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-
-    m_width = (int)width;
-    m_height = (int) height;
-
-    if(!image)
-    {
-        throw std::runtime_error("Failed to load texture file: " + fileLocation);
-    }
-
-    m_imageSize = m_width * m_height * 4;
-    m_imageData = image;
+    m_pixelImage.LoadImageFile(filename);
 
     //now that the image data and the information about the imagefile has been stored, we create the VkImage and the VkImageView for our texture
-    m_format = VK_FORMAT_R8G8B8A8_UNORM; //here we set the format manually, we do not need to check if it is compatible with other features
+    m_format =  VK_FORMAT_R8G8B8A8_UNORM; //here we set the format manually, we do not need to check if it is compatible with other features
 
     createImage(devices, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     createImageView(devices, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void VKWPixelImage::loadEmptyTexture(PixBackend* devices) {
-    m_width = 1;
-    m_height = 1;
-    m_imageSize = 1;
-    m_format = VK_FORMAT_R8G8B8A8_UNORM; //here we set the format manually, we do not need to check if it is compatible with other features
+    m_pixelImage = PixelImage(1,1); // 1 pixel image. no data
+    m_format =  VK_FORMAT_R8G8B8A8_UNORM; //here we set the format manually, we do not need to check if it is compatible with other features
 
     createImage(devices, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     createImageView(devices, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void VKWPixelImage::loadEmptyTexture(PixBackend* devices, uint32_t width, uint32_t height, VkImageUsageFlags flags) {
-    m_width = width;
-    m_height = height;
-    m_imageSize = width * height * 4;
-    m_format = VK_FORMAT_R8G8B8A8_UNORM; //here we set the format manually, we do not need to check if it is compatible with other features
+    m_pixelImage.LoadEmptyImage(width, height);
+    m_format =  VK_FORMAT_R8G8B8A8_UNORM; //here we set the format manually, we do not need to check if it is compatible with other features
 
     createImage(devices, VK_IMAGE_TILING_OPTIMAL, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     createImageView(devices, VK_IMAGE_ASPECT_COLOR_BIT);

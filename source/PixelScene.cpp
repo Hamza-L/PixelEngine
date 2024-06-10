@@ -11,7 +11,7 @@
 
 PixelScene::PixelScene()
 {
-    LOG(Level::DEBUG, "PixelScene Constructed");
+    LOG_SCOPED(ErrorLevel::DEBUG, "PixelScene Constructed");
 }
 
 void PixelScene::cleanup(PixBackend* devices)
@@ -120,7 +120,7 @@ void PixelScene::updateUniformBuffer(PixBackend* devices, uint32_t bufferIndex)
 }
 
 void PixelScene::createDescriptorSetLayout(PixBackend* devices) {
-    LOG(Level::DEBUG, "Creating Descriptor set Layout");
+    LOG_SCOPED(ErrorLevel::DEBUG, "Creating Descriptor set Layout");
 
     VkDescriptorSetLayout uniformDescriptorSetLayout{};
     VkDescriptorSetLayout textureDescriptorSetLayout{};

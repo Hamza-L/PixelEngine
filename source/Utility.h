@@ -5,6 +5,7 @@
 #ifndef PIXELENGINE_UTILITY_H
 #define PIXELENGINE_UTILITY_H
 
+#include "glm/fwd.hpp"
 #include "vulkan/vulkan_core.h"
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLFW_INCLUDE_VULKAN //includes vulkan automatically
@@ -277,6 +278,11 @@ static inline float random(float center, float stdDev)
 {
     std::normal_distribution<> d {center, stdDev};
     return (float)d(gen);
+}
+
+static inline glm::vec3 getPositionFromMatrix(glm::mat4& modelMatrix){
+    glm::vec3 position = {modelMatrix[3][0],modelMatrix[3][1],modelMatrix[3][2]};
+    return position;
 }
 
 #endif //PIXELENGINE_UTILITY_H

@@ -2,38 +2,43 @@
 #define PIXELLOGGER_H_
 
 #include "glm/glm.hpp"
+
 #include <cstdarg>
 #include <iostream>
 #include <sstream>
 #include <vector>
 
-#define LOG(level, ...)                                                                                                                              \
+#define LOG_SCOPED(level, ...)                                                                                                                              \
     Logger::get_instance()->Log((level), __FILE__, __LINE__, __func__, __VA_ARGS__);                                                                 \
     ScopeTracker tracker {level}
 
+#define LOG_MSG(level, ...)                                                                                                                              \
+    Logger::get_instance()->Log((level), __FILE__, __LINE__, __func__, __VA_ARGS__);                                                                 \
+
 #define LOG_VAR(level, variable) Logger::get_instance()->LogVar((level), #variable ": %s", Logger::ToString(variable).c_str())
 
-#define VK_CHECK(vkFunc) if(vkFunc != VK_SUCCESS){ LOG(Level::ERROR, "");}
+#define VK_CHECK(vkFunc) if(vkFunc != VK_SUCCESS){ LOG_MSG(ErrorLevel::ERROR, "");}
 
 
-enum Level {
+enum ErrorLevel {
     FATAL,
     ERROR,
     WARNING,
+    INFO,
     DEBUG,
-    INFO // ...
+    OK
 };
 
 class ScopeTracker {
   private:
   public:
-    ScopeTracker(Level severity) : m_severity(severity){
+    ScopeTracker(ErrorLevel severity) : m_severity(severity){
         indentTracker++;
     }
     ~ScopeTracker();
 
     static int indentTracker;
-    Level m_severity;
+    ErrorLevel m_severity;
 };
 
 class Logger { // singleton
@@ -42,7 +47,7 @@ class Logger { // singleton
 
     static Logger *oneAndOnlyInstance;
     static int uniqueID;
-    static Level severity;
+    static ErrorLevel severity;
     static std::vector<std::string> logMessages;
 
   public:
@@ -55,8 +60,8 @@ class Logger { // singleton
         return oneAndOnlyInstance;
     }
 
-    static void setSeverity(Level severityLevel) { severity = severityLevel; }
-    static Level getSeverity() { return severity; }
+    static void setSeverity(ErrorLevel severityLevel) { severity = severityLevel; }
+    static ErrorLevel getSeverity() { return severity; }
 
     static std::string ToString(int variable) { return std::to_string(variable); }
     static std::string ToString(double variable) { return std::to_string(variable); }
@@ -83,8 +88,8 @@ class Logger { // singleton
         return ss.str();
     }
 
-    static void Log(Level messageSeverity, const char *fileName, const int lineNumber, const char *func, const char *fmt, ...);
-    static void LogVar(Level messageSeverity, const char *fmt, ...);
+    static void Log(ErrorLevel messageSeverity, const char *fileName, const int lineNumber, const char *func, const char *fmt, ...);
+    static void LogVar(ErrorLevel messageSeverity, const char *fmt, ...);
 
     void operator=(const Logger &) = delete;
     Logger(Logger &other) = delete;

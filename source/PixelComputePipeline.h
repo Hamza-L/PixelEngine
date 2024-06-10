@@ -5,14 +5,16 @@
 #ifndef PIXELENGINE_PIXELCOMPUTEPIPELINE_H
 #define PIXELENGINE_PIXELCOMPUTEPIPELINE_H
 
-#include "PixelImage.h"
+#include "VKWPixelImage.h"
+#include "Utility.h"
+
 #include "glm/glm.hpp"
 
 class PixelComputePipeline {
-public:
+  public:
     PixelComputePipeline() = default;
 
-    struct PObj{
+    struct PObj {
         glm::vec3 cameraPos;
         float fov;
         glm::vec3 randomOffsets;
@@ -26,37 +28,36 @@ public:
         uint32_t outlineEnabled;
     };
 
-    void addComputeShader(PixBackend* devices, const std::string& filename);
-    void createDescriptorPool(PixBackend* devices);
-    void createDescriptorSets(PixBackend* devices);
-    void initImageBufferStorage(PixBackend* devices);
+    void addComputeShader(PixBackend *devices, const std::string &filename);
+    void createDescriptorPool(PixBackend *devices);
+    void createDescriptorSets(PixBackend *devices);
+    void initImageBufferStorage(PixBackend *devices);
     void populatePipelineLayout();
-    void createDescriptorSetLayout(PixBackend* devices);
-    void createComputePipeline(PixBackend* devices);
-    void createComputePipelineLayout(PixBackend* devices);
-    void init(PixBackend* devices);
-    void cleanUp(PixBackend* devices);
-    static constexpr VkPushConstantRange pushComputeConstantRange {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PObj)};
+    void createDescriptorSetLayout(PixBackend *devices);
+    void createComputePipeline(PixBackend *devices);
+    void createComputePipelineLayout(PixBackend *devices);
+    void init(PixBackend *devices);
+    void cleanUp(PixBackend *devices);
+    static constexpr VkPushConstantRange pushComputeConstantRange{VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PObj)};
 
-    //getters
+    // getters
     VkPipeline getPipeline();
     VkPipelineLayout getPipelineLayout();
     VkDescriptorSet getDescriptorSet();
-    VKWPixelImage* getInputTexture();
-    VKWPixelImage* getOutputTexture();
-    VKWPixelImage* getCustomTexture();
-    PObj* getPushObj(){return &test;}
+    VKWPixelImage *getInputTexture();
+    VKWPixelImage *getOutputTexture();
+    VKWPixelImage *getCustomTexture();
+    PObj *getPushObj() { return &test; }
 
-    //setters
-    void setPushObj(PixelComputePipeline::PObj pObj){test = pObj;}
+    // setters
+    void setPushObj(PixelComputePipeline::PObj pObj) { test = pObj; }
 
-private:
+  private:
+    VKWPixelImage raytracedInputTexture{};
+    VKWPixelImage raytracedOutputTexture{};
+    VKWPixelImage customTexture{};
 
-    VKWPixelImage raytracedInputTexture;
-    VKWPixelImage raytracedOutputTexture;
-    VKWPixelImage customTexture;
-
-    PObj test = {{0.0f,1.0f,5.0f},35.0f,{0.0f,0.0f,0.0f},0.0f, {3.0f,4.0f,0.0f},0.0f,{1.0f,1.0f,1.0f,1.0f}, 0, 0, 0, 0};
+    PObj test = {{0.0f, 1.0f, 5.0f}, 35.0f, {0.0f, 0.0f, 0.0f}, 0.0f, {3.0f, 4.0f, 0.0f}, 0.0f, {1.0f, 1.0f, 1.0f, 1.0f}, 0, 0, 0, 0};
 
     VkPipelineShaderStageCreateInfo computeCreateShaderInfo{};
     VkPipeline computePipeline = VK_NULL_HANDLE;
@@ -68,5 +69,4 @@ private:
     VkDescriptorPool computeDescriptorPool{};
 };
 
-
-#endif //PIXELENGINE_PIXELCOMPUTEPIPELINE_H
+#endif // PIXELENGINE_PIXELCOMPUTEPIPELINE_H

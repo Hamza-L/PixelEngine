@@ -40,38 +40,38 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
                                                     const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData) {
 
     std::string message{};
-    Level messageLevel{};
+    ErrorLevel messageLevel{};
 
     switch (messageSeverity) {
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-        messageLevel = Level::DEBUG;
+        messageLevel = ErrorLevel::DEBUG;
         break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-        messageLevel = Level::INFO;
+        messageLevel = ErrorLevel::INFO;
         break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-        messageLevel = Level::WARNING;
+        messageLevel = ErrorLevel::WARNING;
         break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-        messageLevel = Level::ERROR;
+        messageLevel = ErrorLevel::ERROR;
         break;
     default:
-        messageLevel = Level::INFO;
+        messageLevel = ErrorLevel::INFO;
         break;
     }
 
     std::cout << pCallbackData->pMessage << std::endl;
 
-    if (messageLevel == Level::FATAL) {
+    if (messageLevel == ErrorLevel::FATAL) {
         throw std::runtime_error("Validation layer has returned fatal error");
     }
 
     return VK_FALSE;
 }
 
-int PixelRenderer::initRenderer() {
-    LOG(Level::INFO, "Initialization of the PixelRenderer");
-    pixWindow.initWindow("PixelRenderer", 960, 480); // Initializes GLFW and GLFWwindow
+int PixelRenderer::initRenderer(UINT16 width, UINT16 height) {
+    LOG_SCOPED(ErrorLevel::INFO, "Initialization of the PixelRenderer");
+    pixWindow.initWindow("PixelRenderer", width, height); // Initializes GLFW and GLFWwindow
     try {
         createInstance(&m_instance);
         createSurface(&m_surface, &m_instance, pixWindow.getWindow());
@@ -94,7 +94,7 @@ int PixelRenderer::initRenderer() {
         createSynchronizationObjects();
         init_io();
     } catch (const std::runtime_error &e) {
-        LOG(Level::FATAL, "%s", e.what());
+        LOG_SCOPED(ErrorLevel::FATAL, "%s", e.what());
         return EXIT_FAILURE;
     }
 
@@ -154,7 +154,7 @@ void PixelRenderer::cleanup() {
 }
 
 void PixelRenderer::createInstance(VkInstance *instance) {
-    LOG(Level::INFO, "Creating Vulkan Instance");
+    LOG_SCOPED(ErrorLevel::INFO, "Creating Vulkan Instance");
 
     // information about the application itself
     VkApplicationInfo appInfo = {};
@@ -219,7 +219,7 @@ void PixelRenderer::createInstance(VkInstance *instance) {
 }
 
 void PixelRenderer::setupPhysicalDevice(VkInstance *instance, VkPhysicalDevice *physicalDevice) {
-    LOG(Level::INFO, "Creating Vulkan Physical Device");
+    LOG_SCOPED(ErrorLevel::INFO, "Creating Vulkan Physical Device");
     // Enumerate the gpu devices available and fill list
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(*instance, &deviceCount, nullptr);
@@ -241,7 +241,7 @@ void PixelRenderer::setupPhysicalDevice(VkInstance *instance, VkPhysicalDevice *
 }
 
 void PixelRenderer::createLogicalDevice(VkDevice *device, VkPhysicalDevice *physicalDevice) {
-    LOG(Level::INFO, "Creating Vulkan Logical Device");
+    LOG_SCOPED(ErrorLevel::INFO, "Creating Vulkan Logical Device");
     // get the queue families for the physical device
     QueueFamilyIndices indices = setupQueueFamilies(*physicalDevice);
 
@@ -295,7 +295,7 @@ void PixelRenderer::createLogicalDevice(VkDevice *device, VkPhysicalDevice *phys
 }
 
 void PixelRenderer::createSurface(VkSurfaceKHR *surface, VkInstance *instance, GLFWwindow *window) {
-    LOG(Level::INFO, "Creating Vulkan Surface");
+    LOG_SCOPED(ErrorLevel::INFO, "Creating Vulkan Surface");
 
     // create surface (helper function creating a surface create info struct for us, returns result)
     VK_CHECK(glfwCreateWindowSurface(*instance, window, nullptr, surface));
@@ -303,7 +303,7 @@ void PixelRenderer::createSurface(VkSurfaceKHR *surface, VkInstance *instance, G
 }
 
 void PixelRenderer::createSwapChain(PixSwapchain *swapchain, PixBackend *devices, VkSurfaceKHR *surface) {
-    LOG(Level::INFO, "Creating Vulkan SwapChain");
+    LOG_SCOPED(ErrorLevel::INFO, "Creating Vulkan SwapChain");
 
     // get swapchain details so we can pick best settings
     SwapchainDetails swapChainDetails = getSwapChainDetails(devices->physicalDevice);
@@ -382,7 +382,7 @@ void PixelRenderer::createSwapChain(PixSwapchain *swapchain, PixBackend *devices
 }
 
 void PixelRenderer::setupDebugMessenger(VkInstance *instance) {
-    LOG(Level::INFO, "Creating Vulkan Debug Messenger");
+    LOG_SCOPED(ErrorLevel::INFO, "Creating Vulkan Debug Messenger");
     // exit function if validation layer is not enabled
     if (!enableValidationLayers)
         return;
@@ -396,7 +396,7 @@ void PixelRenderer::setupDebugMessenger(VkInstance *instance) {
 }
 
 QueueFamilyIndices PixelRenderer::setupQueueFamilies(VkPhysicalDevice device) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     QueueFamilyIndices indices;
 
@@ -438,7 +438,7 @@ QueueFamilyIndices PixelRenderer::setupQueueFamilies(VkPhysicalDevice device) {
 }
 
 bool PixelRenderer::checkIfPhysicalDeviceSuitable(VkPhysicalDevice device) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     // check the properties of the device that has been passed down (ie vendor, ID, etc..)
     VkPhysicalDeviceProperties deviceProperties;
@@ -461,7 +461,7 @@ bool PixelRenderer::checkIfPhysicalDeviceSuitable(VkPhysicalDevice device) {
 }
 
 bool PixelRenderer::checkDeviceExtensionSupport(VkPhysicalDevice device) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     uint32_t extensionCount = 0;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -491,7 +491,7 @@ bool PixelRenderer::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 }
 
 void PixelRenderer::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -503,7 +503,7 @@ void PixelRenderer::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreate
 }
 
 VkExtent2D PixelRenderer::chooseSwapChainExtent(const VkSurfaceCapabilitiesKHR surfaceCapabilities) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     // if current extent at numeric limits then extent can vary.
     if (surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
@@ -526,7 +526,7 @@ VkExtent2D PixelRenderer::chooseSwapChainExtent(const VkSurfaceCapabilitiesKHR s
 }
 
 SwapchainDetails PixelRenderer::getSwapChainDetails(VkPhysicalDevice device) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     SwapchainDetails swapChainDetails;
 
@@ -571,7 +571,7 @@ void PixelRenderer::createGridSceneGraphicsPipelines() {
 }
 
 void PixelRenderer::createGraphicsPipeline(PixelScene *scene) {
-    LOG(Level::INFO, "Initializing Scenes");
+    LOG_SCOPED(ErrorLevel::INFO, "Initializing Scenes");
 
     // pipeline1
     auto graphicsPipeline1 = std::make_unique<PixelGraphicsPipeline>(mainDevice.logicalDevice, m_pixSwapchain.extent);
@@ -588,13 +588,13 @@ void PixelRenderer::createGraphicsPipeline(PixelScene *scene) {
 }
 
 void PixelRenderer::createFramebuffers() {
-    LOG(Level::INFO, "Creating FrameBuffers");
+    LOG_SCOPED(ErrorLevel::INFO, "Creating FrameBuffers");
     int randomVar = 4;
     glm::vec4 randomVec = {1.2f, 2.0f, 3.0f, 1.0f};
     glm::mat4 randomMat(1.0f);
-    LOG_VAR(Level::INFO, randomVar);
-    LOG_VAR(Level::INFO, randomVec);
-    LOG_VAR(Level::INFO, randomMat);
+    LOG_VAR(ErrorLevel::INFO, randomVar);
+    LOG_VAR(ErrorLevel::INFO, randomVec);
+    LOG_VAR(ErrorLevel::INFO, randomMat);
 
     swapchainFramebuffers.resize(m_pixSwapchain.swapchainImages.size());
 
@@ -618,7 +618,7 @@ void PixelRenderer::createFramebuffers() {
 }
 
 void PixelRenderer::createCommandPools() {
-    LOG(Level::INFO, "Creating Vulkan CommandPools");
+    LOG_SCOPED(ErrorLevel::INFO, "Creating Vulkan CommandPools");
 
     QueueFamilyIndices queueFamilyIndices = setupQueueFamilies(mainDevice.physicalDevice);
 
@@ -639,7 +639,7 @@ void PixelRenderer::createCommandPools() {
 }
 
 void PixelRenderer::createCommandBuffers() {
-    LOG(Level::INFO, "Creating Vulkan Command Buffers");
+    LOG_SCOPED(ErrorLevel::INFO, "Creating Vulkan Command Buffers");
 
     // one commandbuffer per swapchain images
     commandBuffers.resize(m_pixSwapchain.swapchainImages.size());
@@ -658,7 +658,7 @@ void PixelRenderer::createCommandBuffers() {
 }
 
 void PixelRenderer::createComputeCommandBuffers() {
-    LOG(Level::INFO, "Creating Vulkan Command Buffer for Compute Shader");
+    LOG_SCOPED(ErrorLevel::INFO, "Creating Vulkan Command Buffer for Compute Shader");
     // one commandbuffer per swapchain images
     computeCommandBuffers.resize(m_pixSwapchain.swapchainImages.size());
 
@@ -676,7 +676,7 @@ void PixelRenderer::createComputeCommandBuffers() {
 }
 
 void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
-    // LOG(Level::INFO, "");
+    // LOG_SCOPED(Level::INFO, "");
     // info about how to begin each command buffer
     VkCommandBufferBeginInfo bufferBeginInfo{};
     bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -712,6 +712,26 @@ void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
         // begin the renderpass
         vkCmdBeginRenderPass(commandBuffers[currentImageIndex], &renderPassBeginInfo,
                              VK_SUBPASS_CONTENTS_INLINE); // our renderpass contains only primary commands
+
+        // get the grid object from the default scene
+        auto gridObject = defaultGridScene->getObjectAt(0);
+
+        if (!gridObject->isHidden()) {
+
+            vkCmdBindPipeline(commandBuffers[currentImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, defaultGridGraphicsPipeline->getPipeline());
+
+            VkBuffer vertexBuffers[] = {*(gridObject->getVertexBuffer())}; // buffers to bind
+            VkBuffer indexBuffer = *gridObject->getIndexBuffer();
+            VkDeviceSize offsets[] = {0}; // offsets into buffers
+            vkCmdBindVertexBuffers(commandBuffers[currentImageIndex], 0, 1, vertexBuffers, offsets);
+            vkCmdBindIndexBuffer(commandBuffers[currentImageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+            // bind the push constant
+            vkCmdPushConstants(commandBuffers[currentImageIndex], defaultGridGraphicsPipeline->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0,
+                               PixelObject::pushConstantRange.size, gridObject->getPushObj());
+
+            vkCmdDrawIndexed(commandBuffers[currentImageIndex], 6, 1, 0, 0, 0);
+        }
 
         for (int objIndex = 0; objIndex < m_scenes[sceneIndx]->getNumObjects(); objIndex++) {
             auto currentObject = m_scenes[sceneIndx]->getObjectAt(objIndex);
@@ -750,20 +770,6 @@ void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
             vkCmdDrawIndexed(commandBuffers[currentImageIndex], static_cast<uint32_t>(currentObject->getIndexCount()), 1, 0, 0, 0);
         }
 
-        // get the grid object from the default scene
-        auto gridObject = defaultGridScene->getObjectAt(0);
-        if (!gridObject->isHidden()) {
-
-            vkCmdBindPipeline(commandBuffers[currentImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, defaultGridGraphicsPipeline->getPipeline());
-
-            VkBuffer vertexBuffers[] = {*(gridObject->getVertexBuffer())}; // buffers to bind
-            VkBuffer indexBuffer = *gridObject->getIndexBuffer();
-            VkDeviceSize offsets[] = {0}; // offsets into buffers
-            vkCmdBindVertexBuffers(commandBuffers[currentImageIndex], 0, 1, vertexBuffers, offsets);
-            vkCmdBindIndexBuffer(commandBuffers[currentImageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-            vkCmdDrawIndexed(commandBuffers[currentImageIndex], 6, 1, 0, 0, 0);
-        }
 
         // end the Renderpass
         vkCmdEndRenderPass(commandBuffers[currentImageIndex]);
@@ -866,7 +872,7 @@ void PixelRenderer::run() {
 }
 
 void PixelRenderer::createSynchronizationObjects() {
-    LOG(Level::INFO, "Creating Synchronization Objects");
+    LOG_SCOPED(ErrorLevel::INFO, "Creating Synchronization Objects");
 
     imageAvailableSemaphore.resize(MAX_FRAME_DRAWS);
     renderFinishedSemaphore.resize(MAX_FRAME_DRAWS);
@@ -895,7 +901,7 @@ void PixelRenderer::createSynchronizationObjects() {
 
 void PixelRenderer::createBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags bufferproperties,
                                  VkBuffer *buffer, VkDeviceMemory *bufferMemory) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     // does not have any memory, just a header
     VkBufferCreateInfo bufferInfo{};
@@ -922,7 +928,7 @@ void PixelRenderer::createBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags buf
 }
 
 void PixelRenderer::copySrcBuffertoDstBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize bufferSize) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     // Command Buffer to hold the commands
     VkCommandBuffer transferCommandBuffer = beginSingleUseCommandBuffer();
@@ -939,7 +945,7 @@ void PixelRenderer::copySrcBuffertoDstBuffer(VkBuffer srcBuffer, VkBuffer dstBuf
 }
 
 void PixelRenderer::createVertexBuffer(std::shared_ptr<PixelObject> pixObject) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     // temporary buffer to stage the vertex buffer before being transfered to the GPU
     VkBuffer stagingBuffer;
@@ -971,7 +977,7 @@ void PixelRenderer::createVertexBuffer(std::shared_ptr<PixelObject> pixObject) {
 }
 
 void PixelRenderer::createTextureBuffer(VKWPixelImage *pixImage) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     // temporary buffer to stage the vertex buffer before being transfered to the GPU
     VkBuffer stagingBuffer;
@@ -981,12 +987,12 @@ void PixelRenderer::createTextureBuffer(VKWPixelImage *pixImage) {
     createBuffer(pixImage->getImageBufferSize(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer, &stagingBufferMemory);
 
-    if (pixImage->getImageData() != nullptr) {
+    if (pixImage->getRawImageData() != nullptr) {
         // Map memory to staging buffer
         void *data; // create a pointer to a point in normal memory
         vkMapMemory(mainDevice.logicalDevice, stagingBufferMemory, 0, pixImage->getImageBufferSize(), 0,
                     &data); // map vertex buffer memory to that point
-        memcpy(data, pixImage->getImageData(),
+        memcpy(data, pixImage->getRawImageData(),
                static_cast<size_t>(pixImage->getImageBufferSize()));  // copy memory from vertex memory to the data pointer (ie vertex buffer memory)
         vkUnmapMemory(mainDevice.logicalDevice, stagingBufferMemory); // unmap memory
 
@@ -994,7 +1000,7 @@ void PixelRenderer::createTextureBuffer(VKWPixelImage *pixImage) {
         transitionImageLayout(pixImage->getImage(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
         // graphics queues are also transfer queues & graphics command pool are also transfer command pools
-        copySrcBuffertoDstImage(stagingBuffer, pixImage->getImage(), pixImage->getWidth(), pixImage->getHeight());
+        copySrcBuffertoDstImage(stagingBuffer, pixImage->getImage(), pixImage->GetWidth(), pixImage->GetHeight());
 
         // transition the image from image layout transfer bit so it can be read by the shader.
         transitionImageLayout(pixImage->getImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -1008,7 +1014,7 @@ void PixelRenderer::createTextureBuffer(VKWPixelImage *pixImage) {
 }
 
 void PixelRenderer::createIndexBuffer(std::shared_ptr<PixelObject> pixObject) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     // temporary buffer to stage the vertex buffer before being transfered to the GPU
     VkBuffer stagingBuffer;
@@ -1040,14 +1046,14 @@ void PixelRenderer::createIndexBuffer(std::shared_ptr<PixelObject> pixObject) {
 }
 
 void PixelRenderer::initializeObjectBuffers(std::shared_ptr<PixelObject> pixObject) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     createVertexBuffer(pixObject);
     createIndexBuffer(pixObject);
 }
 
 void PixelRenderer::createUniformBuffers(PixelScene *scene) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     scene->resizeBuffers(m_pixSwapchain.swapchainImages.size());
 
@@ -1063,7 +1069,7 @@ void PixelRenderer::createUniformBuffers(PixelScene *scene) {
 }
 
 void PixelRenderer::initializeScenes() {
-    LOG(Level::INFO, "Initializing Scenes");
+    LOG_SCOPED(ErrorLevel::INFO, "Initializing Scenes");
 
     // load an empty texture for use when texture is not defined.
     emptyTexture = VKWPixelImage(0, 0, false);
@@ -1078,7 +1084,7 @@ void PixelRenderer::initializeScenes() {
 }
 
 void PixelRenderer::build(PixelScene *scene) {
-    LOG(Level::INFO, "Initializing Scene named: %s", scene->getName().c_str());
+    LOG_SCOPED(ErrorLevel::INFO, "Initializing Scene named: %s", scene->getName().c_str());
 
     scene->initialize(&mainDevice);
 
@@ -1097,7 +1103,7 @@ void PixelRenderer::build(PixelScene *scene) {
 }
 
 void PixelRenderer::createDescriptorPool(PixelScene *scene) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     size_t numTextureDescriptorSet = 1;
     size_t numUniformDescriptorSets = m_pixSwapchain.swapchainImages.size();
@@ -1129,7 +1135,7 @@ void PixelRenderer::createDescriptorPool(PixelScene *scene) {
 }
 
 void PixelRenderer::createDescriptorSets(PixelScene *scene) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     // we have 1 Descriptor Set and 2 bindings. one binding for the VP matrices. one binding for the dynamic buffer object for M matrix.
     const size_t numImages = m_pixSwapchain.swapchainImages.size();
@@ -1230,7 +1236,7 @@ void PixelRenderer::createDescriptorSets(PixelScene *scene) {
 }
 
 VkCommandBuffer PixelRenderer::beginSingleUseCommandBuffer() {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     // Command Buffer to hold the commands
     VkCommandBuffer transferCommandBuffer;
@@ -1255,7 +1261,7 @@ VkCommandBuffer PixelRenderer::beginSingleUseCommandBuffer() {
 }
 
 void PixelRenderer::submitAndEndSingleUseCommandBuffer(VkCommandBuffer *commandBuffer) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     // end the given command buffer
     vkEndCommandBuffer(*commandBuffer);
@@ -1273,7 +1279,7 @@ void PixelRenderer::submitAndEndSingleUseCommandBuffer(VkCommandBuffer *commandB
 }
 
 void PixelRenderer::copySrcBuffertoDstImage(VkBuffer srcBuffer, VkImage dstImageBuffer, uint32_t width, uint32_t height) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     // copying buffer memory to image memory
     VkCommandBuffer transferCommandBuffer = beginSingleUseCommandBuffer();
@@ -1297,7 +1303,7 @@ void PixelRenderer::copySrcBuffertoDstImage(VkBuffer srcBuffer, VkImage dstImage
 }
 
 void PixelRenderer::transitionImageLayout(VkImage imageToTransition, VkImageLayout currentLayout, VkImageLayout newLayout) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     VkCommandBuffer commandBuffer = beginSingleUseCommandBuffer();
 
@@ -1359,7 +1365,7 @@ void PixelRenderer::transitionImageLayout(VkImage imageToTransition, VkImageLayo
 
 void PixelRenderer::transitionImageLayoutUsingCommandBuffer(VkCommandBuffer commandBuffer, VkImage imageToTransition, VkImageLayout currentLayout,
                                                             VkImageLayout newLayout) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     // VkCommandBuffer commandBuffer = beginSingleUseCommandBuffer();
 
@@ -1471,7 +1477,7 @@ void PixelRenderer::transitionImageLayoutUsingCommandBuffer(VkCommandBuffer comm
 }
 
 void PixelRenderer::createTextureSampler() {
-    LOG(Level::INFO, "Creating Texture Sampler");
+    LOG_SCOPED(ErrorLevel::INFO, "Creating Texture Sampler");
 
     VkSamplerCreateInfo samplerCreateInfo{};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -1494,7 +1500,7 @@ void PixelRenderer::createTextureSampler() {
 }
 
 PixelScene *PixelRenderer::createScene() {
-    LOG(Level::INFO, "Creating Scene");
+    LOG_SCOPED(ErrorLevel::INFO, "Creating Scene");
 
     // create scene
     auto scene = std::make_shared<PixelScene>();
@@ -1532,7 +1538,7 @@ PixelScene *PixelRenderer::createScene() {
 void PixelRenderer::addScene(std::shared_ptr<PixelScene> scene) { m_scenes.push_back(scene); }
 
 void PixelRenderer::init_compute() {
-    LOG(Level::INFO, "Init Compute Pipeline");
+    LOG_SCOPED(ErrorLevel::INFO, "Init Compute Pipeline");
 
     computePipeline = PixelComputePipeline();
     computePipeline.init(&mainDevice);
@@ -1541,7 +1547,7 @@ void PixelRenderer::init_compute() {
 }
 
 void PixelRenderer::recordComputeCommands(uint32_t currentImageIndex) {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     VkCommandBufferBeginInfo bufferBeginInfo{};
     bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1574,7 +1580,7 @@ void PixelRenderer::recordComputeCommands(uint32_t currentImageIndex) {
     VkImageCopy imageCopy{};
     imageCopy.srcOffset = {0, 0, 0};
     imageCopy.dstOffset = {0, 0, 0}; // for data spacing
-    imageCopy.extent = {computePipeline.getInputTexture()->getWidth(), computePipeline.getInputTexture()->getHeight(), 1};
+    imageCopy.extent = {computePipeline.getInputTexture()->GetWidth(), computePipeline.getInputTexture()->GetHeight(), 1};
     imageCopy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     imageCopy.srcSubresource.layerCount = 1;
     imageCopy.srcSubresource.baseArrayLayer = 0;
@@ -1605,7 +1611,7 @@ void PixelRenderer::updateAll() {
 }
 
 void PixelRenderer::updateComputeTextureDescriptor() {
-    LOG(Level::INFO, "");
+    LOG_SCOPED(ErrorLevel::INFO, "");
 
     std::array<VkWriteDescriptorSet, 1> textureDescriptorInfo{};
 
@@ -1627,7 +1633,7 @@ void PixelRenderer::updateComputeTextureDescriptor() {
 }
 
 void PixelRenderer::init_io() {
-    LOG(Level::INFO, "Initialization GLFW IO");
+    LOG_SCOPED(ErrorLevel::INFO, "Initialization GLFW IO");
 
     glfwSetKeyCallback(pixWindow.getWindow(), key_callback);
     glfwSetMouseButtonCallback(pixWindow.getWindow(), mouse_callback);
@@ -1637,7 +1643,7 @@ void PixelRenderer::init_io() {
 }
 
 void PixelRenderer::preDraw() {
-    // LOG(Level::INFO, "");
+    // LOG_SCOPED(Level::INFO, "");
 
     double posX, posY;
     glfwGetCursorPos(pixWindow.getWindow(), &posX, &posY);
@@ -1650,7 +1656,7 @@ void PixelRenderer::preDraw() {
 }
 
 void PixelRenderer::createDefaultGridScene() {
-    LOG(Level::INFO, "Creating Default Grid Scene");
+    LOG_SCOPED(ErrorLevel::INFO, "Creating Default Grid Scene");
 
     defaultGridScene = std::make_shared<PixelScene>();
 

@@ -19,7 +19,7 @@ layout(push_constant) uniform PObj
 } pushObj;
 
 // size of the grid
-float gridSize = 10.0f;
+float gridSize = 50.0f;
 
 // minimum number of pixels between cell lines before LOD switch should occur.
 const float gridMinPixelsBetweenCells = 2.0;

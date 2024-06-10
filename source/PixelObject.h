@@ -8,7 +8,8 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-#include "PixelImage.h"
+#include "VKWPixelImage.h"
+#include "Utility.h"
 #include "PixelMemManager.h"
 
 #include <string>
@@ -89,7 +90,7 @@ public:
     void setGenericColor(glm::vec4 color);
     void addTransform(glm::mat4 matTransform);
     void setTransform(glm::mat4 matTransform);
-    void addTexture(PixBackend* devices, std::string textureFile);
+    void addTexture(PixBackend* devices, const char* textureFile);
     void addTexture(VKWPixelImage* pixImage);
     void setTextureIDOffset(int offset){texIDOffset = offset;};
     void hide(){m_isHidden = true;};

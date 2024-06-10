@@ -1,8 +1,12 @@
 #ifndef PIXELMEMMANAGER_H_
 #define PIXELMEMMANAGER_H_
 
-#include <vector>
+#include "PixelLogger.h"
+#include "PixelTypes.h"
 #include "glm/glm.hpp"
+#include <vector>
+
+constexpr UINT32 START_MEMORY_ALLOCATION = 1000000000; // 100mb
 
 struct PixelObjectDataHeader {
     unsigned int id;
@@ -16,35 +20,18 @@ struct PixelObjectDataHeader {
     int texCoordSize;
 };
 
-// Memory Manager Singleton
-class PixelMemManager {
-  private:
-    PixelMemManager(){};
+struct PixelImageDataHeader {
+    unsigned int id;
+};
 
-    static PixelMemManager *oneAndOnlyInstance;
-    static std::vector<PixelObjectDataHeader> metadataPerObject;
-    static std::vector<glm::vec4> listOfPositions;
-    static std::vector<glm::vec4> listOfNormals;
-    static std::vector<glm::vec4> listOfColors;
-    static std::vector<glm::vec2> listOfTexCoords;
+class PixelMemory {
+  private:
+    PixelMemory(){};
 
   public:
-    static PixelMemManager* get_instance() {
-        if (oneAndOnlyInstance == nullptr) {
-            oneAndOnlyInstance = new PixelMemManager();
-        }
-        return oneAndOnlyInstance;
-    }
-
-    static glm::vec4 *getPositionsData(PixelObjectDataHeader dataHeader);
-    static glm::vec4 *getNormalsData(PixelObjectDataHeader dataHeader);
-    static glm::vec4 *getColorsData(PixelObjectDataHeader dataHeader);
-    static glm::vec2 *getTexCoordsData(PixelObjectDataHeader dataHeader);
-
-    static void addMeshObjectMemory(std::vector<glm::vec4> listOfPositions = {},
-                                    std::vector<glm::vec4> listOfNormals = {},
-                                    std::vector<glm::vec4> listOfColors = {},
-                                    std::vector<glm::vec2> listOfTexCoords = {});
+    static ErrorLevel InitGlobalMemory();
+    static ErrorLevel FreeGlobalMemory();
+    static UCHAR *AllocateMemory(const size_t bytesToAllocate);
 };
 
 #endif // PIXELMEMMANAGER_H_

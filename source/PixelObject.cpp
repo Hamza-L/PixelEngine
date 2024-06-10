@@ -11,7 +11,7 @@
 
 PixelObject::PixelObject(std::vector<Vertex> vertices, std::vector<uint32_t> indices): m_vertices(vertices), m_indices(indices) {
     //create the vertex buffer form the vertices
-    LOG(Level::DEBUG, "PixelObject Constructed");
+    LOG_SCOPED(ErrorLevel::DEBUG, "PixelObject Constructed");
     //createVertexBuffer(vertices);
 }
 
@@ -150,7 +150,7 @@ PixelObject::DynamicUBObj* PixelObject::getDynamicUBObj() {
     return &dynamicUBO;
 }
 
-void PixelObject::addTexture(PixBackend* devices, std::string textureFile) {
+void PixelObject::addTexture(PixBackend* devices, const char* textureFile) {
     VKWPixelImage textureImage = VKWPixelImage(0, 0, false);
     textureImage.loadTexture(devices, textureFile);
 

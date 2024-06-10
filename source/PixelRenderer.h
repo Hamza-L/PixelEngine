@@ -29,7 +29,7 @@ class PixelRenderer {
     // factory creation function
     PixelScene* createScene();
 
-    int initRenderer();
+    int initRenderer(UINT16 width = 960, UINT16 height = 480);
     void build(PixelScene* scene);
     void addScene(std::shared_ptr<PixelScene> scene);
     void draw();
@@ -37,7 +37,7 @@ class PixelRenderer {
     bool windowShouldClose();
     void cleanup();
 
-    PixBackend getDevices(){return mainDevice;}
+    PixBackend* getDevices(){return &mainDevice;}
 
     float currentTime = 0;
 

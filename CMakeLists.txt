@@ -15,6 +15,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 # Source groups
 ################################################################################
 set(Headers
+    "source/PixelMemManager.h"
     "source/PixelLogger.h"
     "source/PixelRenderer.h"
     "source/PixelWindow.h"
@@ -22,14 +23,17 @@ set(Headers
     "source/PixelObject.h"
     "source/PixelScene.h"
     "source/PixelImage.h"
+    "source/VKWPixelImage.h"
     "source/Utility.h" 
     "source/stb_image.h"
     "source/PixelComputePipeline.h"
+    "source/PixelConfig.h"
     "source/kb_input.h")
 source_group("Headers" FILES ${Headers})
 
 set(Sources
     "source/main.cpp"
+    "source/PixelMemManager.cpp"
     "source/PixelLogger.cpp"
     "source/PixelRenderer.cpp"
     "source/PixelWindow.cpp"
@@ -37,6 +41,7 @@ set(Sources
     "source/PixelObject.cpp"
     "source/PixelScene.cpp"
     "source/PixelImage.cpp"
+    "source/VKWPixelImage.cpp"
     "source/PixelComputePipeline.cpp"
     "source/kb_input.cpp")
 
