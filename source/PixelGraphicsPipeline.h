@@ -8,6 +8,7 @@
 #include "PixelScene.h"
 
 #include <vector>
+#include <array>
 
 class PixelGraphicsPipeline {
 public:

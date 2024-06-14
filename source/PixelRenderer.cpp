@@ -84,7 +84,7 @@ int PixelRenderer::initRenderer(UINT16 width, UINT16 height) {
         createCommandBuffers();
         // createComputeCommandBuffers();
         // init_compute();
-        createDefaultGraphicsPipeline();
+        // createDefaultGraphicsPipeline();
         createDefaultGridScene();
         createGridSceneGraphicsPipelines();
         // createScene();
@@ -704,34 +704,51 @@ void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
      * Series of command to record
      * */
 
+    // get the grid object from the default scene
+    renderPassBeginInfo.renderPass = defaultGridGraphicsPipeline->getRenderPass();
+
+    // begin the renderpass
+    vkCmdBeginRenderPass(commandBuffers[currentImageIndex], &renderPassBeginInfo,
+                         VK_SUBPASS_CONTENTS_INLINE); // our renderpass contains only primary commands
+
+    auto gridObject = defaultGridScene->getObjectAt(0);
+
+    if (!gridObject->isHidden()) {
+
+        vkCmdBindPipeline(commandBuffers[currentImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, defaultGridGraphicsPipeline->getPipeline());
+
+        VkBuffer vertexBuffers[] = {*(gridObject->getVertexBuffer())}; // buffers to bind
+        VkBuffer indexBuffer = *gridObject->getIndexBuffer();
+        VkDeviceSize offsets[] = {0}; // offsets into buffers
+        vkCmdBindVertexBuffers(commandBuffers[currentImageIndex], 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffers[currentImageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+        // bind the push constant
+        vkCmdPushConstants(commandBuffers[currentImageIndex], defaultGridGraphicsPipeline->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0,
+                           PixelObject::pushConstantRange.size, gridObject->getPushObj());
+
+        // dynamic offset ammount
+        uint32_t dynamicOffset = 0;
+
+        std::array<VkDescriptorSet, 2> descriptorSets = {*m_scenes[0]->getUniformDescriptorSetAt(currentImageIndex),
+        *m_scenes[0]->getTextureDescriptorSet()};
+
+        // bind the descriptor sets
+        vkCmdBindDescriptorSets(commandBuffers[currentImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines[gridObject->getGraphicsPipelineIndex()]->getPipelineLayout(), 0,
+                                static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 1, &dynamicOffset);
+
+        vkCmdDrawIndexed(commandBuffers[currentImageIndex], 6, 1, 0, 0, 0);
+    }
+
     // one pipeline can be attached per subpass. if we say we need to go to another subpass, we need to bind another pipeline.
     // there is one graphics pipeline per scene
     for (int sceneIndx = 0; sceneIndx < m_scenes.size(); sceneIndx++) {
-        renderPassBeginInfo.renderPass = graphicsPipelines[sceneIndx]->getRenderPass();
+        // renderPassBeginInfo.renderPass = graphicsPipelines[sceneIndx]->getRenderPass();
 
-        // begin the renderpass
-        vkCmdBeginRenderPass(commandBuffers[currentImageIndex], &renderPassBeginInfo,
-                             VK_SUBPASS_CONTENTS_INLINE); // our renderpass contains only primary commands
+        // // begin the renderpass
+        // vkCmdBeginRenderPass(commandBuffers[currentImageIndex], &renderPassBeginInfo,
+        //                      VK_SUBPASS_CONTENTS_INLINE); // our renderpass contains only primary commands
 
-        // get the grid object from the default scene
-        auto gridObject = defaultGridScene->getObjectAt(0);
-
-        if (!gridObject->isHidden()) {
-
-            vkCmdBindPipeline(commandBuffers[currentImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, defaultGridGraphicsPipeline->getPipeline());
-
-            VkBuffer vertexBuffers[] = {*(gridObject->getVertexBuffer())}; // buffers to bind
-            VkBuffer indexBuffer = *gridObject->getIndexBuffer();
-            VkDeviceSize offsets[] = {0}; // offsets into buffers
-            vkCmdBindVertexBuffers(commandBuffers[currentImageIndex], 0, 1, vertexBuffers, offsets);
-            vkCmdBindIndexBuffer(commandBuffers[currentImageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-            // bind the push constant
-            vkCmdPushConstants(commandBuffers[currentImageIndex], defaultGridGraphicsPipeline->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0,
-                               PixelObject::pushConstantRange.size, gridObject->getPushObj());
-
-            vkCmdDrawIndexed(commandBuffers[currentImageIndex], 6, 1, 0, 0, 0);
-        }
 
         for (int objIndex = 0; objIndex < m_scenes[sceneIndx]->getNumObjects(); objIndex++) {
             auto currentObject = m_scenes[sceneIndx]->getObjectAt(objIndex);
@@ -770,10 +787,10 @@ void PixelRenderer::recordCommands(uint32_t currentImageIndex) {
             vkCmdDrawIndexed(commandBuffers[currentImageIndex], static_cast<uint32_t>(currentObject->getIndexCount()), 1, 0, 0, 0);
         }
 
-
-        // end the Renderpass
-        vkCmdEndRenderPass(commandBuffers[currentImageIndex]);
     }
+
+    // end the Renderpass
+    vkCmdEndRenderPass(commandBuffers[currentImageIndex]);
 
     /*
      * End of the series of command to record

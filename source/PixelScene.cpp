@@ -7,6 +7,7 @@
 #include "glm/ext/matrix_relational.hpp"
 
 #include <vector>
+#include <array>
 #include <cstdlib>
 
 PixelScene::PixelScene()

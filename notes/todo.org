@@ -1,0 +1,7 @@
+#+title: TODO
+#+author: HamzaLah
+
+* Things that need to be done
+** Adding text
+- Will be useful for debugging
+** Adding flipbook animations

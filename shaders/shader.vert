@@ -36,14 +36,14 @@ layout(location = 5) out flat int texID;
 void main()
 {
     // modif[3] = vec4(0.0f,0.0f,0.0f,1.0f);
-    mat4 modif = inverse(uboVP.V);
-    gl_Position = uboVP.P * uboVP.V * pushObj.M * modif * position;
+    mat4 MinvT = inverse(pushObj.M);
+    gl_Position = uboVP.P * (uboVP.V * pushObj.M * vec4(0.0f,0.0f,0.0f,1.0f) + vec4(position.x, position.y, 0.0f, 0.0f));
     fragColor = color;
 
     lightPos = uboVP.lightPos.xyz;
     vec4 tempPos = uboVP.V * pushObj.M * vec4(position.xyz, 1.f);
     positionForFP = tempPos.xyz/tempPos.w;
-    vec4 tempNorm = pushObj.MinvT * vec4(normal.xyz, 0.0f);
+    vec4 tempNorm = MinvT * vec4(normal.xyz, 0.0f);
     normalForFP = vec4(normalize(tempNorm.xyz),0.0f);
 
     fragTex = texUV;

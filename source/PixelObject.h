@@ -9,17 +9,17 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 #include "VKWPixelImage.h"
+#include "AnimatedPixelImage.h"
 #include "Utility.h"
 #include "PixelMemManager.h"
 
 #include <string>
-#include <array>
 #include <vector>
 
 class PixelObject {
 public:
 
-    // this should noe change every frame, but can change per individual object/mesh.
+    // this should not change every frame, but can change per individual object/mesh.
     //Dynamic Uniform Buffer Object
     struct DynamicUBObj{
         glm::mat4 M{};
@@ -83,6 +83,9 @@ public:
     //cleanup
     void cleanup(PixBackend* device);
 
+    // update
+    void Update();
+
 
     //helper functions
     //returns the number of members of the Vertex Struct
@@ -125,6 +128,9 @@ private:
     //texture used
     std::vector<VKWPixelImage> m_textures;
     int texIDOffset = 0;
+
+    //current Animated texture;
+    AnimatedPixelImage m_animatedtexture;
 
     //pipeline used
     int graphicsPipelineIndex = 0;

@@ -1,7 +1,3 @@
-//
-// Created by Zara Hussain on 2023-04-29.
-//
-
 #ifndef PIXELENGINE_STB_IMAGE_H
 #define PIXELENGINE_STB_IMAGE_H
 
