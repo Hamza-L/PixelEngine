@@ -1,6 +1,8 @@
 #ifndef PIXELTYPES_H_
 #define PIXELTYPES_H_
 
+#include <cstdint>
+
 typedef signed char        INT8;
 typedef short              INT16;
 typedef int                INT32;
@@ -11,6 +13,7 @@ typedef unsigned int       UINT32;
 typedef unsigned long long UINT64;
 
 typedef unsigned char UCHAR;
+typedef char CHAR;
 
 enum PixelImageFormat{
 UNDEFINED,

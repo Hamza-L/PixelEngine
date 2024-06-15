@@ -1,0 +1,2 @@
+AnimationCount:9
+AnimationFrames:8,8,8,8,8,8,8,8,1
