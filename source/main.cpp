@@ -8,6 +8,7 @@
 #include "PixelLogger.h"
 #include "PixelRenderer.h"
 #include "PixelScene.h"
+#include "PixelFont.h"
 #include "kb_input.h"
 
 constexpr UINT16 WIDTH = 960;
@@ -92,6 +93,10 @@ int main() {
     log->setSeverity(ErrorLevel::DEBUG);
 
     LOG_SCOPED(ErrorLevel::INFO, "main() entry point");
+
+    int fileSize = 0;
+    PixelFont font;
+    font.loadFont("assets/Dobidoo.ttf", &fileSize);
 
     PixelRenderer pixRenderer;
     PixelMemory::InitGlobalMemory();
