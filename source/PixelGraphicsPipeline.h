@@ -5,9 +5,13 @@
 #ifndef PIXELENGINE_PIXELGRAPHICSPIPELINE_H
 #define PIXELENGINE_PIXELGRAPHICSPIPELINE_H
 
-#include "PixelScene.h"
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLFW_INCLUDE_VULKAN //includes vulkan automatically
+#include <GLFW/glfw3.h>
 
-#include <vector>
+#include "PixelLogger.h"
+#include "PixelTypes.h"
+
 #include <array>
 
 class PixelGraphicsPipeline {
@@ -17,7 +21,7 @@ public:
     void addVertexShader(const std::string& filename);
     void addFragmentShader(const std::string& filename);
     void populateGraphicsPipelineInfo();
-    void populatePipelineLayout(PixelScene* scene);
+    void populatePipelineLayout(std::vector<VkDescriptorSetLayout>& sceneDescriptorSets, VkPushConstantRange pushConstantRange);
     void createGraphicsPipeline(const VkRenderPass& inputRenderPass);
     void addRenderpassColorAttachment(VkFormat imageFormat, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentStoreOp attachmentStoreOp, VkImageLayout attachmentReferenceLayout);
     void addRenderpassDepthAttachment(VkFormat depthImageFormat);
@@ -49,7 +53,7 @@ private:
     VkPipelineShaderStageCreateInfo fragmentCreateShaderInfo = {};
     VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo = {};
     VkVertexInputBindingDescription inputBindingDescription{};
-    std::array<VkVertexInputAttributeDescription, PixelObject::ATTRIBUTECOUNT> inputAttributeDescription{};
+    std::array<VkVertexInputAttributeDescription, Pixel::ATTRIBUTECOUNT> inputAttributeDescription{};
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo = {};
     VkViewport viewport = {};
     VkRect2D scissor{};

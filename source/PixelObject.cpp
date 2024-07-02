@@ -21,7 +21,7 @@ PixelObject::PixelObject(std::string filename){
 
 PixelObject PixelObject::Square(){
 
-    std::vector<PixelObject::Vertex> vertices = {
+    std::vector<Pixel::Vertex> vertices = {
         {{-1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // 0
         {{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},  // 1
         {{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},   // 2
@@ -39,7 +39,7 @@ PixelObject PixelObject::Square(){
 
 PixelObject PixelObject::Cube(){
 
-    std::vector<PixelObject::Vertex> vertices = {
+    std::vector<Pixel::Vertex> vertices = {
         {{-1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // 0
         {{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},  // 1
         {{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},   // 2
@@ -55,7 +55,7 @@ PixelObject PixelObject::Cube(){
     return object;
 }
 
-void PixelObject::cleanup(PixBackend* device) {
+void PixelObject::cleanup(const Pixel::Devices* device) {
 
     for(auto texture : m_textures)
     {
@@ -71,7 +71,7 @@ void PixelObject::cleanup(PixBackend* device) {
     vkDestroyBuffer(device->logicalDevice, indexBuffer, nullptr);
 }
 
-std::vector<PixelObject::Vertex>* PixelObject::getVertices() {
+std::vector<Pixel::Vertex>* PixelObject::getVertices() {
     return &m_vertices;
 }
 
@@ -115,7 +115,7 @@ void PixelObject::setDynamicUBObj(DynamicUBObj pushObjData) {
     dynamicUBO = pushObjData;
 }
 
-PixelObject::PObj* PixelObject::getPushObj() {
+Pixel::PObj* PixelObject::getPushObj() {
     return &pushObj;
 }
 
@@ -142,15 +142,15 @@ void PixelObject::setTransform(glm::mat4 matTransform) {
     pushObj.MinvT = glm::transpose(glm::inverse(pushObj.M));
 }
 
-void PixelObject::setPushObj(PixelObject::PObj pushObjData) {
+void PixelObject::setPushObj(Pixel::PObj pushObjData) {
     pushObj = PObj(pushObjData);
 }
 
-PixelObject::DynamicUBObj* PixelObject::getDynamicUBObj() {
+Pixel::DynamicUBObj* PixelObject::getDynamicUBObj() {
     return &dynamicUBO;
 }
 
-void PixelObject::addTexture(PixBackend* devices, const char* textureFile) {
+void PixelObject::addTexture(Pixel::Devices* devices, const char* textureFile) {
     VKWPixelImage textureImage = VKWPixelImage(0, 0, false);
     textureImage.loadTexture(devices, textureFile);
 

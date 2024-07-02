@@ -12,7 +12,7 @@ VKWPixelImage::VKWPixelImage(const char* imageFile, VkFormat format) : m_format(
     m_pixelImage.LoadImageFile(imageFile);
 }
 
-void VKWPixelImage::cleanUp(PixBackend* devices)
+void VKWPixelImage::cleanUp(const Pixel::Devices* devices)
 {
     vkDestroyImageView(devices->logicalDevice, m_imageView, nullptr);
     if(!m_IsSwapChainImage)
@@ -25,7 +25,7 @@ void VKWPixelImage::cleanUp(PixBackend* devices)
 }
 
 //create an image view for the image
-void VKWPixelImage::createImageView(PixBackend* devices, VkImageAspectFlags aspectFlags)
+void VKWPixelImage::createImageView(Pixel::Devices* devices, VkImageAspectFlags aspectFlags)
 {
     VkImageViewCreateInfo imageViewCreateInfo = {};
     imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -58,7 +58,7 @@ void VKWPixelImage::createImageView(PixBackend* devices, VkImageAspectFlags aspe
     m_ressourcesCleaned = false;
 }
 
-void VKWPixelImage::createDepthBufferImage(PixBackend* devices)
+void VKWPixelImage::createDepthBufferImage(Pixel::Devices* devices)
 {
 
     m_format = chooseSupportedFormat(devices->physicalDevice,
@@ -69,7 +69,7 @@ void VKWPixelImage::createDepthBufferImage(PixBackend* devices)
     createImageView(devices, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-void VKWPixelImage::createImage(PixBackend* devices, VkImageTiling imageTiling, VkImageUsageFlags useFlags, VkMemoryPropertyFlags propFlags) {
+void VKWPixelImage::createImage(Pixel::Devices* devices, VkImageTiling imageTiling, VkImageUsageFlags useFlags, VkMemoryPropertyFlags propFlags) {
 
     VkImageCreateInfo imageCreateInfo{};
     imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -116,7 +116,7 @@ VkFormat VKWPixelImage::getFormat() {
     return m_format;
 }
 
-void VKWPixelImage::loadTexture(PixBackend* devices, const char* filename) {
+void VKWPixelImage::loadTexture(Pixel::Devices* devices, const char* filename) {
 
     m_pixelImage.LoadImageFile(filename);
 
@@ -127,7 +127,7 @@ void VKWPixelImage::loadTexture(PixBackend* devices, const char* filename) {
     createImageView(devices, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void VKWPixelImage::loadEmptyTexture(PixBackend* devices) {
+void VKWPixelImage::loadEmptyTexture(Pixel::Devices* devices) {
     m_pixelImage = PixelImage(1,1); // 1 pixel image. no data
     m_format =  VK_FORMAT_R8G8B8A8_UNORM; //here we set the format manually, we do not need to check if it is compatible with other features
 
@@ -135,7 +135,7 @@ void VKWPixelImage::loadEmptyTexture(PixBackend* devices) {
     createImageView(devices, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void VKWPixelImage::loadEmptyTexture(PixBackend* devices, uint32_t width, uint32_t height, VkImageUsageFlags flags) {
+void VKWPixelImage::loadEmptyTexture(Pixel::Devices* devices, uint32_t width, uint32_t height, VkImageUsageFlags flags) {
     m_pixelImage.LoadEmptyImage(width, height);
     m_format =  VK_FORMAT_R8G8B8A8_UNORM; //here we set the format manually, we do not need to check if it is compatible with other features
 

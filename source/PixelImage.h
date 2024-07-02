@@ -12,9 +12,11 @@
 
 constexpr UINT16 MAX_IMAGE_NAME_LENGTH = 256;
 
+using namespace Pixel;
+
 class PixelImage {
   public:
-    PixelImage(const UINT32 width, const UINT32 height, PixelImageFormat format = RGBA);
+    PixelImage(const UINT32 width, const UINT32 height, ImageFormat format = RGBA);
     PixelImage(const char *imageFile);
     PixelImage();
 
@@ -26,7 +28,7 @@ class PixelImage {
     UINT32 GetWidth() { return m_width; }
     UINT32 GetHeight() { return m_height; }
     UINT64 GetImageSize() { return m_dataSize; }
-    PixelImageFormat GetFormat() { return m_format; }
+    ImageFormat GetFormat() { return m_format; }
     UCHAR *GetRawData() { return m_data; }
     std::string GetName() { return m_imageName; }
 
@@ -43,7 +45,7 @@ class PixelImage {
     UINT32 m_numChannels{};
     std::string m_imageName{};
     std::string m_fileName{};
-    PixelImageFormat m_format{};
+    ImageFormat m_format{};
 
     // state
     bool isDefined = false;

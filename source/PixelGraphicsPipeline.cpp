@@ -3,9 +3,9 @@
 //
 
 #include "PixelGraphicsPipeline.h"
+#include "Utility.h"
 
 #include <array>
-#include <future>
 
 void PixelGraphicsPipeline::addVertexShader(const std::string &filename) {
     vertexShaderModule = addShaderModule(m_device, filename);
@@ -170,37 +170,37 @@ void PixelGraphicsPipeline::populateGraphicsPipelineInfo() {
     //How data for a single vertex is laid out
 
     inputBindingDescription.binding = 0;
-    inputBindingDescription.stride = sizeof(PixelObject::Vertex);
+    inputBindingDescription.stride = sizeof(Pixel::Vertex);
     inputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; //how to move between data after each vertex
                                                                      //VK_VERTEX_INPUT_RATE_VERTEX : Move on to the next vertex
                                                                      //VK_VERTEX_INPUT_RATE_INSTANCE : Move on to the next instance
 
     //How the data within a vertex is descripted
     //fills in each Vertex Input Attribute Description struct for each attributes in the Vertex Object (position, color etc...)
-    inputAttributeDescription[PixelObject::POSITION_ATTRIBUTEINDEX].binding = 0; //matches the layout(binding = 0)
-    inputAttributeDescription[PixelObject::POSITION_ATTRIBUTEINDEX].location = static_cast<uint32_t>(PixelObject::POSITION_ATTRIBUTEINDEX); //matches the layout(location = 0)
-    inputAttributeDescription[PixelObject::POSITION_ATTRIBUTEINDEX].format = VK_FORMAT_R32G32B32A32_SFLOAT; //the format of the attribute (vec3)
-    inputAttributeDescription[PixelObject::POSITION_ATTRIBUTEINDEX].offset = static_cast<uint32_t>(offsetof(PixelObject::Vertex, position)); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
+    inputAttributeDescription[Pixel::POSITION_ATTRIBUTEINDEX].binding = 0; //matches the layout(binding = 0)
+    inputAttributeDescription[Pixel::POSITION_ATTRIBUTEINDEX].location = static_cast<uint32_t>(Pixel::POSITION_ATTRIBUTEINDEX); //matches the layout(location = 0)
+    inputAttributeDescription[Pixel::POSITION_ATTRIBUTEINDEX].format = VK_FORMAT_R32G32B32A32_SFLOAT; //the format of the attribute (vec3)
+    inputAttributeDescription[Pixel::POSITION_ATTRIBUTEINDEX].offset = static_cast<uint32_t>(offsetof(Pixel::Vertex, position)); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
 
-    inputAttributeDescription[PixelObject::NORMAL_ATTRIBUTEINDEX].binding = 0; //matches the layout(binding = 0)
-    inputAttributeDescription[PixelObject::NORMAL_ATTRIBUTEINDEX].location = static_cast<uint32_t>(PixelObject::NORMAL_ATTRIBUTEINDEX); //matches the layout(location = 0)
-    inputAttributeDescription[PixelObject::NORMAL_ATTRIBUTEINDEX].format = VK_FORMAT_R32G32B32A32_SFLOAT; //the format of the attribute (vec3)
-    inputAttributeDescription[PixelObject::NORMAL_ATTRIBUTEINDEX].offset = static_cast<uint32_t>(offsetof(PixelObject::Vertex, normal)); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
+    inputAttributeDescription[Pixel::NORMAL_ATTRIBUTEINDEX].binding = 0; //matches the layout(binding = 0)
+    inputAttributeDescription[Pixel::NORMAL_ATTRIBUTEINDEX].location = static_cast<uint32_t>(Pixel::NORMAL_ATTRIBUTEINDEX); //matches the layout(location = 0)
+    inputAttributeDescription[Pixel::NORMAL_ATTRIBUTEINDEX].format = VK_FORMAT_R32G32B32A32_SFLOAT; //the format of the attribute (vec3)
+    inputAttributeDescription[Pixel::NORMAL_ATTRIBUTEINDEX].offset = static_cast<uint32_t>(offsetof(Pixel::Vertex, normal)); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
 
-    inputAttributeDescription[PixelObject::COLOR_ATTRIBUTEINDEX].binding = 0; //matches the layout(binding = 0)
-    inputAttributeDescription[PixelObject::COLOR_ATTRIBUTEINDEX].location = static_cast<uint32_t>(PixelObject::COLOR_ATTRIBUTEINDEX); //matches the layout(location = 0)
-    inputAttributeDescription[PixelObject::COLOR_ATTRIBUTEINDEX].format = VK_FORMAT_R32G32B32A32_SFLOAT; //the format of the attribute (vec3)
-    inputAttributeDescription[PixelObject::COLOR_ATTRIBUTEINDEX].offset = static_cast<uint32_t>(offsetof(PixelObject::Vertex, color)); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
+    inputAttributeDescription[Pixel::COLOR_ATTRIBUTEINDEX].binding = 0; //matches the layout(binding = 0)
+    inputAttributeDescription[Pixel::COLOR_ATTRIBUTEINDEX].location = static_cast<uint32_t>(Pixel::COLOR_ATTRIBUTEINDEX); //matches the layout(location = 0)
+    inputAttributeDescription[Pixel::COLOR_ATTRIBUTEINDEX].format = VK_FORMAT_R32G32B32A32_SFLOAT; //the format of the attribute (vec3)
+    inputAttributeDescription[Pixel::COLOR_ATTRIBUTEINDEX].offset = static_cast<uint32_t>(offsetof(Pixel::Vertex, color)); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
 
-    inputAttributeDescription[PixelObject::TEXUV_ATTRIBUTEINDEX].binding = 0; //matches the layout(binding = 0)
-    inputAttributeDescription[PixelObject::TEXUV_ATTRIBUTEINDEX].location = static_cast<uint32_t>(PixelObject::TEXUV_ATTRIBUTEINDEX); //matches the layout(location = 0)
-    inputAttributeDescription[PixelObject::TEXUV_ATTRIBUTEINDEX].format = VK_FORMAT_R32G32_SFLOAT; //the format of the attribute (vec3)
-    inputAttributeDescription[PixelObject::TEXUV_ATTRIBUTEINDEX].offset = static_cast<uint32_t>(offsetof(PixelObject::Vertex, texUV)); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
+    inputAttributeDescription[Pixel::TEXUV_ATTRIBUTEINDEX].binding = 0; //matches the layout(binding = 0)
+    inputAttributeDescription[Pixel::TEXUV_ATTRIBUTEINDEX].location = static_cast<uint32_t>(Pixel::TEXUV_ATTRIBUTEINDEX); //matches the layout(location = 0)
+    inputAttributeDescription[Pixel::TEXUV_ATTRIBUTEINDEX].format = VK_FORMAT_R32G32_SFLOAT; //the format of the attribute (vec3)
+    inputAttributeDescription[Pixel::TEXUV_ATTRIBUTEINDEX].offset = static_cast<uint32_t>(offsetof(Pixel::Vertex, texUV)); //each vec4 has 16 bytes. so the offset into the struct shifts by 16 bytes per vec4
 
     vertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
     vertexInputStateCreateInfo.pVertexBindingDescriptions = &inputBindingDescription; //list of binding description info (spacing, stride etc,,,)
-    vertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(PixelObject::ATTRIBUTECOUNT);
+    vertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(Pixel::ATTRIBUTECOUNT);
     vertexInputStateCreateInfo.pVertexAttributeDescriptions = inputAttributeDescription.data(); //list of attribute description (data format and where to bind to/from)
 
     //Input Assembly
@@ -288,14 +288,14 @@ VkPipeline PixelGraphicsPipeline::getPipeline() {
     return graphicsPipeline;
 }
 
-void PixelGraphicsPipeline::populatePipelineLayout(PixelScene* scene) {
+void PixelGraphicsPipeline::populatePipelineLayout(std::vector<VkDescriptorSetLayout>& sceneDescriptorSets, VkPushConstantRange pushConstantRange) {
 
     //pipeline layout
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(scene->getAllDescriptorSetLayouts()->size());
-    pipelineLayoutCreateInfo.pSetLayouts = scene->getAllDescriptorSetLayouts()->data();
+    pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(sceneDescriptorSets.size());
+    pipelineLayoutCreateInfo.pSetLayouts = sceneDescriptorSets.data();
     pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-    pipelineLayoutCreateInfo.pPushConstantRanges = &PixelObject::pushConstantRange;
+    pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 }
 
 VkPipelineLayout PixelGraphicsPipeline::getPipelineLayout() {

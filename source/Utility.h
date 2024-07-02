@@ -6,60 +6,17 @@
 #define PIXELENGINE_UTILITY_H
 
 #include "glm/fwd.hpp"
-#include "vulkan/vulkan_core.h"
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLFW_INCLUDE_VULKAN //includes vulkan automatically
-#include <GLFW/glfw3.h>
-
 
 #include <random>
 #include <fstream>
-#include <iostream>
-#include <vector>
 #include <cstring>
 #include "PixelLogger.h"
-
+#include "PixelTypes.h"
 
 inline std::random_device rd;
 inline std::mt19937 gen(rd());
 
-class VKWPixelImage; //forward declaration
 
-//vulkan struct component
-struct PixBackend{
-    VkPhysicalDevice physicalDevice{};
-    VkDevice logicalDevice{};
-    VkExtent2D extent{};
-};
-
-struct PixSwapchain{
-    VkSwapchainKHR swapchain{VK_NULL_HANDLE};
-    VkSwapchainKHR oldSwapchain{VK_NULL_HANDLE};
-    VkExtent2D extent{};
-    VkFormat format{};
-    std::vector<VKWPixelImage> swapchainImages{};
-    std::shared_ptr<VKWPixelImage> depthImage;
-};
-
-struct QueueFamilyIndices
-{
-    int graphicsFamily = -1;
-    int presentationFamily = -1;
-    int computeFamily = -1;
-
-    //check if queue families are valid
-    bool isValid() const
-    {
-        return graphicsFamily >= 0 && presentationFamily >= 0  && computeFamily >= 0;
-    }
-};
-
-struct SwapchainDetails
-{
-    VkSurfaceCapabilitiesKHR surfaceCapabilities = {};	//surface properties
-    std::vector<VkSurfaceFormatKHR> format;				//color and format
-    std::vector<VkPresentModeKHR> presentationMode;		//how image should be presented
-};
 
 static inline uint32_t findMemoryTypeIndex(VkPhysicalDevice physicalDevice, uint32_t allowedTypes, VkMemoryPropertyFlags propertyFlags)
 {

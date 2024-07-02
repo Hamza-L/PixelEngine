@@ -1,0 +1,162 @@
+#pragma once
+
+#ifdef NDEBUG
+const bool enableValidationLayers = false;
+#else
+const bool enableValidationLayers = true;
+#endif
+
+#include "PixelComputePipeline.h"
+#include "PixelGraphicsPipeline.h"
+#include "PixelWindow.h"
+#include "Utility.h"
+#include "PixelTypes.h"
+
+#include <memory>
+#include <vector>
+
+const int MAX_FRAME_DRAWS = 2; // we always have "MAX_FRAME_DRAWS" being drawing at once.
+static glm::uvec2 mouseCoord = {0, 0};
+static glm::uvec2 lastClicked = {0, 0};
+
+class PixelRendererImpl {
+  public:
+    PixelRendererImpl() = default;
+    PixelRendererImpl(const PixelRendererImpl &) = delete;
+
+    PixelRendererImpl &operator=(const PixelRendererImpl &) = delete;
+    ~PixelRendererImpl() = default;
+
+    // factory creation function
+    // PixelScene* createScene(); //TODO: remove PixelScene dependency
+
+    int initRenderer(UINT16 width = 960, UINT16 height = 480);
+    // void build(PixelScene* scene); //TODO: remove PixelScene dependency
+    // void addScene(std::shared_ptr<PixelScene> scene); //TODO: remove PixelScene dependency
+    void draw();
+    void run();
+    bool windowShouldClose();
+    void cleanup();
+
+    const Pixel::Devices getDevices(){return mainDevice;}
+
+    float currentTime = 0;
+
+  private:
+    // vulkan component
+#ifdef __APPLE__
+    const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME, "VK_KHR_portability_subset", "VK_EXT_descriptor_indexing"};
+#else
+    const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+#endif
+
+    // logical and physical device
+    Pixel::Devices mainDevice{};
+
+    // swapchain component
+    PixSwapchain m_pixSwapchain{};
+
+    // window component
+    PixelWindow pixWindow{};
+
+    // physical device features the logical device will be using
+    VkPhysicalDeviceFeatures deviceFeatures = {};
+
+    VkInstance m_instance{};
+    VkQueue graphicsQueue{};
+    VkQueue presentationQueue{};
+    VkQueue computeQueue{};
+    VkSurfaceKHR m_surface{};
+    std::vector<VkFramebuffer> swapchainFramebuffers;
+    std::vector<VkCommandBuffer> commandBuffers;
+    std::vector<VkCommandBuffer> computeCommandBuffers;
+    std::vector<std::unique_ptr<PixelGraphicsPipeline>> graphicsPipelines;
+    std::unique_ptr<PixelGraphicsPipeline> defaultGridGraphicsPipeline;
+    std::shared_ptr<PixelGraphicsPipeline> defaultGraphicsPipeline;
+    PixelComputePipeline computePipeline;
+
+    // images
+    VKWPixelImage emptyTexture;
+    VkSampler imageSampler{};
+
+    // Pools
+    VkCommandPool graphicsCommandPool{};
+    VkCommandPool computeCommandPool{};
+
+    // validation layer component
+    const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
+    VkDebugUtilsMessengerEXT debugMessenger{};
+
+    // synchronization component
+    std::vector<VkSemaphore> imageAvailableSemaphore;
+    std::vector<VkSemaphore> renderFinishedSemaphore;
+    std::vector<VkSemaphore> computeFinishedSemaphore;
+    std::vector<VkFence> inFlightDrawFences;
+    std::vector<VkFence> inFlightComputeFences;
+    int currentFrame = 0;
+
+    // objects
+    // std::vector<std::shared_ptr<PixelScene>> m_scenes; //TODO: remove PixelScene dependency
+    // std::shared_ptr<PixelScene> defaultGridScene{}; //TODO: remove PixelScene dependency
+
+    //---------vulkan functions
+    // create functions
+    void createInstance(VkInstance* instance);
+    void setupPhysicalDevice(VkInstance* instance, VkPhysicalDevice* physicalDevice);
+    void createLogicalDevice(VkDevice* device, VkPhysicalDevice* physicalDevice);
+    void createSurface(VkSurfaceKHR* surface, VkInstance* instance, GLFWwindow* window);
+    void createSwapChain(PixSwapchain* swapchain, Pixel::Devices* devices, VkSurfaceKHR* surface);
+    // void createGraphicsPipeline(PixelScene* scene); //TODO: remove PixelScene dependency
+    void createGridSceneGraphicsPipelines();
+    void createDefaultGraphicsPipeline();
+    void createFramebuffers();
+    void createCommandPools();
+    void createCommandBuffers();
+    void createComputeCommandBuffers();
+    void createDefaultGridScene();
+    void initializeScenes();
+    void createSynchronizationObjects();
+    void recordCommands(uint32_t currentImageIndex);
+    void recordComputeCommands(uint32_t currentImageIndex);
+    VkCommandBuffer beginSingleUseCommandBuffer();
+    void submitAndEndSingleUseCommandBuffer(VkCommandBuffer *commandBuffer);
+    QueueFamilyIndices setupQueueFamilies(VkPhysicalDevice device);
+    void init_io();
+    void init_compute();
+    void preDraw();
+
+    // descriptor Set (for scene initialization)
+    // void createDescriptorPool(PixelScene* scene); //TODO: remove PixelScene dependency
+    // void createDescriptorSets(PixelScene* scene); //TODO: remove PixelScene dependency
+    void createUniformBuffers(VkBuffer* uniformBuffers, VkDeviceMemory* uniformBufferMemories, UINT32 size); //TODO: remove PixelScene dependency
+    void createUniformDynamicBuffers(VkBuffer* uniformBuffers, VkDeviceMemory* uniformBufferMemories, UINT32 size); //TODO: remove PixelScene dependency
+    void updateComputeTextureDescriptor();
+
+    // debug validation layer
+    void setupDebugMessenger(VkInstance* instance);
+    static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
+
+    // helper functions
+    bool checkIfPhysicalDeviceSuitable(VkPhysicalDevice device);
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    VkExtent2D chooseSwapChainExtent(VkSurfaceCapabilitiesKHR surfaceCapabilities);
+    void transitionImageLayout(VkImage imageToTransition, VkImageLayout currentLayout, VkImageLayout newLayout);
+    void transitionImageLayoutUsingCommandBuffer(VkCommandBuffer commandBuffer, VkImage imageToTransition, VkImageLayout currentLayout,
+                                                 VkImageLayout newLayout);
+    void createBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags bufferproperties, VkBuffer *buffer,
+                      VkDeviceMemory *bufferMemory);
+    void copySrcBuffertoDstBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize bufferSize);
+    void copySrcBuffertoDstImage(VkBuffer srcBuffer, VkImage dstImageBuffer, uint32_t width, uint32_t height);
+
+    // void initializeObjectBuffers(std::shared_ptr<PixelObject> pixObject);//TODO: remove PixelObject dependency
+    // void createVertexBuffer(std::shared_ptr<PixelObject> pixObject); //TODO: remove PixelObject dependency
+    // void createIndexBuffer(std::shared_ptr<PixelObject> pixObject); //TODO: remove PixelObject dependency
+    // void createTextureBuffer(VKWPixelImage *pixImage); //TODO: remove PixelImage dependency
+    void createTextureSampler();
+
+    // void updateSceneCamera(PixelScene *pixScene); //TODO: remove PixelScene dependency
+    void updateAll();
+
+    // getter functions
+    SwapchainDetails getSwapChainDetails(VkPhysicalDevice device);
+};

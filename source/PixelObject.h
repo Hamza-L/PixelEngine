@@ -5,9 +5,6 @@
 #ifndef PIXELENGINE_PIXELOBJECT_H
 #define PIXELENGINE_PIXELOBJECT_H
 
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-
 #include "VKWPixelImage.h"
 #include "AnimatedPixelImage.h"
 #include "Utility.h"
@@ -19,47 +16,13 @@
 class PixelObject {
 public:
 
-    // this should not change every frame, but can change per individual object/mesh.
-    //Dynamic Uniform Buffer Object
-    struct DynamicUBObj{
-        glm::mat4 M{};
-        glm::mat4 MinvT{};
-        int texIndex = -1;
-    };
-
-    // this can change every frame, and can change per individual object/mesh.
-    //Dynamic Uniform Buffer Object
-    struct PObj{
-        glm::mat4 M{};
-        glm::mat4 MinvT{};
-    };
-
-    //the vertex must only contain member variables of type vec4 (each 16 bytes)
-    struct Vertex
-    {
-        glm::vec4 position{};
-        glm::vec4 normal{};
-        glm::vec4 color{};
-        glm::vec2 texUV{};
-    };
-
-    enum vertexAttributes
-    {
-        POSITION_ATTRIBUTEINDEX,
-        NORMAL_ATTRIBUTEINDEX,
-        COLOR_ATTRIBUTEINDEX,
-        TEXUV_ATTRIBUTEINDEX,
-        ATTRIBUTECOUNT
-    };
-
-
-    PixelObject(std::vector<Vertex> vertices, std::vector<uint32_t> indices);
+    PixelObject(std::vector<Pixel::Vertex> vertices, std::vector<uint32_t> indices);
     PixelObject(std::string filename);
     PixelObject() = default;
 
     //getters
     int getVertexCount();
-    std::vector<Vertex>* getVertices();
+    std::vector<Pixel::Vertex>* getVertices();
     VkDeviceSize getVertexBufferSize();
     VkBuffer* getVertexBuffer();
     VkDeviceMemory* getVertexBufferMemory();
@@ -68,32 +31,32 @@ public:
     VkDeviceSize getIndexBufferSize();
     VkBuffer* getIndexBuffer();
     VkDeviceMemory* getIndexBufferMemory();
-    PObj* getPushObj();
-    DynamicUBObj* getDynamicUBObj();
+    Pixel::PObj* getPushObj();
+    Pixel::DynamicUBObj* getDynamicUBObj();
     std::vector<VKWPixelImage> getTextures(){return m_textures;}
     int getGraphicsPipelineIndex(){return graphicsPipelineIndex;};
-    static constexpr VkPushConstantRange pushConstantRange {VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PObj)};
+    static constexpr VkPushConstantRange pushConstantRange {VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Pixel::PObj)};
 
     //setters
-    void setDynamicUBObj(DynamicUBObj pushObjData);
+    void setDynamicUBObj(Pixel::DynamicUBObj pushObjData);
     void setTexID(int texID){dynamicUBO.texIndex = texID;};
-    void setPushObj(PObj pushObjData);
+    void setPushObj(Pixel::PObj pushObjData);
     void setGraphicsPipelineIndex(int pipelineIndx){graphicsPipelineIndex = pipelineIndx;};
 
     //cleanup
-    void cleanup(PixBackend* device);
+    void cleanup(const Pixel::Devices* device);
 
     // update
     void Update();
 
 
     //helper functions
-    //returns the number of members of the Vertex Struct
+    //returns the number of members of the Pixel::Vertex Struct
     void importObjFile(const std::string& filename);
     void setGenericColor(glm::vec4 color);
     void addTransform(glm::mat4 matTransform);
     void setTransform(glm::mat4 matTransform);
-    void addTexture(PixBackend* devices, const char* textureFile);
+    void addTexture(Pixel::Devices* devices, const char* textureFile);
     void addTexture(VKWPixelImage* pixImage);
     void setTextureIDOffset(int offset){texIDOffset = offset;};
     void hide(){m_isHidden = true;};
@@ -110,14 +73,14 @@ public:
 
 private:
     //member variables
-    std::vector<Vertex> m_vertices{};
+    std::vector<Pixel::Vertex> m_vertices{};
     std::vector<uint32_t> m_indices{};
     std::string name{};
     bool m_isHidden = false;
 
     //transforms
-    DynamicUBObj dynamicUBO = {};
-    PObj pushObj = {glm::mat4(1.0f)};
+    Pixel::DynamicUBObj dynamicUBO = {};
+    Pixel::PObj pushObj = {glm::mat4(1.0f)};
 
     //vulkan components
     VkBuffer vertexBuffer = VK_NULL_HANDLE;

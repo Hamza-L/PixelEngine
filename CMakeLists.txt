@@ -18,6 +18,8 @@ set(Headers
     "source/PixelMemManager.h"
     "source/PixelLogger.h"
     "source/PixelRenderer.h"
+    "source/PixelRendererImpl.h"
+    "source/Renderable.h"
     "source/PixelWindow.h"
     "source/PixelGraphicsPipeline.h"
     "source/PixelObject.h"
@@ -31,6 +33,7 @@ set(Headers
     "source/PixelComputePipeline.h"
     "source/PixelConfig.h"
     "source/kb_input.h")
+
 source_group("Headers" FILES ${Headers})
 
 set(Sources
@@ -38,6 +41,8 @@ set(Sources
     "source/PixelMemManager.cpp"
     "source/PixelLogger.cpp"
     "source/PixelRenderer.cpp"
+    "source/PixelRendererImpl.cpp"
+    "source/Renderable.cpp"
     "source/PixelWindow.cpp"
     "source/PixelGraphicsPipeline.cpp"
     "source/PixelObject.cpp"
@@ -51,9 +56,25 @@ set(Sources
 
 source_group("Sources" FILES ${Sources})
 
+set(imguiSources
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui.cpp"
+
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_demo.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_draw.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_widgets.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/imgui_tables.cpp"
+
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/backends/imgui_impl_vulkan.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui/backends/imgui_impl_glfw.cpp"
+        )
+
+source_group("imguiSources" FILES ${imguiSources})
+
 set(ALL_FILES
     ${Headers}
-    ${Sources})
+    ${Sources}
+    ${imguiSources})
 
 ################################################################################
 # Target
@@ -70,18 +91,22 @@ if (WIN32)
 
     target_include_directories(${PROJECT_NAME} PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW64/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/FreeType/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLM;"
         "${VULKAN_SDK}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/imgui"
     )
 
     target_link_directories(${PROJECT_NAME} PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/GLFW64/lib-vc2022"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/windows/FreeType/lib"
         "${VULKAN_SDK}/lib"
     )
 
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
             "vulkan-1.lib"
             "glfw3.lib"
+            "freetype.lib"
             )
 elseif(UNIX AND APPLE) # If the build is mac
     message("Starting the MacOS Build")

@@ -22,12 +22,12 @@ class VKWPixelImage {
     VKWPixelImage() = default;
 
     // Cleanup
-    void cleanUp(PixBackend *devices);
+    void cleanUp(const Pixel::Devices *devices);
 
     // create functions
-    void createImage(PixBackend *devices, VkImageTiling imageTiling, VkImageUsageFlags useFlags, VkMemoryPropertyFlags propFlags);
-    void createImageView(PixBackend *devices, VkImageAspectFlags aspectFlags);
-    void createDepthBufferImage(PixBackend *devices);
+    void createImage(Pixel::Devices *devices, VkImageTiling imageTiling, VkImageUsageFlags useFlags, VkMemoryPropertyFlags propFlags);
+    void createImageView(Pixel::Devices *devices, VkImageAspectFlags aspectFlags);
+    void createDepthBufferImage(Pixel::Devices *devices);
     void createTexture(std::string fileName);
 
     // setter functions
@@ -51,9 +51,9 @@ class VKWPixelImage {
     // helper functions
 
     // loader functions
-    void loadTexture(PixBackend *devices, const char* filename);
-    void loadEmptyTexture(PixBackend *devices);
-    void loadEmptyTexture(PixBackend *devices, uint32_t width, uint32_t height, VkImageUsageFlags flags);
+    void loadTexture(Pixel::Devices *devices, const char* filename);
+    void loadEmptyTexture(Pixel::Devices *devices);
+    void loadEmptyTexture(Pixel::Devices *devices, uint32_t width, uint32_t height, VkImageUsageFlags flags);
 
   private:
     PixelImage m_pixelImage{};

@@ -3,20 +3,16 @@
 //
 
 #include "PixelScene.h"
-#include "glm/glm.hpp"
 #include "glm/ext/matrix_relational.hpp"
+#include "glm/glm.hpp"
 
-#include <vector>
 #include <array>
 #include <cstdlib>
+#include <vector>
 
-PixelScene::PixelScene()
-{
-    LOG_SCOPED(ErrorLevel::DEBUG, "PixelScene Constructed");
-}
+PixelScene::PixelScene() { LOG_SCOPED(ErrorLevel::DEBUG, "PixelScene Constructed"); }
 
-void PixelScene::cleanup(PixBackend* devices)
-{
+void PixelScene::cleanup(const Pixel::Devices& devices) {
 
 #ifdef __APPLE__
     free(modelTransferSpace);
@@ -25,45 +21,56 @@ void PixelScene::cleanup(PixBackend* devices)
     _aligned_free(modelTransferSpace);
 #endif
 
-
-    vkDestroyDescriptorPool(devices->logicalDevice, m_descriptorPool, nullptr);
-    vkDestroyDescriptorSetLayout(devices->logicalDevice, m_descriptorSetLayouts[UBOS], nullptr);
-    vkDestroyDescriptorSetLayout(devices->logicalDevice, m_descriptorSetLayouts[TEXTURES], nullptr);
-    for(int i = 0; i < uniformBuffers.size(); i++)
-    {
-        vkDestroyBuffer(devices->logicalDevice, dynamicUniformBuffers[i], nullptr);
-        vkFreeMemory(devices->logicalDevice, dynamicUniformBufferMemories[i], nullptr);
-        vkDestroyBuffer(devices->logicalDevice, uniformBuffers[i], nullptr);
-        vkFreeMemory(devices->logicalDevice, uniformBufferMemories[i], nullptr);
+    vkDestroyDescriptorPool(devices.logicalDevice, m_descriptorPool, nullptr);
+    vkDestroyDescriptorSetLayout(devices.logicalDevice, m_descriptorSetLayouts[UBOS], nullptr);
+    vkDestroyDescriptorSetLayout(devices.logicalDevice, m_descriptorSetLayouts[TEXTURES], nullptr);
+    for (int i = 0; i < uniformBuffers.size(); i++) {
+        vkDestroyBuffer(devices.logicalDevice, dynamicUniformBuffers[i], nullptr);
+        vkFreeMemory(devices.logicalDevice, dynamicUniformBufferMemories[i], nullptr);
+        vkDestroyBuffer(devices.logicalDevice, uniformBuffers[i], nullptr);
+        vkFreeMemory(devices.logicalDevice, uniformBufferMemories[i], nullptr);
     }
 
-    for(auto& object : allObjects)
-    {
-        object->cleanup(devices);
+    for (auto &object : m_allObjects) {
+        object->cleanup(&devices);
     }
 }
 
-VkDescriptorSetLayout* PixelScene::getDescriptorSetLayout(DescSetLayoutIndex indx) {
+void PixelScene::Build() {
+    LOG_SCOPED(ErrorLevel::INFO, "Building Scene named: %s", m_sceneName.c_str());
 
-    if(indx == UBOS || indx == TEXTURES)
-    {
+    initialize(PixelRenderer::GetDevices());
+
+    for (int i = 0; i < m_allObjects.size(); i++) {
+        // initializeObjectBuffers(m_allObjects[i]); // depends on graphics command pool TODO::this should be a call to m_allObjects[i].initialize()
+        // for (auto texture : scene->getObjectAt(i)->getTextures()) { TODO::this should be an implicit call to texture.initialize()
+        //     createTextureBuffer(&texture);
+        // }
+    }
+
+    // createUniformBuffers(scene);
+    // createDescriptorPool(scene);
+    // createDescriptorSets(scene);
+
+    // createGraphicsPipeline(scene);
+}
+
+void PixelScene::Render() { LOG_SCOPED(ErrorLevel::INFO, "Rendering Scene named: %s", m_sceneName.c_str()); }
+
+VkDescriptorSetLayout *PixelScene::getDescriptorSetLayout(DescSetLayoutIndex indx) {
+
+    if (indx == UBOS || indx == TEXTURES) {
         return &m_descriptorSetLayouts[indx];
     }
 
     return VK_NULL_HANDLE;
 }
 
-VkDeviceSize PixelScene::getUniformBufferSize() {
-    return sizeof(UboVP);
-}
+VkDeviceSize PixelScene::getUniformBufferSize() { return sizeof(Pixel::UboVP); }
 
-VkBuffer* PixelScene::getUniformBuffers(int index) {
-    return &(uniformBuffers[index]);
-}
+VkBuffer *PixelScene::getUniformBuffers(int index) { return &(uniformBuffers[index]); }
 
-VkDeviceMemory* PixelScene::getUniformBufferMemories(int index) {
-    return &(uniformBufferMemories[index]);
-}
+VkDeviceMemory *PixelScene::getUniformBufferMemories(int index) { return &(uniformBufferMemories[index]); }
 
 void PixelScene::resizeBuffers(size_t newSize) {
     uniformBuffers.resize(newSize);
@@ -74,137 +81,108 @@ void PixelScene::resizeBuffers(size_t newSize) {
 }
 
 void PixelScene::addObject(std::shared_ptr<PixelObject> pixObject) {
-    if(pixObject->getTextures().size() > 0)
-    {
+    if (pixObject->getTextures().size() > 0) {
         pixObject->setTextureIDOffset(getAllTextures().size());
     }
-    allObjects.push_back(pixObject);
+    m_allObjects.push_back(pixObject);
 }
 
-int PixelScene::getNumObjects() {
-    return allObjects.size();
+int PixelScene::getNumObjects() { return m_allObjects.size(); }
+
+std::shared_ptr<PixelObject> PixelScene::getObjectAt(int index) { return m_allObjects[index]; }
+
+VkDescriptorPool *PixelScene::getDescriptorPool() { return &m_descriptorPool; }
+
+VkDescriptorSet *PixelScene::getUniformDescriptorSetAt(int index) { return &m_uniformDescriptorSets[index]; }
+
+void PixelScene::resizeDesciptorSets(size_t newSize) { m_uniformDescriptorSets.resize(newSize); }
+
+std::vector<VkDescriptorSet> *PixelScene::getUniformDescriptorSets() { return &m_uniformDescriptorSets; }
+
+void PixelScene::updateUniformBuffer(const Pixel::Devices& devices, uint32_t bufferIndex) {
+
+    Pixel::UboVP scenePFlipped = sceneVP;
+
+    scenePFlipped.P[1][1] *= -1; // invert the y scale to flip the image. Vulkan is flipped by default
+
+    void *data;
+    vkMapMemory(devices.logicalDevice, uniformBufferMemories[bufferIndex], 0, getUniformBufferSize(), 0, &data);
+    memcpy(data, &scenePFlipped, getUniformBufferSize());
+    vkUnmapMemory(devices.logicalDevice, uniformBufferMemories[bufferIndex]);
+
+    buffersUpdated[bufferIndex] = true;
 }
 
-std::shared_ptr<PixelObject> PixelScene::getObjectAt(int index) {
-    return allObjects[index];
-}
-
-VkDescriptorPool *PixelScene::getDescriptorPool() {
-    return &m_descriptorPool;
-}
-
-VkDescriptorSet* PixelScene::getUniformDescriptorSetAt(int index) {
-    return &m_uniformDescriptorSets[index];
-}
-
-void PixelScene::resizeDesciptorSets(size_t newSize) {
-    m_uniformDescriptorSets.resize(newSize);
-}
-
-std::vector<VkDescriptorSet>* PixelScene::getUniformDescriptorSets() {
-    return &m_uniformDescriptorSets;
-}
-
-void PixelScene::updateUniformBuffer(PixBackend* devices, uint32_t bufferIndex)
-{
-
-        UboVP scenePFlipped = sceneVP;
-
-		scenePFlipped.P[1][1] *= -1; //invert the y scale to flip the image. Vulkan is flipped by default
-
-        void* data;
-        vkMapMemory(devices->logicalDevice, uniformBufferMemories[bufferIndex], 0, getUniformBufferSize(),0,&data);
-        memcpy(data, &scenePFlipped, getUniformBufferSize());
-        vkUnmapMemory(devices->logicalDevice, uniformBufferMemories[bufferIndex]);
-
-        buffersUpdated[bufferIndex] = true;
-}
-
-void PixelScene::createDescriptorSetLayout(PixBackend* devices) {
+void PixelScene::createDescriptorSetLayout(const Pixel::Devices &devices) {
     LOG_SCOPED(ErrorLevel::DEBUG, "Creating Descriptor set Layout");
 
     VkDescriptorSetLayout uniformDescriptorSetLayout{};
     VkDescriptorSetLayout textureDescriptorSetLayout{};
 
-    //how data is bound to the shader in binding 0
+    // how data is bound to the shader in binding 0
     VkDescriptorSetLayoutBinding uniformBufferLayoutBinding{};
-    uniformBufferLayoutBinding.binding = 0; //binding point in shader
+    uniformBufferLayoutBinding.binding = 0; // binding point in shader
     uniformBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uniformBufferLayoutBinding.descriptorCount = 1; //only binding one uniform buffer
+    uniformBufferLayoutBinding.descriptorCount = 1; // only binding one uniform buffer
     uniformBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     uniformBufferLayoutBinding.pImmutableSamplers = nullptr;
 
-    //how data is bound to the shader in binding 1
+    // how data is bound to the shader in binding 1
     VkDescriptorSetLayoutBinding dynamicBufferLayoutBinding{};
-    dynamicBufferLayoutBinding.binding = 1; //binding point in shader
+    dynamicBufferLayoutBinding.binding = 1; // binding point in shader
     dynamicBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    dynamicBufferLayoutBinding.descriptorCount = 1; //only binding one uniform buffer
+    dynamicBufferLayoutBinding.descriptorCount = 1; // only binding one uniform buffer
     dynamicBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     dynamicBufferLayoutBinding.pImmutableSamplers = nullptr;
 
-    //how data is bound to the shader in binding 2
+    // how data is bound to the shader in binding 2
     VkDescriptorSetLayoutBinding textureSamplerLayoutBinding{};
-    textureSamplerLayoutBinding.binding = 0; //binding point in shader
+    textureSamplerLayoutBinding.binding = 0; // binding point in shader
     textureSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    textureSamplerLayoutBinding.descriptorCount = static_cast<uint32_t>(MAX_TEXTURE_PER_OBJECT); //only binding one combine image sampler buffer
+    textureSamplerLayoutBinding.descriptorCount = static_cast<uint32_t>(MAX_TEXTURE_PER_OBJECT); // only binding one combine image sampler buffer
     textureSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     textureSamplerLayoutBinding.pImmutableSamplers = nullptr;
 
     std::array<VkDescriptorSetLayoutBinding, 2> descriptorSetLayoutBindings = {uniformBufferLayoutBinding, dynamicBufferLayoutBinding};
 
-    //Create descriptor set layout given binding
+    // Create descriptor set layout given binding
     VkDescriptorSetLayoutCreateInfo uniformBufferObjectDescriptorSetlayoutCreateInfo{};
     uniformBufferObjectDescriptorSetlayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     uniformBufferObjectDescriptorSetlayoutCreateInfo.pBindings = descriptorSetLayoutBindings.data();
     uniformBufferObjectDescriptorSetlayoutCreateInfo.bindingCount = static_cast<uint32_t>(descriptorSetLayoutBindings.size());
 
-    VK_CHECK(vkCreateDescriptorSetLayout(devices->logicalDevice, &uniformBufferObjectDescriptorSetlayoutCreateInfo, nullptr, &uniformDescriptorSetLayout));
+    VK_CHECK(
+        vkCreateDescriptorSetLayout(devices.logicalDevice, &uniformBufferObjectDescriptorSetlayoutCreateInfo, nullptr, &uniformDescriptorSetLayout));
 
-    //Create descriptor set layout given binding
+    // Create descriptor set layout given binding
     VkDescriptorSetLayoutCreateInfo textureDescriptorSetLayoutCreateInfo{};
     textureDescriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     textureDescriptorSetLayoutCreateInfo.pBindings = &textureSamplerLayoutBinding;
     textureDescriptorSetLayoutCreateInfo.bindingCount = 1;
 
-    VK_CHECK(vkCreateDescriptorSetLayout(devices->logicalDevice, &textureDescriptorSetLayoutCreateInfo, nullptr, &textureDescriptorSetLayout));
+    VK_CHECK(vkCreateDescriptorSetLayout(devices.logicalDevice, &textureDescriptorSetLayoutCreateInfo, nullptr, &textureDescriptorSetLayout));
 
     m_descriptorSetLayouts.push_back(uniformDescriptorSetLayout);
     m_descriptorSetLayouts.push_back(textureDescriptorSetLayout);
 }
 
-PixelScene::UboVP PixelScene::getSceneVP() {
-    return sceneVP;
-}
+Pixel::UboVP PixelScene::getSceneVP() { return sceneVP; }
 
-std::string PixelScene::getName(){
-    return m_sceneName;
-}
+std::string PixelScene::getName() { return m_sceneName; }
 
-void PixelScene::setSceneName(const char* name){
-    m_sceneName = name;
-}
+void PixelScene::setSceneName(const char *name) { m_sceneName = name; }
 
-void PixelScene::setSceneVP(PixelScene::UboVP vpData)
-{
-    sceneVP = vpData;
-}
+void PixelScene::setSceneVP(Pixel::UboVP vpData) { sceneVP = vpData; }
 
-void PixelScene::setSceneV(glm::mat4 V) {
-    sceneVP.V = glm::mat4(V);
-}
+void PixelScene::setSceneV(glm::mat4 V) { sceneVP.V = glm::mat4(V); }
 
-void PixelScene::setSceneP(glm::mat4 P) {
-    sceneVP.P = glm::mat4(P);
-}
+void PixelScene::setSceneP(glm::mat4 P) { sceneVP.P = glm::mat4(P); }
 
 bool PixelScene::areMatricesEqual(glm::mat4 x, glm::mat4 y) {
 
-    for(int i = 0; i < 4 ; i++)
-    {
-        for(int j = 0; j < 4 ; j++)
-        {
-            if(abs(x[i][j] - y[i][j]) >= 0.000001f)
-            {
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            if (abs(x[i][j] - y[i][j]) >= 0.000001f) {
                 return false;
             }
         }
@@ -213,20 +191,17 @@ bool PixelScene::areMatricesEqual(glm::mat4 x, glm::mat4 y) {
     return true;
 }
 
-void PixelScene::allocateDynamicBufferTransferSpace()
-{
-    //calculate allignment
-    objectUBOAllignment = (sizeof(PixelObject::DynamicUBObj) + minUBOOffset - 1) & ~(minUBOOffset - 1); //right portion is our mask
+void PixelScene::allocateDynamicBufferTransferSpace() {
+    // calculate allignment
+    objectUBOAllignment = (sizeof(Pixel::DynamicUBObj) + minUBOOffset - 1) & ~(minUBOOffset - 1); // right portion is our mask
 
-    
 #ifdef __APPLE__
-//create memory for all the objects dynamic buffers;
-    modelTransferSpace = (PixelObject::DynamicUBObj*) aligned_alloc(minUBOOffset, objectUBOAllignment * MAX_OBJECTS);
+    // create memory for all the objects dynamic buffers;
+    modelTransferSpace = (Pixel::DynamicUBObj *)aligned_alloc(minUBOOffset, objectUBOAllignment * MAX_OBJECTS);
 #else
-//create memory for all the objects dynamic buffers;
-    modelTransferSpace = (PixelObject::DynamicUBObj*) _aligned_malloc(objectUBOAllignment * MAX_OBJECTS, minUBOOffset);
+    // create memory for all the objects dynamic buffers;
+    modelTransferSpace = (Pixel::DynamicUBObj *)_aligned_malloc(objectUBOAllignment * MAX_OBJECTS, minUBOOffset);
 #endif
-
 }
 
 void PixelScene::getMinUBOOffset(VkPhysicalDevice physicalDevice) {
@@ -235,38 +210,29 @@ void PixelScene::getMinUBOOffset(VkPhysicalDevice physicalDevice) {
     minUBOOffset = physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
 }
 
-VkBuffer *PixelScene::getDynamicUniformBuffers(int index) {
-    return &(dynamicUniformBuffers[index]);
-}
+VkBuffer *PixelScene::getDynamicUniformBuffers(int index) { return &(dynamicUniformBuffers[index]); }
 
-VkDeviceMemory *PixelScene::getDynamicUniformBufferMemories(int index) {
-    return &(dynamicUniformBufferMemories[index]);
-}
+VkDeviceMemory *PixelScene::getDynamicUniformBufferMemories(int index) { return &(dynamicUniformBufferMemories[index]); }
 
-VkDeviceSize PixelScene::getDynamicUniformBufferSize() const {
-    return objectUBOAllignment * MAX_OBJECTS;
-}
+VkDeviceSize PixelScene::getDynamicUniformBufferSize() const { return objectUBOAllignment * MAX_OBJECTS; }
 
-VkDeviceSize PixelScene::getMinAlignment() const {
-    return objectUBOAllignment;
-}
+VkDeviceSize PixelScene::getMinAlignment() const { return objectUBOAllignment; }
 
-void PixelScene::updateDynamicUniformBuffer(PixBackend* devices, uint32_t bufferIndex) {
-    for(size_t i = 0; i<allObjects.size(); i++)
-    {
-        auto* currentPushM = (PixelObject::DynamicUBObj*)((uint64_t)modelTransferSpace + (i * objectUBOAllignment));
-        *currentPushM = *(allObjects[i]->getDynamicUBObj());
+void PixelScene::updateDynamicUniformBuffer(const Pixel::Devices& devices, uint32_t bufferIndex) {
+    for (size_t i = 0; i < m_allObjects.size(); i++) {
+        auto *currentPushM = (Pixel::DynamicUBObj *)((uint64_t)modelTransferSpace + (i * objectUBOAllignment));
+        *currentPushM = *(m_allObjects[i]->getDynamicUBObj());
     }
 
-    //map the whole chunk of memory data
-    void* data;
-    vkMapMemory(devices->logicalDevice, dynamicUniformBufferMemories[bufferIndex], 0, objectUBOAllignment * allObjects.size() , 0 , &data);
-    memcpy(data, modelTransferSpace, objectUBOAllignment * allObjects.size());
-    vkUnmapMemory(devices->logicalDevice, dynamicUniformBufferMemories[bufferIndex]);
+    // map the whole chunk of memory data
+    void *data;
+    vkMapMemory(devices.logicalDevice, dynamicUniformBufferMemories[bufferIndex], 0, objectUBOAllignment * m_allObjects.size(), 0, &data);
+    memcpy(data, modelTransferSpace, objectUBOAllignment * m_allObjects.size());
+    vkUnmapMemory(devices.logicalDevice, dynamicUniformBufferMemories[bufferIndex]);
 }
 
-void PixelScene::initialize(PixBackend* devices) {
-    getMinUBOOffset(devices->physicalDevice);
+void PixelScene::initialize(const Pixel::Devices &devices) {
+    getMinUBOOffset(devices.physicalDevice);
     allocateDynamicBufferTransferSpace();
     createDescriptorSetLayout(devices);
 }
@@ -274,41 +240,23 @@ void PixelScene::initialize(PixBackend* devices) {
 std::vector<VKWPixelImage> PixelScene::getAllTextures() {
     std::vector<VKWPixelImage> allTextures;
 
-    for(int i = 0 ; i < allObjects.size(); i++)
-    {
-        for(int j = 0; j < allObjects[i]->getTextures().size(); j++)
-        {
-            allTextures.push_back(allObjects[i]->getTextures()[j]);
+    for (int i = 0; i < m_allObjects.size(); i++) {
+        for (int j = 0; j < m_allObjects[i]->getTextures().size(); j++) {
+            allTextures.push_back(m_allObjects[i]->getTextures()[j]);
         }
     }
 
     return allTextures;
 }
 
-std::vector<VkDescriptorSetLayout> *PixelScene::getAllDescriptorSetLayouts() {
-    return &m_descriptorSetLayouts;
-}
+std::vector<VkDescriptorSetLayout> *PixelScene::getAllDescriptorSetLayouts() { return &m_descriptorSetLayouts; }
 
-VkDescriptorSet *PixelScene::getTextureDescriptorSet() {
-    return &m_textureDescriptorSet;
-}
+VkDescriptorSet *PixelScene::getTextureDescriptorSet() { return &m_textureDescriptorSet; }
 
-glm::vec3 PixelScene::getCameraPos() {
-    return glm::vec3(sceneVP.V[3]);
-}
+glm::vec3 PixelScene::getCameraPos() { return glm::vec3(sceneVP.V[3]); }
 
-glm::vec3 PixelScene::getLookAtVec() {
-    return glm::vec3(sceneVP.V[2]);
-}
+glm::vec3 PixelScene::getLookAtVec() { return glm::vec3(sceneVP.V[2]); }
 
-void PixelScene::setCameraPos(glm::vec3 camPos) {
-    m_cameraPos = camPos;
-}
+void PixelScene::setCameraPos(glm::vec3 camPos) { m_cameraPos = camPos; }
 
-void PixelScene::setLookAtPos(glm::vec3 lookAtPos) {
-	m_lookAtVec = lookAtPos;
-}
-
-
-
-
+void PixelScene::setLookAtPos(glm::vec3 lookAtPos) { m_lookAtVec = lookAtPos; }

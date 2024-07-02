@@ -28,16 +28,16 @@ class PixelComputePipeline {
         uint32_t outlineEnabled;
     };
 
-    void addComputeShader(PixBackend *devices, const std::string &filename);
-    void createDescriptorPool(PixBackend *devices);
-    void createDescriptorSets(PixBackend *devices);
-    void initImageBufferStorage(PixBackend *devices);
+    void addComputeShader(Pixel::Devices *devices, const std::string &filename);
+    void createDescriptorPool(Pixel::Devices *devices);
+    void createDescriptorSets(Pixel::Devices *devices);
+    void initImageBufferStorage(Pixel::Devices *devices);
     void populatePipelineLayout();
-    void createDescriptorSetLayout(PixBackend *devices);
-    void createComputePipeline(PixBackend *devices);
-    void createComputePipelineLayout(PixBackend *devices);
-    void init(PixBackend *devices);
-    void cleanUp(PixBackend *devices);
+    void createDescriptorSetLayout(Pixel::Devices *devices);
+    void createComputePipeline(Pixel::Devices *devices);
+    void createComputePipelineLayout(Pixel::Devices *devices);
+    void init(Pixel::Devices *devices);
+    void cleanUp(Pixel::Devices *devices);
     static constexpr VkPushConstantRange pushComputeConstantRange{VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PObj)};
 
     // getters

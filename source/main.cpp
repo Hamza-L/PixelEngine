@@ -27,7 +27,7 @@ inline bool updateMyScene(PixelScene *pixScene) {
     double time = 0;
 
 
-    PixelScene::UboVP newVP1{};
+    Pixel::UboVP newVP1{};
     glm::mat4 newTransform = {pixScene->getObjectAt(0)->getPushObj()->M};
     float speed = 0.002 * (SHIFT ? 3.f : 1.f);
     if(RIGHT){
@@ -90,7 +90,7 @@ inline bool updateMyScene(PixelScene *pixScene) {
 
 int main() {
     Logger *log = Logger::get_instance();
-    log->setSeverity(ErrorLevel::DEBUG);
+    log->setSeverity(ErrorLevel::WARNING);
 
     LOG_SCOPED(ErrorLevel::INFO, "main() entry point");
 
@@ -98,15 +98,11 @@ int main() {
     PixelFont font;
     font.loadFont("assets/Dobidoo.ttf", &fileSize);
 
-    PixelRenderer pixRenderer;
     PixelMemory::InitGlobalMemory();
+    PixelRenderer::Initialize();
 
-    if (pixRenderer.initRenderer() == EXIT_FAILURE) {
-        return EXIT_FAILURE;
-    }
-
-    PixelScene *mainScene = pixRenderer.createScene();
-    mainScene->update = updateMyScene;
+    // PixelScene *mainScene = pixRenderer.createScene();
+    // mainScene->update = updateMyScene;
     // square.addTexture(computePipeline.getOutputTexture());
     // square.addTexture(computePipeline.getCustomTexture());
 
@@ -116,18 +112,18 @@ int main() {
     PixelObject square = PixelObject::Square();
     PixelObject ground = PixelObject::Square();
 
-    square.addTexture(pixRenderer.getDevices(), "assets/staticmanicon.jpg");
+    // square.addTexture(pixRenderer.getDevices(), "assets/staticmanicon.jpg");
 
     glm::mat4 newTransform = {square.getPushObj()->M};
     newTransform[3][1] += 1.0f;
     square.setTransform(newTransform);
-    mainScene->addObject(std::make_shared<PixelObject>(square));
-    // mainScene->addObject(std::make_shared<PixelObject>(ground));
+    // mainScene->addObject(std::make_shared<PixelObject>(square));
+    // // mainScene->addObject(std::make_shared<PixelObject>(ground));
 
-    pixRenderer.build(mainScene);
-    pixRenderer.run();
+    // pixRenderer.build(mainScene);
+    PixelRenderer::Run();
 
-    pixRenderer.cleanup();
+    // pixRenderer.cleanup();
 
     PixelMemory::FreeGlobalMemory();
 
